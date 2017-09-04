@@ -208,7 +208,7 @@ class Trashbin {
 		$view = new View('/');
 		self::copy_recursive($source, $target, $view);
 
-		self::retainVersions($targetFilename, $owner, $ownerPath, $timestamp, true);
+		self::retainVersions($targetFilename, $owner, $ownerPath, $timestamp, false,true);
 
 		if ($view->file_exists($target)) {
 			self::insertTrashEntry($owner, $targetFilename, $targetLocation, $timestamp);
@@ -304,7 +304,7 @@ class Trashbin {
 			\OCP\Util::emitHook('\OCA\Files_Trashbin\Trashbin', 'post_moveToTrash', ['filePath' => Filesystem::normalizePath($file_path),
 				'trashPath' => Filesystem::normalizePath($filename . '.d' . $timestamp)]);
 
-			self::retainVersions($filename, $owner, $ownerPath, $timestamp);
+			self::retainVersions($filename, $owner, $ownerPath, $timestamp, $sourceStorage);
 
 			// if owner !== user we need to also add a copy to the owners trash
 			if ($user !== $owner) {
@@ -331,8 +331,18 @@ class Trashbin {
 	 * @param integer $timestamp when the file was deleted
 	 * @param bool $forceCopy true to only make a copy of the versions into the trashbin
 	 */
-	private static function retainVersions($filename, $owner, $ownerPath, $timestamp, $forceCopy = false) {
+	private static function retainVersions($filename, $owner, $ownerPath, $timestamp, $sourceStorage= false, $forceCopy = false) {
 		if (\OCP\App::isEnabled('files_versions') && !empty($ownerPath)) {
+
+			$copyKeysResult = false;
+
+			if (\OC::$server->getEncryptionManager()->isEnabled()) {
+				if ($sourceStorage !== false) {
+					$sourcePath = '/' . $owner . '/files_trashbin/files/'. $filename . '.d' . $timestamp;
+					$targetPath = '/' . $owner . '/files/' . $ownerPath;
+					$copyKeysResult = $sourceStorage->copyKeys($sourcePath, $targetPath);
+				}
+			}
 
 			$user = User::getUser();
 			$rootView = new View('/');
@@ -354,6 +364,10 @@ class Trashbin {
 						self::move($rootView, $owner . '/files_versions' . $v['path'] . '.v' . $v['version'], $user . '/files_trashbin/versions/' . $filename . '.v' . $v['version'] . '.d' . $timestamp);
 					}
 				}
+			}
+
+			if ($copyKeysResult === true) {
+				$sourceStorage->deleteAllFileKeys($filename);
 			}
 		}
 	}
