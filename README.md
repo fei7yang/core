@@ -43,3 +43,6 @@ https://www.transifex.com/projects/p/owncloud/
 
 For more detailed information about translations:
 https://doc.owncloud.org/server/10.0/developer_manual/core/translation.html
+
+
+This is a working copy of Eric Liu.
