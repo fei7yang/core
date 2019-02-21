@@ -5,7 +5,7 @@
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud GmbH.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -23,15 +23,12 @@
  */
 namespace Test\Files\External\Service;
 
-use OC\Files\External\StorageConfig;
-use OC\Files\External\Service\StoragesService;
 use OC\Files\External\Service\UserGlobalStoragesService;
+use OC\Files\External\StorageConfig;
+use OCP\Files\External\NotFoundException;
 use OCP\Files\External\Service\IStoragesService;
 use OCP\Files\External\Service\IUserGlobalStoragesService;
-
-use OCP\Files\External\NotFoundException;
 use OCP\IUser;
-
 use Test\Traits\UserTrait;
 
 /**
@@ -141,20 +138,18 @@ class UserGlobalStoragesServiceTest extends GlobalStoragesServiceTest {
 
 		$storages = $this->service->getAllStorages();
 		if ($isVisible) {
-			$this->assertEquals(1, count($storages));
+			$this->assertCount(1, $storages);
 			$retrievedStorage = $this->service->getStorage($newStorage->getId());
 			$this->assertEquals('/mountpoint', $retrievedStorage->getMountPoint());
 		} else {
-			$this->assertEquals(0, count($storages));
+			$this->assertCount(0, $storages);
 
 			try {
 				$this->service->getStorage($newStorage->getId());
 				$this->fail('Failed asserting that storage can\'t be accessed by id');
 			} catch (NotFoundException $e) {
-
 			}
 		}
-
 	}
 
 	/**
@@ -363,6 +358,11 @@ class UserGlobalStoragesServiceTest extends GlobalStoragesServiceTest {
 	}
 
 	public function testUpdateStorageMountPoint() {
+		// we don't test this here
+		$this->assertTrue(true);
+	}
+
+	public function testCannotEditInvalidBackend() {
 		// we don't test this here
 		$this->assertTrue(true);
 	}

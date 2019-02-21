@@ -2,7 +2,7 @@
 /**
  * @author Lukas Reschke <lukas@statuscode.ch>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -50,7 +50,7 @@ class CsrfTokenManager {
 	 * @return CsrfToken
 	 */
 	public function getToken() {
-		if($this->sessionStorage->hasToken()) {
+		if ($this->sessionStorage->hasToken()) {
 			$value = $this->sessionStorage->getToken();
 		} else {
 			$value = $this->tokenGenerator->generateToken();
@@ -85,11 +85,11 @@ class CsrfTokenManager {
 	 * @return bool
 	 */
 	public function isTokenValid(CsrfToken $token) {
-		if(!$this->sessionStorage->hasToken()) {
+		if (!$this->sessionStorage->hasToken()) {
 			return false;
 		}
 
-		return hash_equals(
+		return \hash_equals(
 			$this->sessionStorage->getToken(),
 			$token->getDecryptedValue()
 		);

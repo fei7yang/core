@@ -3,7 +3,7 @@
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -22,12 +22,10 @@
 
 namespace OC\User;
 
-
 use OCP\AppFramework\Db\Mapper;
 use OCP\IDBConnection;
 
 class AccountTermMapper extends Mapper {
-
 	public function __construct(IDBConnection $db) {
 		parent::__construct($db, 'account_terms', AccountTerm::class);
 	}
@@ -44,7 +42,7 @@ class AccountTermMapper extends Mapper {
 		foreach ($terms as $term) {
 			$t = new AccountTerm();
 			$t->setAccountId($account_id);
-			$t->setTerm(strtolower($term));
+			$t->setTerm(\strtolower($term));
 			$this->insert($t);
 		}
 	}

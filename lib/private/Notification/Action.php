@@ -2,7 +2,7 @@
 /**
  * @author Joas Schilling <coding@schilljs.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -20,7 +20,6 @@
  */
 
 namespace OC\Notification;
-
 
 use OCP\Notification\IAction;
 
@@ -62,7 +61,7 @@ class Action implements IAction {
 	 * @since 8.2.0
 	 */
 	public function setLabel($label) {
-		if (!is_string($label) || $label === '' || isset($label[32])) {
+		if (!\is_string($label) || $label === '' || isset($label[32])) {
 			throw new \InvalidArgumentException('The given label is invalid');
 		}
 		$this->label = $label;
@@ -84,7 +83,7 @@ class Action implements IAction {
 	 * @since 8.2.0
 	 */
 	public function setParsedLabel($label) {
-		if (!is_string($label) || $label === '') {
+		if (!\is_string($label) || $label === '') {
 			throw new \InvalidArgumentException('The given parsed label is invalid');
 		}
 		$this->labelParsed = $label;
@@ -106,7 +105,7 @@ class Action implements IAction {
 	 * @since 9.0.0
 	 */
 	public function setPrimary($primary) {
-		if (!is_bool($primary)) {
+		if (!\is_bool($primary)) {
 			throw new \InvalidArgumentException('The given primary option is invalid');
 		}
 
@@ -130,10 +129,10 @@ class Action implements IAction {
 	 * @since 8.2.0
 	 */
 	public function setLink($link, $requestType) {
-		if (!is_string($link) || $link === '' || isset($link[256])) {
+		if (!\is_string($link) || $link === '' || isset($link[256])) {
 			throw new \InvalidArgumentException('The given link is invalid');
 		}
-		if (!in_array($requestType, ['GET', 'POST', 'PUT', 'DELETE'], true)) {
+		if (!\in_array($requestType, ['GET', 'POST', 'PUT', 'DELETE'], true)) {
 			throw new \InvalidArgumentException('The given request type is invalid');
 		}
 		$this->link = $link;

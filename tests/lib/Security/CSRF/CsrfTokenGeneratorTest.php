@@ -2,7 +2,7 @@
 /**
  * @author Lukas Reschke <lukas@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -32,7 +32,6 @@ class CsrfTokenGeneratorTest extends \Test\TestCase {
 		$this->random = $this->getMockBuilder('\OCP\Security\ISecureRandom')
 			->disableOriginalConstructor()->getMock();
 		$this->csrfTokenGenerator = new \OC\Security\CSRF\CsrfTokenGenerator($this->random);
-
 	}
 
 	public function testGenerateTokenWithCustomNumber() {
@@ -53,4 +52,3 @@ class CsrfTokenGeneratorTest extends \Test\TestCase {
 		$this->assertSame('12345678901234567890123456789012', $this->csrfTokenGenerator->generateToken(32));
 	}
 }
-

@@ -2,7 +2,7 @@
 /**
  * @author Robin Appelman <icewind@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -34,15 +34,14 @@ class HomePropagator extends Propagator {
 		$this->ignoredBaseFolders = ['files_encryption'];
 	}
 
-
 	/**
 	 * @param string $internalPath
 	 * @param int $time
 	 * @param int $sizeDifference number of bytes the file has grown
 	 */
 	public function propagateChange($internalPath, $time, $sizeDifference = 0) {
-		list($baseFolder) = explode('/', $internalPath, 2);
-		if (in_array($baseFolder, $this->ignoredBaseFolders)) {
+		list($baseFolder) = \explode('/', $internalPath, 2);
+		if (\in_array($baseFolder, $this->ignoredBaseFolders)) {
 			return [];
 		} else {
 			parent::propagateChange($internalPath, $time, $sizeDifference);

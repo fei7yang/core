@@ -3,7 +3,7 @@
  * ownCloud
  *
  * @author Robin Appelman
- * @copyright 2012 Robin Appelman icewind@owncloud.com
+ * @copyright Copyright (c) 2012 Robin Appelman icewind@owncloud.com
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
@@ -23,6 +23,7 @@
 namespace Test\Files\Storage;
 
 use OC\Files\Cache\Watcher;
+use OCP\Files\Storage\IStorage;
 
 abstract class Storage extends \Test\TestCase {
 	/**
@@ -37,7 +38,7 @@ abstract class Storage extends \Test\TestCase {
 	 */
 	protected function wait() {
 		if ($this->waitDelay > 0) {
-			sleep($this->waitDelay);
+			\sleep($this->waitDelay);
 		}
 	}
 
@@ -80,7 +81,7 @@ abstract class Storage extends \Test\TestCase {
 
 		$dh = $this->instance->opendir('/');
 		$content = [];
-		while ($file = readdir($dh)) {
+		while ($file = \readdir($dh)) {
 			if ($file != '.' and $file != '..') {
 				$content[] = $file;
 			}
@@ -97,7 +98,7 @@ abstract class Storage extends \Test\TestCase {
 
 		$dh = $this->instance->opendir('/');
 		$content = [];
-		while ($file = readdir($dh)) {
+		while ($file = \readdir($dh)) {
 			if ($file != '.' and $file != '..') {
 				$content[] = $file;
 			}
@@ -127,7 +128,7 @@ abstract class Storage extends \Test\TestCase {
 		];
 	}
 
-	function loremFileProvider() {
+	public function loremFileProvider() {
 		$root = \OC::$SERVERROOT . '/tests/data/';
 		return [
 			// small file
@@ -143,7 +144,7 @@ abstract class Storage extends \Test\TestCase {
 	 * @dataProvider loremFileProvider
 	 */
 	public function testGetPutContents($sourceFile) {
-		$sourceText = file_get_contents($sourceFile);
+		$sourceText = \file_get_contents($sourceFile);
 
 		//fill a file with string data
 		$this->instance->file_put_contents('/lorem.txt', $sourceText);
@@ -160,21 +161,20 @@ abstract class Storage extends \Test\TestCase {
 	 */
 	public function testMimeType() {
 		$this->assertEquals('httpd/unix-directory', $this->instance->getMimeType('/'));
-		$this->assertEquals(false, $this->instance->getMimeType('/non/existing/file'));
+		$this->assertFalse($this->instance->getMimeType('/non/existing/file'));
 
 		$textFile = \OC::$SERVERROOT . '/tests/data/lorem.txt';
-		$this->instance->file_put_contents('/lorem.txt', file_get_contents($textFile, 'r'));
+		$this->instance->file_put_contents('/lorem.txt', \file_get_contents($textFile, 'r'));
 		$this->assertEquals('text/plain', $this->instance->getMimeType('/lorem.txt'));
 
 		$pngFile = \OC::$SERVERROOT . '/tests/data/desktopapp.png';
-		$this->instance->file_put_contents('/desktopapp.png', file_get_contents($pngFile, 'r'));
+		$this->instance->file_put_contents('/desktopapp.png', \file_get_contents($pngFile, 'r'));
 		$this->assertEquals('image/png', $this->instance->getMimeType('/desktopapp.png'));
 
 		$svgFile = \OC::$SERVERROOT . '/tests/data/desktopapp.svg';
-		$this->instance->file_put_contents('/desktopapp.svg', file_get_contents($svgFile, 'r'));
+		$this->instance->file_put_contents('/desktopapp.svg', \file_get_contents($svgFile, 'r'));
 		$this->assertEquals('image/svg+xml', $this->instance->getMimeType('/desktopapp.svg'));
 	}
-
 
 	public function copyAndMoveProvider() {
 		return [
@@ -191,7 +191,7 @@ abstract class Storage extends \Test\TestCase {
 
 	public function initSourceAndTarget($source, $target = null) {
 		$textFile = \OC::$SERVERROOT . '/tests/data/lorem.txt';
-		$this->instance->file_put_contents($source, file_get_contents($textFile));
+		$this->instance->file_put_contents($source, \file_get_contents($textFile));
 		if ($target) {
 			$testContents = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 			$this->instance->file_put_contents($target, $testContents);
@@ -201,7 +201,7 @@ abstract class Storage extends \Test\TestCase {
 	public function assertSameAsLorem($file) {
 		$textFile = \OC::$SERVERROOT . '/tests/data/lorem.txt';
 		$this->assertEquals(
-			file_get_contents($textFile),
+			\file_get_contents($textFile),
 			$this->instance->file_get_contents($file),
 			'Expected ' . $file . ' to be a copy of ' . $textFile
 		);
@@ -263,45 +263,58 @@ abstract class Storage extends \Test\TestCase {
 
 	public function testLocal() {
 		$textFile = \OC::$SERVERROOT . '/tests/data/lorem.txt';
-		$this->instance->file_put_contents('/lorem.txt', file_get_contents($textFile));
+		$this->instance->file_put_contents('/lorem.txt', \file_get_contents($textFile));
 		$localFile = $this->instance->getLocalFile('/lorem.txt');
-		$this->assertTrue(file_exists($localFile));
-		$this->assertEquals(file_get_contents($textFile), file_get_contents($localFile));
+		$this->assertFileExists($localFile);
+		$this->assertFileEquals($textFile, $localFile);
 
 		$this->instance->mkdir('/folder');
-		$this->instance->file_put_contents('/folder/lorem.txt', file_get_contents($textFile));
+		$this->instance->file_put_contents('/folder/lorem.txt', \file_get_contents($textFile));
 		$this->instance->file_put_contents('/folder/bar.txt', 'asd');
 		$this->instance->mkdir('/folder/recursive');
 		$this->instance->file_put_contents('/folder/recursive/file.txt', 'foo');
 
 		// test below require to use instance->getLocalFile because the physical storage might be different
 		$localFile = $this->instance->getLocalFile('/folder/lorem.txt');
-		$this->assertTrue(file_exists($localFile));
-		$this->assertEquals(file_get_contents($localFile), file_get_contents($textFile));
+		$this->assertFileExists($localFile);
+		$this->assertFileEquals($localFile, $textFile);
 
 		$localFile = $this->instance->getLocalFile('/folder/bar.txt');
-		$this->assertTrue(file_exists($localFile));
-		$this->assertEquals(file_get_contents($localFile), 'asd');
+		$this->assertFileExists($localFile);
+		$this->assertEquals(\file_get_contents($localFile), 'asd');
 
 		$localFile = $this->instance->getLocalFile('/folder/recursive/file.txt');
-		$this->assertTrue(file_exists($localFile));
-		$this->assertEquals(file_get_contents($localFile), 'foo');
+		$this->assertFileExists($localFile);
+		$this->assertEquals(\file_get_contents($localFile), 'foo');
 	}
 
 	public function testStat() {
 		$textFile = \OC::$SERVERROOT . '/tests/data/lorem.txt';
-		$ctimeStart = time();
-		$this->instance->file_put_contents('/lorem.txt', file_get_contents($textFile));
+
+		// The back-end storage system-under-test will have some (slightly different?)
+		// clock to the script on the local system running this test. So first find out that difference.
+		// The purpose of the time-related tests here is to verify that timestamps
+		// on the back-end storage happen in a consistent manner.
+		// It is expected that timestamps will vary by whatever is the offset between
+		// the back-end storage time and the time on the local system.
+		$this->instance->file_put_contents('/timecheck.txt', \file_get_contents($textFile));
+		$mTime = $this->instance->filemtime('/timecheck.txt');
+		$currentTime = \time();
+		$fileSystemTimeOffset = $mTime - $currentTime;
+		$this->instance->unlink('/timecheck.txt');
+
+		$ctimeStart = \time() + $fileSystemTimeOffset;
+		$this->instance->file_put_contents('/lorem.txt', \file_get_contents($textFile));
 		$this->assertTrue($this->instance->isReadable('/lorem.txt'));
-		$ctimeEnd = time();
+		$ctimeEnd = \time() + $fileSystemTimeOffset;
 		$mTime = $this->instance->filemtime('/lorem.txt');
 		$this->assertTrue($this->instance->hasUpdated('/lorem.txt', $ctimeStart - 5));
 		$this->assertTrue($this->instance->hasUpdated('/', $ctimeStart - 5));
 
-		// check that ($ctimeStart - 5) <= $mTime <= ($ctimeEnd + 1)
+		// check that ($ctimeStart - 5) <= $mTime <= ($ctimeEnd + 5)
 		$this->assertGreaterThanOrEqual(($ctimeStart - 5), $mTime);
-		$this->assertLessThanOrEqual(($ctimeEnd + 1), $mTime);
-		$this->assertEquals(filesize($textFile), $this->instance->filesize('/lorem.txt'));
+		$this->assertLessThanOrEqual(($ctimeEnd + 5), $mTime);
+		$this->assertEquals(\filesize($textFile), $this->instance->filesize('/lorem.txt'));
 
 		$stat = $this->instance->stat('/lorem.txt');
 		//only size and mtime are required in the result
@@ -313,7 +326,7 @@ abstract class Storage extends \Test\TestCase {
 			$this->assertEquals($mTime, 100);
 		}
 
-		$mtimeStart = time();
+		$mtimeStart = \time() + $fileSystemTimeOffset;
 
 		$this->instance->unlink('/lorem.txt');
 		$this->assertTrue($this->instance->hasUpdated('/', $mtimeStart - 5));
@@ -330,14 +343,14 @@ abstract class Storage extends \Test\TestCase {
 		$textFile = \OC::$SERVERROOT . '/tests/data/lorem.txt';
 		$watcher = $this->instance->getWatcher();
 		$watcher->setPolicy(Watcher::CHECK_ALWAYS);
-		$this->instance->file_put_contents('/lorem.txt', file_get_contents($textFile));
+		$this->instance->file_put_contents('/lorem.txt', \file_get_contents($textFile));
 		$this->assertTrue($watcher->checkUpdate('/lorem.txt'), 'Update detected');
 		$this->assertFalse($watcher->checkUpdate('/lorem.txt'), 'No update');
 	}
 
 	public function testUnlink() {
 		$textFile = \OC::$SERVERROOT . '/tests/data/lorem.txt';
-		$this->instance->file_put_contents('/lorem.txt', file_get_contents($textFile));
+		$this->instance->file_put_contents('/lorem.txt', \file_get_contents($textFile));
 
 		$this->assertTrue($this->instance->file_exists('/lorem.txt'));
 
@@ -355,19 +368,19 @@ abstract class Storage extends \Test\TestCase {
 
 		$fh = @$this->instance->fopen($fileName, 'r');
 		if ($fh) {
-			fclose($fh);
+			\fclose($fh);
 		}
 		$this->assertFalse($fh);
 		$this->assertFalse($this->instance->file_exists($fileName));
 
 		$fh = $this->instance->fopen($fileName, 'w');
-		fwrite($fh, file_get_contents($textFile));
-		fclose($fh);
+		\fwrite($fh, \file_get_contents($textFile));
+		\fclose($fh);
 		$this->assertTrue($this->instance->file_exists($fileName));
 
 		$fh = $this->instance->fopen($fileName, 'r');
-		$content = stream_get_contents($fh);
-		$this->assertEquals(file_get_contents($textFile), $content);
+		$content = \stream_get_contents($fh);
+		$this->assertEquals(\file_get_contents($textFile), $content);
 	}
 
 	public function testTouchCreateFile() {
@@ -424,8 +437,8 @@ abstract class Storage extends \Test\TestCase {
 	 */
 	public function testHash($data, $type) {
 		$this->instance->file_put_contents('hash.txt', $data);
-		$this->assertEquals(hash($type, $data), $this->instance->hash($type, 'hash.txt'));
-		$this->assertEquals(hash($type, $data, true), $this->instance->hash($type, 'hash.txt', true));
+		$this->assertEquals(\hash($type, $data), $this->instance->hash($type, 'hash.txt'));
+		$this->assertEquals(\hash($type, $data, true), $this->instance->hash($type, 'hash.txt', true));
 	}
 
 	public function testHashInFileName() {
@@ -438,7 +451,7 @@ abstract class Storage extends \Test\TestCase {
 
 		$dh = $this->instance->opendir('#foo');
 		$content = [];
-		while ($file = readdir($dh)) {
+		while ($file = \readdir($dh)) {
 			if ($file != '.' and $file != '..') {
 				$content[] = $file;
 			}
@@ -567,8 +580,8 @@ abstract class Storage extends \Test\TestCase {
 	}
 
 	public function testInstanceOfStorage() {
-		$this->assertTrue($this->instance->instanceOfStorage('\OCP\Files\Storage'));
-		$this->assertTrue($this->instance->instanceOfStorage(get_class($this->instance)));
+		$this->assertTrue($this->instance->instanceOfStorage(IStorage::class));
+		$this->assertTrue($this->instance->instanceOfStorage(\get_class($this->instance)));
 		$this->assertFalse($this->instance->instanceOfStorage('\OC'));
 	}
 
@@ -616,8 +629,8 @@ abstract class Storage extends \Test\TestCase {
 		$this->assertEquals(3, $stat['size']);
 
 		$fh = $this->instance->fopen('foo.txt', 'w');
-		fwrite($fh, 'qwerty');
-		fclose($fh);
+		\fwrite($fh, 'qwerty');
+		\fclose($fh);
 
 		$stat = $this->instance->stat('foo.txt');
 		$this->assertEquals(6, $stat['size']);

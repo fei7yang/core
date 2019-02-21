@@ -3,7 +3,7 @@
  * @author Lukas Reschke <lukas@owncloud.com>
  * @author Semih Serhat Karakaya <karakayasemi@itu.edu.tr>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -139,13 +139,13 @@ class LoginControllerTest extends TestCase {
 
 	public function testResponseForNotLoggedinUser() {
 		$params = [
-			'messages' => Array (),
+			'messages' =>  [],
 			'loginName' => '',
 			'user_autofocus' => true,
 			'redirect_url' => '%2Findex.php%2Ff%2F17',
 			'canResetPassword' => true,
 			'resetPasswordLink' => null,
-			'alt_login' => Array (),
+			'alt_login' =>  [],
 			'rememberLoginAllowed' => false,
 			'rememberLoginState' => 0
 		];
@@ -318,6 +318,7 @@ class LoginControllerTest extends TestCase {
 
 		$this->userSession->expects($this->never())
 			->method('createSessionToken');
+		$this->userManager->expects($this->any())->method('getByEmail')->willReturn([]);
 
 		$expected = new RedirectResponse($loginPageUrl);
 		$this->assertEquals($expected, $this->loginController->tryLogin($user, $password, '/foo'));
@@ -346,7 +347,7 @@ class LoginControllerTest extends TestCase {
 
 		$expected = new RedirectResponse($indexPageUrl);
 
-		$this->loginController = $this->getMockBuilder('OC\Core\Controller\LoginController')
+		$this->loginController = $this->getMockBuilder(LoginController::class)
 			->setMethods(['getDefaultUrl'])
 			->setConstructorArgs([
 				'core',
@@ -392,10 +393,10 @@ class LoginControllerTest extends TestCase {
 			->will($this->returnValue(true));
 		$this->urlGenerator->expects($this->once())
 			->method('getAbsoluteURL')
-			->with(urldecode($originalUrl))
+			->with(\urldecode($originalUrl))
 			->will($this->returnValue($redirectUrl));
 
-		$expected = new RedirectResponse(urldecode($redirectUrl));
+		$expected = new RedirectResponse(\urldecode($redirectUrl));
 		$this->assertEquals($expected, $this->loginController->tryLogin('Jane', $password, $originalUrl));
 	}
 	

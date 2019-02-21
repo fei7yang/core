@@ -1,7 +1,7 @@
 <?php
 /**
  * @author Tom Needham
- * @copyright 2016 Tom Needham tom@owncloud.com
+ * @copyright Copyright (c) 2016 Tom Needham tom@owncloud.com
  *
  * This file is licensed under the Affero General Public License version 3 or
  * later.
@@ -25,7 +25,7 @@ class LegacyTest extends \Test\TestCase {
 
 	public function setUp() {
 		parent::setUp();
-        $this->helper = $this->getMockBuilder(Helper::class)->getMock();
+		$this->helper = $this->getMockBuilder(Helper::class)->getMock();
 		$this->panel = new Legacy($this->helper);
 	}
 
@@ -34,23 +34,22 @@ class LegacyTest extends \Test\TestCase {
 	}
 
 	public function testGetPriority() {
-		$this->assertTrue(is_integer($this->panel->getPriority()));
-		$this->assertTrue($this->panel->getPriority() < 50);
-        $this->assertTrue($this->panel->getPriority() > -50);
+		$this->assertInternalType('int', $this->panel->getPriority());
+		$this->assertLessThan(50, $this->panel->getPriority());
+		$this->assertGreaterThan(-50, $this->panel->getPriority());
 	}
 
 	public function testGetPanel() {
-        $this->helper->expects($this->once())->method('getAdminForms')->willReturn([
-            [
-                'page' => 'form 1'
-            ],
-            [
-                'page' => 'form 2'
-            ]
-        ]);
+		$this->helper->expects($this->once())->method('getAdminForms')->willReturn([
+			[
+				'page' => 'form 1'
+			],
+			[
+				'page' => 'form 2'
+			]
+		]);
 		$templateHtml = $this->panel->getPanel()->fetchPage();
 		$this->assertContains('form 1', $templateHtml);
-        $this->assertContains('form 2', $templateHtml);
+		$this->assertContains('form 2', $templateHtml);
 	}
-
 }

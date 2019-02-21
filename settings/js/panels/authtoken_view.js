@@ -3,7 +3,7 @@
 /**
  * @author Christoph Wurst <christoph@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -176,9 +176,14 @@
 
 		_addAppPassword: function() {
 			var _this = this;
-			this._toggleAddingToken(true);
 
 			var deviceName = this._tokenName.val();
+			if (!deviceName) {
+				OC.Notification.showTemporary(t('core', 'Empty app name is not allowed.'));
+				return;
+			}
+
+			this._toggleAddingToken(true);
 			var creatingToken = $.ajax(OC.generateUrl('/settings/personal/authtokens'), {
 				method: 'POST',
 				data: {

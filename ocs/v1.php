@@ -13,7 +13,7 @@
  * @author Vincent Petry <pvince81@owncloud.com>
  * @author Semih Serhat Karakaya <karakayasemi@itu.edu.tr>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -35,7 +35,6 @@ use OC\OCS\Result;
 use OC\User\LoginException;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 use Symfony\Component\Routing\Exception\MethodNotAllowedException;
-use OCP\Http\HttpEvents;
 
 require_once __DIR__ . '/../lib/base.php';
 
@@ -84,7 +83,7 @@ try {
  * Then we try the old OCS routes
  */
 try {
-	if(!\OC::$server->getUserSession()->isLoggedIn()) {
+	if (!\OC::$server->getUserSession()->isLoggedIn() || !\OC::$server->getUserSession()->verifyAuthHeaders(\OC::$server->getRequest())) {
 		OC::handleLogin(\OC::$server->getRequest());
 	}
 

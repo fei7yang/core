@@ -8,7 +8,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -26,7 +26,7 @@
  */
 // in case there are private configurations in the users home -> use them
 $privateConfigFile = $_SERVER['HOME'] . '/owncloud-extfs-test-config.php';
-if (file_exists($privateConfigFile)) {
+if (\file_exists($privateConfigFile)) {
 	$config = include($privateConfigFile);
 	return $config;
 }
@@ -71,18 +71,6 @@ return [
 		'share'=>'/test',
 		'root'=>'/test/',
 	],
-	'amazons3'=> [
-		'run'=>false,
-		'key'=>'test',
-		'secret'=>'test',
-		'bucket'=>'bucket'
-		//'hostname' => 'your.host.name',
-		//'port' => '443',
-		//'use_ssl' => 'true',
-		//'region' => 'eu-west-1',
-		//'test'=>'true',
-		//'timeout'=>20
-	],
 	'sftp' => [
 		'run'=>false,
 		'host'=>'localhost',
@@ -91,11 +79,11 @@ return [
 		'root'=>'/test'
 	],
 	'sftp_key' => [
-                'run'=>false,
-                'host'=>'localhost',
-                'user'=>'test',
-                'public_key'=>'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQDJPTvz3OLonF2KSGEKP/nd4CPmRYvemG2T4rIiNYjDj0U5y+2sKEWbjiUlQl2bsqYuVoJ+/UNJlGQbbZ08kQirFeo1GoWBzqioaTjUJfbLN6TzVVKXxR9YIVmH7Ajg2iEeGCndGgbmnPfj+kF9TR9IH8vMVvtubQwf7uEwB0ALhw== phpseclib-generated-key',
+				'run'=>false,
+				'host'=>'localhost',
+				'user'=>'test',
+				'public_key'=>'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQDJPTvz3OLonF2KSGEKP/nd4CPmRYvemG2T4rIiNYjDj0U5y+2sKEWbjiUlQl2bsqYuVoJ+/UNJlGQbbZ08kQirFeo1GoWBzqioaTjUJfbLN6TzVVKXxR9YIVmH7Ajg2iEeGCndGgbmnPfj+kF9TR9IH8vMVvtubQwf7uEwB0ALhw== phpseclib-generated-key',
 		'private_key'=>'test',
-                'root'=>'/test'
+				'root'=>'/test'
 	],
 ];

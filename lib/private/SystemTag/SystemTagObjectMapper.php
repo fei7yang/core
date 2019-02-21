@@ -3,7 +3,7 @@
  * @author Joas Schilling <coding@schilljs.com>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -33,8 +33,8 @@ use OCP\SystemTag\TagNotFoundException;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class SystemTagObjectMapper implements ISystemTagObjectMapper {
-
 	const RELATION_TABLE = 'systemtag_object_mapping';
+	const CHUNK_SIZE = 200;
 
 	/** @var ISystemTagManager */
 	protected $tagManager;
@@ -62,31 +62,36 @@ class SystemTagObjectMapper implements ISystemTagObjectMapper {
 	 * {@inheritdoc}
 	 */
 	public function getTagIdsForObjects($objIds, $objectType) {
-		if (!is_array($objIds)) {
+		if (!\is_array($objIds)) {
 			$objIds = [$objIds];
-		} else if (empty($objIds)) {
+		} elseif (empty($objIds)) {
 			return [];
 		}
 
 		$query = $this->connection->getQueryBuilder();
-		$query->select(['systemtagid', 'objectid'])
-			->from(self::RELATION_TABLE)
-			->where($query->expr()->in('objectid', $query->createParameter('objectids')))
-			->andWhere($query->expr()->eq('objecttype', $query->createParameter('objecttype')))
-			->setParameter('objectids', $objIds, IQueryBuilder::PARAM_INT_ARRAY)
-			->setParameter('objecttype', $objectType)
-			->addOrderBy('objectid', 'ASC')
-			->addOrderBy('systemtagid', 'ASC');
 
+		$objectIdChunks = \array_chunk($objIds, self::CHUNK_SIZE);
 		$mapping = [];
+		//Initialize mapping array
 		foreach ($objIds as $objId) {
 			$mapping[$objId] = [];
 		}
 
-		$result = $query->execute();
-		while ($row = $result->fetch()) {
-			$objectId = $row['objectid'];
-			$mapping[$objectId][] = $row['systemtagid'];
+		foreach ($objectIdChunks as $objectIdChunk) {
+			$query->select(['systemtagid', 'objectid'])
+				->from(self::RELATION_TABLE)
+				->where($query->expr()->in('objectid', $query->createParameter('objectids')))
+				->andWhere($query->expr()->eq('objecttype', $query->createParameter('objecttype')))
+				->setParameter('objectids', $objectIdChunk, IQueryBuilder::PARAM_INT_ARRAY)
+				->setParameter('objecttype', $objectType)
+				->addOrderBy('objectid', 'ASC')
+				->addOrderBy('systemtagid', 'ASC');
+
+			$result = $query->execute();
+			while ($row = $result->fetch()) {
+				$objectId = $row['objectid'];
+				$mapping[$objectId][] = $row['systemtagid'];
+			}
 		}
 
 		$result->closeCursor();
@@ -98,7 +103,7 @@ class SystemTagObjectMapper implements ISystemTagObjectMapper {
 	 * {@inheritdoc}
 	 */
 	public function getObjectIdsForTags($tagIds, $objectType, $limit = 0, $offset = '') {
-		if (!is_array($tagIds)) {
+		if (!\is_array($tagIds)) {
 			$tagIds = [$tagIds];
 		}
 
@@ -111,7 +116,7 @@ class SystemTagObjectMapper implements ISystemTagObjectMapper {
 			->andWhere($query->expr()->eq('objecttype', $query->createNamedParameter($objectType)));
 
 		if ($limit) {
-			if (sizeof($tagIds) !== 1) {
+			if (\sizeof($tagIds) !== 1) {
 				throw new \InvalidArgumentException('Limit is only allowed with a single tag');
 			}
 
@@ -137,7 +142,7 @@ class SystemTagObjectMapper implements ISystemTagObjectMapper {
 	 * {@inheritdoc}
 	 */
 	public function assignTags($objId, $objectType, $tagIds) {
-		if (!is_array($tagIds)) {
+		if (!\is_array($tagIds)) {
 			$tagIds = [$tagIds];
 		}
 
@@ -172,7 +177,7 @@ class SystemTagObjectMapper implements ISystemTagObjectMapper {
 	 * {@inheritdoc}
 	 */
 	public function unassignTags($objId, $objectType, $tagIds) {
-		if (!is_array($tagIds)) {
+		if (!\is_array($tagIds)) {
 			$tagIds = [$tagIds];
 		}
 
@@ -202,7 +207,7 @@ class SystemTagObjectMapper implements ISystemTagObjectMapper {
 	public function haveTag($objIds, $objectType, $tagId, $all = true) {
 		$this->assertTagsExist([$tagId]);
 
-		if (!is_array($objIds)) {
+		if (!\is_array($objIds)) {
 			$objIds = [$objIds];
 		}
 
@@ -230,7 +235,7 @@ class SystemTagObjectMapper implements ISystemTagObjectMapper {
 		$result->closeCursor();
 
 		if ($all) {
-			return ((int)$row[0] === count($objIds));
+			return ((int)$row[0] === \count($objIds));
 		} else {
 			return (bool) $row;
 		}
@@ -245,15 +250,15 @@ class SystemTagObjectMapper implements ISystemTagObjectMapper {
 	 */
 	private function assertTagsExist($tagIds) {
 		$tags = $this->tagManager->getTagsByIds($tagIds);
-		if (count($tags) !== count($tagIds)) {
+		if (\count($tags) !== \count($tagIds)) {
 			// at least one tag missing, bail out
-			$foundTagIds = array_map(
-				function(ISystemTag $tag) {
+			$foundTagIds = \array_map(
+				function (ISystemTag $tag) {
 					return $tag->getId();
 				},
 				$tags
 			);
-			$missingTagIds = array_diff($tagIds, $foundTagIds);
+			$missingTagIds = \array_diff($tagIds, $foundTagIds);
 			throw new TagNotFoundException(
 				'Tags not found', 0, null, $missingTagIds
 			);

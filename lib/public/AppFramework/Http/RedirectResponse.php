@@ -5,7 +5,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author v1r0x <vinzenz.rosenkranz@gmail.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -22,19 +22,15 @@
  *
  */
 
-
 namespace OCP\AppFramework\Http;
 
-use OCP\AppFramework\Http\Response;
 use OCP\AppFramework\Http;
-
 
 /**
  * Redirects to a different URL
  * @since 7.0.0
  */
 class RedirectResponse extends Response {
-
 	private $redirectURL;
 
 	/**
@@ -48,7 +44,6 @@ class RedirectResponse extends Response {
 		$this->addHeader('Location', $redirectURL);
 	}
 
-
 	/**
 	 * @return string the url to redirect
 	 * @since 7.0.0
@@ -56,6 +51,4 @@ class RedirectResponse extends Response {
 	public function getRedirectURL() {
 		return $this->redirectURL;
 	}
-
-
 }

@@ -3,7 +3,7 @@
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -20,9 +20,7 @@
  *
  */
 
-
 namespace OCA\Federation\Tests\Controller;
-
 
 use OCA\Federation\Controller\SettingsController;
 use OCP\AppFramework\Http\DataResponse;
@@ -71,7 +69,7 @@ class SettingsControllerTest extends TestCase {
 			->willReturn(true);
 
 		$result = $this->controller->addServer('url');
-		$this->assertTrue($result instanceof DataResponse);
+		$this->assertInstanceOf(DataResponse::class, $result);
 
 		$data = $result->getData();
 		$this->assertSame(200, $result->getStatus());
@@ -105,7 +103,7 @@ class SettingsControllerTest extends TestCase {
 		$this->trustedServers->expects($this->once())->method('removeServer')
 		->with('url');
 		$result = $this->controller->removeServer('url');
-		$this->assertTrue($result instanceof DataResponse);
+		$this->assertInstanceOf(DataResponse::class, $result);
 		$this->assertSame(200, $result->getStatus());
 	}
 
@@ -124,7 +122,6 @@ class SettingsControllerTest extends TestCase {
 		$this->assertTrue(
 			$this->invokePrivate($this->controller, 'checkServer', ['url'])
 		);
-
 	}
 
 	/**
@@ -149,7 +146,6 @@ class SettingsControllerTest extends TestCase {
 		$this->assertTrue(
 			$this->invokePrivate($this->controller, 'checkServer', ['url'])
 		);
-
 	}
 
 	/**
@@ -163,5 +159,4 @@ class SettingsControllerTest extends TestCase {
 			[false, false]
 		];
 	}
-
 }

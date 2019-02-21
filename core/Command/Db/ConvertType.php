@@ -7,7 +7,7 @@
  * @author tbelau666 <thomas.belau@gmx.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -61,56 +61,56 @@ class ConvertType extends Command {
 	protected function configure() {
 		$this
 			->setName('db:convert-type')
-			->setDescription('Convert the ownCloud database to the newly configured one')
+			->setDescription('Convert the ownCloud database to the newly configured one.')
 			->addArgument(
 				'type',
 				InputArgument::REQUIRED,
-				'the type of the database to convert to'
+				'The type of the database to convert to.'
 			)
 			->addArgument(
 				'username',
 				InputArgument::REQUIRED,
-				'the username of the database to convert to'
+				'The username of the database to convert to.'
 			)
 			->addArgument(
 				'hostname',
 				InputArgument::REQUIRED,
-				'the hostname of the database to convert to'
+				'The hostname of the database to convert to.'
 			)
 			->addArgument(
 				'database',
 				InputArgument::REQUIRED,
-				'the name of the database to convert to'
+				'The name of the database to convert to.'
 			)
 			->addOption(
 				'port',
 				null,
 				InputOption::VALUE_REQUIRED,
-				'the port of the database to convert to'
+				'The port of the database to convert to.'
 			)
 			->addOption(
 				'password',
 				null,
 				InputOption::VALUE_REQUIRED,
-				'the password of the database to convert to. Will be asked when not specified. Can also be passed via stdin.'
+				'The password of the database to convert to. Will be asked when not specified. Can also be passed via stdin.'
 			)
 			->addOption(
 				'clear-schema',
 				null,
 				InputOption::VALUE_NONE,
-				'remove all tables from the destination database'
+				'Remove all tables from the destination database.'
 			)
 			->addOption(
 				'all-apps',
 				null,
 				InputOption::VALUE_NONE,
-				'whether to create schema for all apps instead of only installed apps'
+				'Whether to create schema for all apps instead of only installed apps.'
 			)
 			->addOption(
 				'chunk-size',
 				null,
 				InputOption::VALUE_REQUIRED,
-				'the maximum number of database rows to handle in a single query, bigger tables will be handled in chunks of this size. Lower this if the process runs out of memory during conversion.',
+				'The maximum number of database rows to handle in a single query, bigger tables will be handled in chunks of this size. Lower this if the process runs out of memory during conversion.',
 				1000
 			)
 		;
@@ -124,7 +124,7 @@ class ConvertType extends Command {
 			);
 		}
 		if ($type === $this->config->getSystemValue('dbtype', '')) {
-			throw new \InvalidArgumentException(sprintf(
+			throw new \InvalidArgumentException(\sprintf(
 				'Can not convert from %1$s to %1$s.',
 				$type
 			));
@@ -148,10 +148,10 @@ class ConvertType extends Command {
 
 		// Read from stdin. stream_set_blocking is used to prevent blocking
 		// when nothing is passed via stdin.
-		stream_set_blocking(STDIN, 0);
-		$password = file_get_contents('php://stdin');
-		stream_set_blocking(STDIN, 1);
-		if (trim($password) !== '') {
+		\stream_set_blocking(STDIN, 0);
+		$password = \file_get_contents('php://stdin');
+		\stream_set_blocking(STDIN, 1);
+		if (\trim($password) !== '') {
 			$input->setOption('password', $password);
 			return;
 		}
@@ -185,7 +185,7 @@ class ConvertType extends Command {
 		$fromTables = $this->getTables($fromDB);
 
 		// warn/fail if there are more tables in 'from' database
-		$extraFromTables = array_diff($fromTables, $toTables);
+		$extraFromTables = \array_diff($fromTables, $toTables);
 		if (!empty($extraFromTables)) {
 			$output->writeln('<comment>The following tables will not be converted:</comment>');
 			$output->writeln($extraFromTables);
@@ -199,7 +199,7 @@ class ConvertType extends Command {
 				return;
 			}
 		}
-		$intersectingTables = array_intersect($toTables, $fromTables);
+		$intersectingTables = \array_intersect($toTables, $fromTables);
 		$this->convertDB($fromDB, $toDB, $intersectingTables, $input, $output);
 	}
 
@@ -208,8 +208,8 @@ class ConvertType extends Command {
 		$schemaManager = new \OC\DB\MDB2SchemaManager($toDB);
 		$schemaManager->createDbFromStructure(\OC::$SERVERROOT.'/db_structure.xml');
 		$apps = $input->getOption('all-apps') ? \OC_App::getAllApps() : \OC_App::getEnabledApps();
-		foreach($apps as $app) {
-			if (file_exists(\OC_App::getAppPath($app).'/appinfo/database.xml')) {
+		foreach ($apps as $app) {
+			if (\file_exists(\OC_App::getAppPath($app).'/appinfo/database.xml')) {
 				$schemaManager->createDbFromStructure(\OC_App::getAppPath($app).'/appinfo/database.xml');
 			}
 		}
@@ -235,13 +235,13 @@ class ConvertType extends Command {
 		if (!empty($toTables)) {
 			$output->writeln('<info>Clearing schema in new database</info>');
 		}
-		foreach($toTables as $table) {
+		foreach ($toTables as $table) {
 			$db->getSchemaManager()->dropTable($table);
 		}
 	}
 
 	protected function getTables(Connection $db) {
-		$filterExpression = '/^' . preg_quote($this->config->getSystemValue('dbtableprefix', 'oc_')) . '/';
+		$filterExpression = '/^' . \preg_quote($this->config->getSystemValue('dbtableprefix', 'oc_')) . '/';
 		$db->getConfiguration()->
 			setFilterSchemaAssetsExpression($filterExpression);
 		return $db->getSchemaManager()->listTableNames();
@@ -260,7 +260,7 @@ class ConvertType extends Command {
 		$count = $result->fetchColumn();
 		$result->closeCursor();
 
-		$numChunks = ceil($count/$chunkSize);
+		$numChunks = \ceil($count/$chunkSize);
 		if ($numChunks > 1) {
 			$output->writeln('chunked query, ' . $numChunks . ' chunks');
 		}
@@ -268,7 +268,6 @@ class ConvertType extends Command {
 		$progress->start($count);
 		$redraw = $count > $chunkSize ? 100 : ($count > 100 ? 5 : 1);
 		$progress->setRedrawFrequency($redraw);
-
 
 		$query = $fromDB->getQueryBuilder();
 		$query->automaticTablePrefix(false);
@@ -309,7 +308,7 @@ class ConvertType extends Command {
 		$this->config->setSystemValue('maintenance', true);
 		try {
 			// copy table rows
-			foreach($tables as $table) {
+			foreach ($tables as $table) {
 				$output->writeln($table);
 				$this->copyTable($fromDB, $toDB, $table, $input, $output);
 			}
@@ -319,7 +318,7 @@ class ConvertType extends Command {
 			}
 			// save new database config
 			$this->saveDBInfo($input);
-		} catch(\Exception $e) {
+		} catch (\Exception $e) {
 			$this->config->setSystemValue('maintenance', false);
 			throw $e;
 		}

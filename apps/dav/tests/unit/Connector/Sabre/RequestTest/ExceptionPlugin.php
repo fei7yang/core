@@ -4,7 +4,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -23,16 +23,14 @@
 
 namespace OCA\DAV\Tests\unit\Connector\Sabre\RequestTest;
 
-use Sabre\DAV\Exception;
-
 class ExceptionPlugin extends \OCA\DAV\Connector\Sabre\ExceptionLoggerPlugin {
 	/**
 	 * @var \Exception[]
 	 */
 	protected $exceptions = [];
 
-	public function logException(\Exception $ex) {
-		$exceptionClass = get_class($ex);
+	public function logException(\Throwable $ex) {
+		$exceptionClass = \get_class($ex);
 		if (!isset($this->nonFatalExceptions[$exceptionClass])) {
 			$this->exceptions[] = $ex;
 		}

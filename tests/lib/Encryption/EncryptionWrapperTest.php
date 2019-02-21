@@ -2,7 +2,7 @@
 /**
  * @author Björn Schießle <schiessle@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -19,9 +19,7 @@
  *
  */
 
-
 namespace Test\Encryption;
-
 
 use OC\Encryption\EncryptionWrapper;
 use Test\TestCase;
@@ -50,7 +48,6 @@ class EncryptionWrapperTest extends TestCase {
 
 		$this->instance = new EncryptionWrapper($this->arrayCache, $this->manager, $this->logger);
 	}
-
 
 	/**
 	 * @dataProvider provideWrapStorage
@@ -97,5 +94,4 @@ class EncryptionWrapperTest extends TestCase {
 			[false, ['OCA\Files_Sharing\SharedStorage', 'OCA\Files_Sharing\External\Storage', 'OC\Files\Storage\OwnCloud']],
 		];
 	}
-
 }

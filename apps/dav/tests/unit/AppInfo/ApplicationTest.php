@@ -3,7 +3,7 @@
  * @author Joas Schilling <coding@schilljs.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -50,7 +50,7 @@ class ApplicationTest extends TestCase {
 	public function testContactsManagerSetup() {
 		$app = new Application();
 		$c = $app->getContainer();
-		$c->registerService(CardDavBackend::class, function($c) {
+		$c->registerService(CardDavBackend::class, function ($c) {
 			$service = $this->getMockBuilder('OCA\DAV\CardDAV\CardDavBackend')->disableOriginalConstructor()->getMock();
 			$service->method('getAddressBooksForUser')->willReturn([]);
 			return $service;

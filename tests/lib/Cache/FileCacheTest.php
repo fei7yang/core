@@ -3,7 +3,7 @@
  * ownCloud
  *
  * @author Robin Appelman
- * @copyright 2012 Robin Appelman icewind@owncloud.com
+ * @copyright Copyright (c) 2012 Robin Appelman icewind@owncloud.com
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
@@ -61,8 +61,8 @@ class FileCacheTest extends TestCache {
 		$this->storage = \OC\Files\Filesystem::getStorage('/');
 		\OC\Files\Filesystem::clearMounts();
 		$storage = new \OC\Files\Storage\Temporary([]);
-		\OC\Files\Filesystem::mount($storage, [],'/');
-		$datadir = str_replace('local::', '', $storage->getId());
+		\OC\Files\Filesystem::mount($storage, [], '/');
+		$datadir = \str_replace('local::', '', $storage->getId());
 		$config = \OC::$server->getConfig();
 		$this->datadir = $config->getSystemValue('cachedirectory', \OC::$SERVERROOT.'/data/cache');
 		$config->setSystemValue('cachedirectory', $datadir);
@@ -88,14 +88,14 @@ class FileCacheTest extends TestCache {
 			$this->instance->remove('hack', 'hack');
 		}
 
+		parent::tearDown();
+
 		\OC_User::setUserId($this->user);
 		\OC::$server->getConfig()->setSystemValue('cachedirectory', $this->datadir);
 
 		// Restore the original mount point
 		\OC\Files\Filesystem::clearMounts();
 		\OC\Files\Filesystem::mount($this->storage, [], '/');
-
-		parent::tearDown();
 	}
 
 	private function setupMockStorage() {
@@ -129,7 +129,7 @@ class FileCacheTest extends TestCache {
 
 		$mockStorage->expects($this->atLeastOnce())
 			->method('filemtime')
-			->will($this->returnValue(time() + 3600));
+			->will($this->returnValue(\time() + 3600));
 		$mockStorage->expects($this->never())
 			->method('unlink')
 			->with('key1');

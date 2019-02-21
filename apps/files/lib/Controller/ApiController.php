@@ -9,7 +9,7 @@
  * @author Tobias Kaminsky <tobias@kaminsky.me>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -28,17 +28,17 @@
 
 namespace OCA\Files\Controller;
 
-use OCP\AppFramework\Http;
-use OCP\AppFramework\Controller;
-use OCP\IConfig;
-use OCP\IRequest;
-use OCP\AppFramework\Http\DataResponse;
-use OCP\AppFramework\Http\DataDisplayResponse;
-use OCP\AppFramework\Http\Response;
 use OCA\Files\Service\TagService;
+use OCP\AppFramework\Controller;
+use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\DataDisplayResponse;
+use OCP\AppFramework\Http\DataResponse;
+use OCP\AppFramework\Http\Response;
+use OCP\IConfig;
 use OCP\IPreview;
-use OCP\Share\IManager;
+use OCP\IRequest;
 use OCP\IUserSession;
+use OCP\Share\IManager;
 
 /**
  * Class ApiController
@@ -95,7 +95,7 @@ class ApiController extends Controller {
 	 * @return DataResponse|DataDisplayResponse
 	 */
 	public function getThumbnail($x, $y, $file) {
-		if($x < 1 || $y < 1) {
+		if ($x < 1 || $y < 1) {
 			return new DataResponse(['message' => 'Requested size must be numeric and a positive value.'], Http::STATUS_BAD_REQUEST);
 		}
 
@@ -121,7 +121,7 @@ class ApiController extends Controller {
 	public function updateFileTags($path, $tags = null) {
 		$result = [];
 		// if tags specified or empty array, update tags
-		if (!is_null($tags)) {
+		if ($tags !== null) {
 			try {
 				$this->tagService->updateFileTags($path, $tags);
 			} catch (\OCP\Files\NotFoundException $e) {
@@ -149,12 +149,18 @@ class ApiController extends Controller {
 	 *
 	 * @param string $mode
 	 * @param string $direction
+	 * @param string $view
 	 * @return Response
 	 */
-	public function updateFileSorting($mode, $direction) {
+	public function updateFileSorting($mode, $direction, $view = 'files') {
+		// currently we only store for the files view
+		if ($view !== 'files') {
+			return new Response();
+		}
+		// TODO: also store for every view individually and allow for more modes
 		$allowedMode = ['name', 'size', 'mtime'];
 		$allowedDirection = ['asc', 'desc'];
-		if (!in_array($mode, $allowedMode) || !in_array($direction, $allowedDirection)) {
+		if (!\in_array($mode, $allowedMode) || !\in_array($direction, $allowedDirection)) {
 			$response = new Response();
 			$response->setStatus(Http::STATUS_UNPROCESSABLE_ENTITY);
 			return $response;
@@ -176,5 +182,4 @@ class ApiController extends Controller {
 		$this->config->setUserValue($this->userSession->getUser()->getUID(), 'files', 'show_hidden', (int) $show);
 		return new Response();
 	}
-
 }

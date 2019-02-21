@@ -8,7 +8,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Thomas Tanghus <thomas@tanghus.net>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -25,7 +25,6 @@
  *
  */
 
-
 namespace OC\AppFramework\Middleware\Security;
 
 use OC\AppFramework\Middleware\Security\Exceptions\AppNotEnabledException;
@@ -33,6 +32,7 @@ use OC\AppFramework\Middleware\Security\Exceptions\CrossSiteRequestForgeryExcept
 use OC\AppFramework\Middleware\Security\Exceptions\NotAdminException;
 use OC\AppFramework\Middleware\Security\Exceptions\NotLoggedInException;
 use OC\AppFramework\Utility\ControllerMethodReflector;
+use OC\Core\Controller\LoginController;
 use OC\Security\CSP\ContentSecurityPolicyManager;
 use OCP\AppFramework\Http\ContentSecurityPolicy;
 use OCP\AppFramework\Http\RedirectResponse;
@@ -45,6 +45,7 @@ use OCP\IURLGenerator;
 use OCP\IRequest;
 use OCP\ILogger;
 use OCP\AppFramework\Controller;
+use OCP\IUserSession;
 use OCP\Util;
 use OC\AppFramework\Middleware\Security\Exceptions\SecurityException;
 
@@ -68,11 +69,11 @@ class SecurityMiddleware extends Middleware {
 	/** @var ILogger */
 	private $logger;
 	/** @var bool */
-	private $isLoggedIn;
-	/** @var bool */
 	private $isAdminUser;
 	/** @var ContentSecurityPolicyManager */
 	private $contentSecurityPolicyManager;
+	/** @var IUserSession */
+	private $session;
 
 	/**
 	 * @param IRequest $request
@@ -80,8 +81,8 @@ class SecurityMiddleware extends Middleware {
 	 * @param INavigationManager $navigationManager
 	 * @param IURLGenerator $urlGenerator
 	 * @param ILogger $logger
+	 * @param IUserSession $session
 	 * @param string $appName
-	 * @param bool $isLoggedIn
 	 * @param bool $isAdminUser
 	 * @param ContentSecurityPolicyManager $contentSecurityPolicyManager
 	 */
@@ -90,8 +91,8 @@ class SecurityMiddleware extends Middleware {
 								INavigationManager $navigationManager,
 								IURLGenerator $urlGenerator,
 								ILogger $logger,
+								IUserSession $session,
 								$appName,
-								$isLoggedIn,
 								$isAdminUser,
 								ContentSecurityPolicyManager $contentSecurityPolicyManager) {
 		$this->navigationManager = $navigationManager;
@@ -100,11 +101,10 @@ class SecurityMiddleware extends Middleware {
 		$this->appName = $appName;
 		$this->urlGenerator = $urlGenerator;
 		$this->logger = $logger;
-		$this->isLoggedIn = $isLoggedIn;
+		$this->session = $session;
 		$this->isAdminUser = $isAdminUser;
 		$this->contentSecurityPolicyManager = $contentSecurityPolicyManager;
 	}
-
 
 	/**
 	 * This runs all the security checks before a method call. The
@@ -122,13 +122,13 @@ class SecurityMiddleware extends Middleware {
 
 		// security checks
 		$isPublicPage = $this->reflector->hasAnnotation('PublicPage');
-		if(!$isPublicPage) {
-			if(!$this->isLoggedIn) {
+		if (!$isPublicPage) {
+			if (!$this->isLoggedIn()) {
 				throw new NotLoggedInException();
 			}
 
-			if(!$this->reflector->hasAnnotation('NoAdminRequired')) {
-				if(!$this->isAdminUser) {
+			if (!$this->reflector->hasAnnotation('NoAdminRequired')) {
+				if (!$this->isAdminUser) {
 					throw new NotAdminException();
 				}
 			}
@@ -136,8 +136,8 @@ class SecurityMiddleware extends Middleware {
 
 		// CSRF check - also registers the CSRF token since the session may be closed later
 		Util::callRegister();
-		if(!$this->reflector->hasAnnotation('NoCSRFRequired')) {
-			if(!$this->request->passesCSRFCheck()) {
+		if (!$this->reflector->hasAnnotation('NoCSRFRequired')) {
+			if (!$this->request->passesCSRFCheck()) {
 				throw new CrossSiteRequestForgeryException();
 			}
 		}
@@ -148,10 +148,9 @@ class SecurityMiddleware extends Middleware {
 		 * The getAppPath() check is here since components such as settings also use the AppFramework and
 		 * therefore won't pass this check.
 		 */
-		if(\OC_App::getAppPath($this->appName) !== false && !\OC_App::isEnabled($this->appName)) {
+		if (\OC_App::getAppPath($this->appName) !== false && !\OC_App::isEnabled($this->appName)) {
 			throw new AppNotEnabledException();
 		}
-
 	}
 
 	/**
@@ -164,7 +163,7 @@ class SecurityMiddleware extends Middleware {
 	 * @return Response
 	 */
 	public function afterController($controller, $methodName, Response $response) {
-		$policy = !is_null($response->getContentSecurityPolicy()) ? $response->getContentSecurityPolicy() : new ContentSecurityPolicy();
+		$policy = $response->getContentSecurityPolicy() !== null ? $response->getContentSecurityPolicy() : new ContentSecurityPolicy();
 
 		$defaultPolicy = $this->contentSecurityPolicyManager->getDefaultPolicy();
 		$defaultPolicy = $this->contentSecurityPolicyManager->mergePolicies($defaultPolicy, $policy);
@@ -185,22 +184,35 @@ class SecurityMiddleware extends Middleware {
 	 * @return Response a Response object or null in case that the exception could not be handled
 	 */
 	public function afterException($controller, $methodName, \Exception $exception) {
-		if($exception instanceof SecurityException) {
-
-			if (stripos($this->request->getHeader('Accept'),'html') === false) {
+		if ($exception instanceof SecurityException) {
+			if (\stripos($this->request->getHeader('Accept'), 'html') === false) {
 				$response = new JSONResponse(
 					['message' => $exception->getMessage()],
 					$exception->getCode()
 				);
 			} else {
-				if($exception instanceof NotLoggedInException) {
+				if ($exception instanceof NotLoggedInException) {
 					$url = $this->urlGenerator->linkToRoute(
 						'core.login.showLoginForm',
 						[
-							'redirect_url' => urlencode($this->request->server['REQUEST_URI']),
+							'redirect_url' => \urlencode($this->request->server['REQUEST_URI']),
 						]
 					);
 					$response = new RedirectResponse($url);
+				} elseif (
+					$methodName === 'tryLogin'
+					&& $exception instanceof CrossSiteRequestForgeryException
+					&& $controller instanceof LoginController
+				) {
+					$this->logger->debug($exception->getMessage());
+					$controller->getSession()->set(
+						'loginMessages',
+						[
+							['csrf_error'],
+							[]
+						]
+					);
+					return $controller->showLoginForm(null, null, null);
 				} else {
 					$response = new TemplateResponse('core', '403', ['file' => $exception->getMessage()], 'guest');
 					$response->setStatus($exception->getCode());
@@ -214,4 +226,12 @@ class SecurityMiddleware extends Middleware {
 		throw $exception;
 	}
 
+	private function isLoggedIn() {
+		static $loginCalled = false;
+		if (!$loginCalled && !$this->session->isLoggedIn()) {
+			\OC::handleLogin($this->request);
+			$loginCalled = true;
+		}
+		return $this->session->isLoggedIn();
+	}
 }

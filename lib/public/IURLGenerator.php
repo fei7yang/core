@@ -5,7 +5,7 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -72,9 +72,9 @@ interface IURLGenerator {
 	 * @param string $file the name of the file
 	 * @return string the url
 	 * @since 6.0.0
+	 * @throws \RuntimeException
 	 */
 	public function imagePath($appName, $file);
-
 
 	/**
 	 * Makes an URL absolute

@@ -3,7 +3,7 @@
  * @author Bernhard Posselt <dev@bernhard-posselt.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -20,9 +20,7 @@
  *
  */
 
-
 namespace OCP\AppFramework\Db;
-
 
 /**
  * This is returned or should be returned when a find request does not find an
@@ -36,8 +34,7 @@ class DoesNotExistException extends \Exception {
 	 * @param string $msg the error message
 	 * @since 7.0.0
 	 */
-	public function __construct($msg){
+	public function __construct($msg) {
 		parent::__construct($msg);
 	}
-
 }

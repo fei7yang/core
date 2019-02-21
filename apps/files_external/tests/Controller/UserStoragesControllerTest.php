@@ -6,7 +6,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -24,8 +24,8 @@
  */
 namespace OCA\Files_External\Tests\Controller;
 
-use OCA\Files_External\Controller\UserStoragesController;
 use OC\Files\External\StorageConfig;
+use OCA\Files_External\Controller\UserStoragesController;
 use OCP\AppFramework\Http;
 use OCP\Files\External\IStoragesBackendService;
 
@@ -101,5 +101,4 @@ class UserStoragesControllerTest extends StoragesControllerTest {
 
 		$this->assertEquals(Http::STATUS_UNPROCESSABLE_ENTITY, $response->getStatus());
 	}
-
 }

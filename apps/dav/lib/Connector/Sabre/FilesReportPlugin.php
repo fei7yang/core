@@ -4,7 +4,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -25,20 +25,19 @@ namespace OCA\DAV\Connector\Sabre;
 
 use OC\Files\View;
 use OCA\DAV\Files\Xml\FilterRequest;
-use Sabre\DAV\Exception\PreconditionFailed;
+use OCP\Files\Folder;
+use OCP\IGroupManager;
+use OCP\ITagManager;
+use OCP\IUserSession;
+use OCP\SystemTag\ISystemTagManager;
+use OCP\SystemTag\ISystemTagObjectMapper;
+use OCP\SystemTag\TagNotFoundException;
 use Sabre\DAV\Exception\BadRequest;
+use Sabre\DAV\Exception\PreconditionFailed;
+use Sabre\DAV\PropFind;
 use Sabre\DAV\ServerPlugin;
 use Sabre\DAV\Tree;
 use Sabre\DAV\Xml\Element\Response;
-use Sabre\DAV\Xml\Response\MultiStatus;
-use Sabre\DAV\PropFind;
-use OCP\SystemTag\ISystemTagObjectMapper;
-use OCP\IUserSession;
-use OCP\Files\Folder;
-use OCP\IGroupManager;
-use OCP\SystemTag\ISystemTagManager;
-use OCP\SystemTag\TagNotFoundException;
-use OCP\ITagManager;
 
 class FilesReportPlugin extends ServerPlugin {
 
@@ -137,7 +136,6 @@ class FilesReportPlugin extends ServerPlugin {
 	 * @return void
 	 */
 	public function initialize(\Sabre\DAV\Server $server) {
-
 		$server->xml->namespaceMap[self::NS_OWNCLOUD] = 'oc';
 
 		$server->xml->elementMap[self::REPORT_NAME] = FilterRequest::class;
@@ -170,7 +168,6 @@ class FilesReportPlugin extends ServerPlugin {
 	 * @internal param $ [] $report
 	 */
 	public function onReport($reportName, $report, $uri) {
-
 		$reportTargetNode = $this->server->tree->getNodeForPath($uri);
 		if (!$reportTargetNode instanceof Directory || $reportName !== self::REPORT_NAME) {
 			return;
@@ -180,7 +177,7 @@ class FilesReportPlugin extends ServerPlugin {
 		$filterRules = $report->filters;
 
 		// "systemtag" is always an array of tags, favorite a string/int/null
-		if (empty($filterRules['systemtag']) && is_null($filterRules['favorite'])) {
+		if (empty($filterRules['systemtag']) && $filterRules['favorite'] === null) {
 			// FIXME: search currently not possible because results are missing properties!
 			throw new BadRequest('No filter criteria specified');
 		} else {
@@ -193,7 +190,7 @@ class FilesReportPlugin extends ServerPlugin {
 			try {
 				$resultFileIds = $this->processFilterRules($filterRules);
 			} catch (TagNotFoundException $e) {
-				throw new PreconditionFailed('Cannot filter by non-existing tag', 0, $e);
+				throw new PreconditionFailed('Cannot filter by non-existing tag');
 			}
 
 			// pre-slice the results if needed for pagination to not waste
@@ -217,10 +214,10 @@ class FilesReportPlugin extends ServerPlugin {
 	}
 
 	private function slice($results, $report) {
-		if (!is_null($report->search)) {
+		if ($report->search !== null) {
 			$length = $report->search['limit'];
 			$offset = $report->search['offset'];
-			$results = array_slice($results, $offset, $length);
+			$results = \array_slice($results, $offset, $length);
 		}
 		return $results;
 	}
@@ -235,14 +232,14 @@ class FilesReportPlugin extends ServerPlugin {
 	 * @return string files base uri
 	 */
 	private function getFilesBaseUri($uri, $subPath) {
-		$uri = trim($uri, '/');
-		$subPath = trim($subPath, '/');
+		$uri = \trim($uri, '/');
+		$subPath = \trim($subPath, '/');
 		if (empty($subPath)) {
 			$filesUri = $uri;
 		} else {
-			$filesUri = substr($uri, 0, strlen($uri) - strlen($subPath));
+			$filesUri = \substr($uri, 0, \strlen($uri) - \strlen($subPath));
 		}
-		$filesUri = trim($filesUri, '/');
+		$filesUri = \trim($filesUri, '/');
 		if (empty($filesUri)) {
 			return '';
 		}
@@ -274,7 +271,7 @@ class FilesReportPlugin extends ServerPlugin {
 			if (empty($resultFileIds)) {
 				$resultFileIds = $fileIds;
 			} else {
-				$resultFileIds = array_intersect($fileIds, $resultFileIds);
+				$resultFileIds = \array_intersect($fileIds, $resultFileIds);
 			}
 		}
 
@@ -296,7 +293,7 @@ class FilesReportPlugin extends ServerPlugin {
 			}
 
 			if (!empty($unknownTagIds)) {
-				throw new TagNotFoundException('Tag with ids ' . implode(', ', $unknownTagIds) . ' not found');
+				throw new TagNotFoundException('Tag with ids ' . \implode(', ', $unknownTagIds) . ' not found');
 			}
 		}
 
@@ -313,7 +310,7 @@ class FilesReportPlugin extends ServerPlugin {
 			if ($resultFileIds === null) {
 				$resultFileIds = $fileIds;
 			} else {
-				$resultFileIds = array_intersect($resultFileIds, $fileIds);
+				$resultFileIds = \array_intersect($resultFileIds, $fileIds);
 			}
 
 			if (empty($resultFileIds)) {
@@ -357,15 +354,15 @@ class FilesReportPlugin extends ServerPlugin {
 	 */
 	public function findNodesByFileIds($rootNode, $fileIds) {
 		$folder = $this->userFolder;
-		if (trim($rootNode->getPath(), '/') !== '') {
+		if (\trim($rootNode->getPath(), '/') !== '') {
 			$folder = $folder->get($rootNode->getPath());
 		}
 
 		$results = [];
 		foreach ($fileIds as $fileId) {
-			$entry = $folder->getById($fileId);
+			$entries = $folder->getById($fileId, true);
+			$entry = $entries[0] ?? null;
 			if ($entry) {
-				$entry = current($entry);
 				$node = $this->makeSabreNode($entry);
 				if ($node) {
 					$results[] = $node;
@@ -379,7 +376,7 @@ class FilesReportPlugin extends ServerPlugin {
 	private function makeSabreNode(\OCP\Files\Node $filesNode) {
 		if ($filesNode instanceof \OCP\Files\File) {
 			return new File($this->fileView, $filesNode);
-		} else if ($filesNode instanceof \OCP\Files\Folder) {
+		} elseif ($filesNode instanceof \OCP\Files\Folder) {
 			return new Directory($this->fileView, $filesNode);
 		}
 		throw new \Exception('Unrecognized Files API node returned, aborting');

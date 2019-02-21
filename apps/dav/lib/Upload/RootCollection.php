@@ -3,7 +3,7 @@
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -28,15 +28,14 @@ class RootCollection extends AbstractPrincipalCollection {
 	/**
 	 * @inheritdoc
 	 */
-	function getChildForPrincipal(array $principalInfo) {
+	public function getChildForPrincipal(array $principalInfo) {
 		return new UploadHome($principalInfo);
 	}
 
 	/**
 	 * @inheritdoc
 	 */
-	function getName() {
+	public function getName() {
 		return 'uploads';
 	}
-
 }

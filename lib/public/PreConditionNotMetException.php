@@ -2,7 +2,7 @@
 /**
  * @author Morris Jobke <hey@morrisjobke.de>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -27,4 +27,5 @@ namespace OCP;
  * Exception if the precondition of the config update method isn't met
  * @since 8.0.0
  */
-class PreConditionNotMetException extends \Exception {}
+class PreConditionNotMetException extends \Exception {
+}

@@ -2,7 +2,7 @@
 /**
  * @author Lukas Reschke <lukas@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -24,7 +24,7 @@ namespace Test\Security\CSRF;
 class CsrfTokenTest extends \Test\TestCase {
 	public function testGetEncryptedValue() {
 		$csrfToken = new \OC\Security\CSRF\CsrfToken('MyCsrfToken');
-		$this->assertSame(33, strlen($csrfToken->getEncryptedValue()));
+		$this->assertSame(33, \strlen($csrfToken->getEncryptedValue()));
 		$this->assertSame(':', $csrfToken->getEncryptedValue()[16]);
 	}
 

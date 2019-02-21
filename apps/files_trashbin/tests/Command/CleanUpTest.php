@@ -4,7 +4,7 @@
  * @author Joas Schilling <coding@schilljs.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,14 +21,12 @@
  *
  */
 
-
 namespace OCA\Files_Trashbin\Tests\Command;
 
-
-use OCA\Files_Trashbin\Command\CleanUp;
-use Test\TestCase;
 use OC\User\Manager;
+use OCA\Files_Trashbin\Command\CleanUp;
 use OCP\Files\IRootFolder;
+use Test\TestCase;
 
 /**
  * Class CleanUpTest
@@ -89,7 +87,7 @@ class CleanUpTest extends TestCase {
 			->from($this->trashTable)
 			->execute()
 			->fetchAll();
-		$this->assertSame(10, count($result));
+		$this->assertCount(10, $result);
 	}
 
 	/**
@@ -102,7 +100,7 @@ class CleanUpTest extends TestCase {
 			->method('nodeExists')
 			->with('/' . $this->user0 . '/files_trashbin')
 			->willReturn($nodeExists);
-		if($nodeExists) {
+		if ($nodeExists) {
 			$this->rootFolder->expects($this->once())
 				->method('get')
 				->with('/' . $this->user0 . '/files_trashbin')
@@ -122,7 +120,7 @@ class CleanUpTest extends TestCase {
 			$result = $query->select('user')
 				->from($this->trashTable)
 				->execute()->fetchAll();
-			$this->assertSame(5, count($result));
+			$this->assertCount(5, $result);
 			foreach ($result as $r) {
 				$this->assertSame('user1', $r['user']);
 			}
@@ -134,9 +132,8 @@ class CleanUpTest extends TestCase {
 				->from($this->trashTable)
 				->execute()
 				->fetchAll();
-			$this->assertSame(10, count($result));
+			$this->assertCount(10, $result);
 		}
-
 	}
 	public function dataTestRemoveDeletedFiles() {
 		return [
@@ -154,12 +151,12 @@ class CleanUpTest extends TestCase {
 			->setMethods(['removeDeletedFiles'])
 			->setConstructorArgs([$this->rootFolder, $this->userManager, $this->dbConnection])
 			->getMock();
-		$instance->expects($this->exactly(count($userIds)))
+		$instance->expects($this->exactly(\count($userIds)))
 			->method('removeDeletedFiles')
 			->willReturnCallback(function ($user) use ($userIds) {
-				$this->assertTrue(in_array($user, $userIds));
+				$this->assertContains($user, $userIds);
 			});
-		$this->userManager->expects($this->exactly(count($userIds)))
+		$this->userManager->expects($this->exactly(\count($userIds)))
 			->method('userExists')->willReturn(true);
 		$inputInterface = $this->getMockBuilder('\Symfony\Component\Console\Input\InputInterface')
 			->disableOriginalConstructor()->getMock();
@@ -181,15 +178,15 @@ class CleanUpTest extends TestCase {
 			->setMethods(['removeDeletedFiles'])
 			->setConstructorArgs([$this->rootFolder, $this->userManager, $this->dbConnection])
 			->getMock();
-		$backend = $this->getMockBuilder('OC_User_Interface')
+		$backend = $this->getMockBuilder(\OCP\UserInterface::class)
 			->disableOriginalConstructor()->getMock();
 		$backend->expects($this->once())->method('getUsers')
 			->with('', 500, 0)
 			->willReturn($backendUsers);
-		$instance->expects($this->exactly(count($backendUsers)))
+		$instance->expects($this->exactly(\count($backendUsers)))
 			->method('removeDeletedFiles')
 			->willReturnCallback(function ($user) use ($backendUsers) {
-				$this->assertTrue(in_array($user, $backendUsers));
+				$this->assertContains($user, $backendUsers);
 			});
 		$inputInterface = $this->getMockBuilder('\Symfony\Component\Console\Input\InputInterface')
 			->disableOriginalConstructor()->getMock();
@@ -203,5 +200,4 @@ class CleanUpTest extends TestCase {
 			->willReturn([$backend]);
 		$this->invokePrivate($instance, 'execute', [$inputInterface, $outputInterface]);
 	}
-
 }

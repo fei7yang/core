@@ -3,7 +3,7 @@
  * ownCloud
  *
  * @author Thomas Müller
- * @copyright 2012 Thomas Müller thomas.mueller@tmit.eu
+ * @copyright Copyright (c) 2012 Thomas Müller thomas.mueller@tmit.eu
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
@@ -74,7 +74,7 @@ class ContactsTest extends \Test\TestCase {
 		\OCP\Contacts::registerAddressBook($stub);
 		$all_books = \OCP\Contacts::getAddressBooks();
 
-		$this->assertEquals(1, count($all_books));
+		$this->assertCount(1, $all_books);
 		$this->assertEquals('A very simple Addressbook', $all_books['SIMPLE_ADDRESS_BOOK']);
 	}
 
@@ -108,13 +108,12 @@ class ContactsTest extends \Test\TestCase {
 		$all_books = \OCP\Contacts::getAddressBooks();
 
 		// assert the count - doesn't hurt
-		$this->assertEquals(2, count($all_books));
+		$this->assertCount(2, $all_books);
 
 		// perform the search
 		$result = \OCP\Contacts::search('x', []);
 
 		// we expect 4 hits
-		$this->assertEquals(4, count($result));
-
+		$this->assertCount(4, $result);
 	}
 }

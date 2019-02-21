@@ -6,7 +6,7 @@
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -93,7 +93,6 @@ class LockingTest extends TestCase {
 	}
 
 	public function testChangeLock() {
-
 		Filesystem::initMountPoints($this->recipientUid);
 		$recipientView = new View('/' . $this->recipientUid . '/files');
 		$recipientView->lockFile('bar.txt', ILockingProvider::LOCK_SHARED);

@@ -20,7 +20,7 @@
  * @author Tom Needham <tom@owncloud.com>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -81,11 +81,11 @@ class OC_User {
 	 */
 	public static function useBackend($backend = 'database') {
 		if ($backend instanceof \OCP\UserInterface) {
-			self::$_usedBackends[get_class($backend)] = $backend;
+			self::$_usedBackends[\get_class($backend)] = $backend;
 			\OC::$server->getUserManager()->registerBackend($backend);
 		} else {
 			// You'll never know what happens
-			if (null === $backend OR !is_string($backend)) {
+			if ($backend === null or !\is_string($backend)) {
 				$backend = 'database';
 			}
 
@@ -99,12 +99,13 @@ class OC_User {
 					\OC::$server->getUserManager()->registerBackend(self::$_usedBackends[$backend]);
 					break;
 				case 'dummy':
+					/* @phan-suppress-next-line PhanUndeclaredClassMethod */
 					self::$_usedBackends[$backend] = new \Test\Util\User\Dummy();
 					\OC::$server->getUserManager()->registerBackend(self::$_usedBackends[$backend]);
 					break;
 				default:
 					\OCP\Util::writeLog('core', 'Adding default user backend ' . $backend . '.', \OCP\Util::DEBUG);
-					$className = 'OC_USER_' . strtoupper($backend);
+					$className = 'OC_USER_' . \strtoupper($backend);
 					self::$_usedBackends[$backend] = new $className();
 					\OC::$server->getUserManager()->registerBackend(self::$_usedBackends[$backend]);
 					break;
@@ -132,13 +133,13 @@ class OC_User {
 			self::clearBackends();
 		}
 		foreach ($backends as $i => $config) {
-			if (!is_array($config)) {
+			if (!\is_array($config)) {
 				continue;
 			}
 			$class = $config['class'];
 			$arguments = $config['arguments'];
-			if (class_exists($class)) {
-				if (array_search($i, self::$_setupedBackends) === false) {
+			if (\class_exists($class)) {
+				if (\array_search($i, self::$_setupedBackends) === false) {
 					// make a reflection object
 					$reflectionObj = new ReflectionClass($class);
 
@@ -178,40 +179,7 @@ class OC_User {
 	 * @return bool
 	 */
 	public static function loginWithApache(\OCP\Authentication\IApacheBackend $backend) {
-
-		$uid = $backend->getCurrentUserId();
-		$run = true;
-		OC_Hook::emit("OC_User", "pre_login", ["run" => &$run, "uid" => $uid]);
-
-		if ($uid) {
-			if (self::getUser() !== $uid) {
-				self::setUserId($uid);
-				self::setDisplayName($uid);
-				$userSession = self::getUserSession();
-				$userSession->getSession()->regenerateId();
-				$userSession->setLoginName($uid);
-				$request = OC::$server->getRequest();
-				$userSession->createSessionToken($request, $uid, $uid);
-				// setup the filesystem
-				OC_Util::setupFS($uid);
-				// first call the post_login hooks, the login-process needs to be
-				// completed before we can safely create the users folder.
-				// For example encryption needs to initialize the users keys first
-				// before we can create the user folder with the skeleton files
-				OC_Hook::emit("OC_User", "post_login", ["uid" => $uid, 'password' => '']);
-				$user = $userSession->getUser();
-				$firstTimeLogin = $user->updateLastLoginTimestamp();
-				if ($userSession->isLoggedIn()) {
-					$userSession->prepareUserLogin($firstTimeLogin);
-				} else {
-					// injecting l10n does not work - there is a circular dependency between session and \OCP\L10N\IFactory
-					$message = \OC::$server->getL10N('lib')->t('Login canceled by app');
-					throw new \OC\User\LoginException($message);
-				}
-			}
-			return true;
-		}
-		return false;
+		return self::getUserSession()->loginWithApache($backend);
 	}
 
 	/**
@@ -237,7 +205,6 @@ class OC_User {
 		return null;
 	}
 
-
 	/**
 	 * Sets user id for session and triggers emit
 	 *
@@ -261,7 +228,7 @@ class OC_User {
 	 * @return bool Whether the display name could get set
 	 */
 	public static function setDisplayName($uid, $displayName = null) {
-		if (is_null($displayName)) {
+		if ($displayName === null) {
 			$displayName = $uid;
 		}
 		$user = \OC::$server->getUserManager()->get($uid);
@@ -330,12 +297,11 @@ class OC_User {
 	 * @return bool
 	 */
 	public static function isAdminUser($uid) {
-		if (\OC::$server->getGroupManager()->inGroup($uid, 'admin') && self::$incognitoMode === false) {
+		if (\OC::$server->getGroupManager()->isAdmin($uid) && self::$incognitoMode === false) {
 			return true;
 		}
 		return false;
 	}
-
 
 	/**
 	 * get the user id of the user currently logged in.
@@ -344,7 +310,7 @@ class OC_User {
 	 */
 	public static function getUser() {
 		$uid = \OC::$server->getSession() ? \OC::$server->getSession()->get('user_id') : null;
-		if (!is_null($uid) && self::$incognitoMode === false) {
+		if ($uid !== null && self::$incognitoMode === false) {
 			return $uid;
 		} else {
 			return false;

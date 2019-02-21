@@ -2,7 +2,7 @@
 /**
  * @author Morris Jobke <hey@morrisjobke.de>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -50,7 +50,7 @@ class CleanupFileLocks extends TimedJob {
 	 */
 	public function run($argument) {
 		$lockingProvider = \OC::$server->getLockingProvider();
-		if($lockingProvider instanceof DBLockingProvider) {
+		if ($lockingProvider instanceof DBLockingProvider) {
 			$lockingProvider->cleanExpiredLocks();
 		}
 	}

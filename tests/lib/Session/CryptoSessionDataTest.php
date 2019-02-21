@@ -1,8 +1,9 @@
 <?php
 /**
  * @author Joas Schilling <nickvergessen@owncloud.com>
+ * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -22,6 +23,8 @@
 namespace Test\Session;
 
 use OC\Session\CryptoSessionData;
+use OCP\Session\Exceptions\SessionNotAvailableException;
+use OC\Session\Memory;
 
 class CryptoSessionDataTest extends Session {
 	/** @var \PHPUnit_Framework_MockObject_MockObject|\OCP\Security\ICrypto */
@@ -33,7 +36,7 @@ class CryptoSessionDataTest extends Session {
 	protected function setUp() {
 		parent::setUp();
 
-		$this->wrappedSession = new \OC\Session\Memory($this->getUniqueID());
+		$this->wrappedSession = new \OC\Session\Memory(static::getUniqueID());
 		$this->crypto = $this->getMockBuilder('OCP\Security\ICrypto')
 			->disableOriginalConstructor()
 			->getMock();
@@ -45,9 +48,24 @@ class CryptoSessionDataTest extends Session {
 		$this->crypto->expects($this->any())
 			->method('decrypt')
 			->willReturnCallback(function ($input) {
-				return substr($input, 1, -1);
+				return \substr($input, 1, -1);
 			});
 
 		$this->instance = new CryptoSessionData($this->wrappedSession, $this->crypto, 'PASS');
+	}
+
+	/**
+	 * Thrown exception during session destruct/close should be handled silently
+	 */
+	public function testDestructExceptionCatching() {
+		/** @var Memory | \PHPUnit_Framework_MockObject_MockObject $session */
+		$session = $this->getMockBuilder(Memory::class)
+			->disableOriginalConstructor()
+			->getMock();
+		$instance = new CryptoSessionData($session, $this->crypto, 'PASS');
+		$instance->set('test', 'test');
+		$e = new SessionNotAvailableException();
+		$session->expects($this->exactly(2))->method('set')->willThrowException($e);
+		$instance->__destruct();
 	}
 }

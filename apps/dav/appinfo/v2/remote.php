@@ -3,7 +3,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -20,8 +20,8 @@
  *
  */
 // no php execution timeout for webdav
-set_time_limit(0);
-ignore_user_abort(true);
+\set_time_limit(0);
+\ignore_user_abort(true);
 
 // Turn off output buffering to prevent memory problems
 \OC_Util::obEnd();

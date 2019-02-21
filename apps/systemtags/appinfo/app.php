@@ -4,7 +4,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,18 +21,13 @@
  *
  */
 
-use OCA\SystemTags\Activity\Extension;
-use OCA\SystemTags\Activity\Listener;
 use OCP\SystemTag\ManagerEvent;
 use OCP\SystemTag\MapperEvent;
 
 $eventDispatcher = \OC::$server->getEventDispatcher();
 $eventDispatcher->addListener(
 	'OCA\Files::loadAdditionalScripts',
-	function() {
-		// FIXME: no public API for these ?
-		\OC_Util::addVendorScript('select2/select2');
-		\OC_Util::addVendorStyle('select2/select2');
+	function () {
 		\OCP\Util::addScript('select2-toggleselect');
 		\OCP\Util::addScript('oc-backbone-webdav');
 		\OCP\Util::addScript('systemtags/systemtags');
@@ -50,14 +45,14 @@ $eventDispatcher->addListener(
 );
 
 $activityManager = \OC::$server->getActivityManager();
-$activityManager->registerExtension(function() {
+$activityManager->registerExtension(function () {
 	$application = new \OCP\AppFramework\App('systemtags');
 	/** @var \OCA\SystemTags\Activity\Extension $extension */
 	$extension = $application->getContainer()->query('OCA\SystemTags\Activity\Extension');
 	return $extension;
 });
 
-$managerListener = function(ManagerEvent $event) use ($activityManager) {
+$managerListener = function (ManagerEvent $event) {
 	$application = new \OCP\AppFramework\App('systemtags');
 	/** @var \OCA\SystemTags\Activity\Listener $listener */
 	$listener = $application->getContainer()->query('OCA\SystemTags\Activity\Listener');
@@ -68,7 +63,7 @@ $eventDispatcher->addListener(ManagerEvent::EVENT_CREATE, $managerListener);
 $eventDispatcher->addListener(ManagerEvent::EVENT_DELETE, $managerListener);
 $eventDispatcher->addListener(ManagerEvent::EVENT_UPDATE, $managerListener);
 
-$mapperListener = function(MapperEvent $event) use ($activityManager) {
+$mapperListener = function (MapperEvent $event) {
 	$application = new \OCP\AppFramework\App('systemtags');
 	/** @var \OCA\SystemTags\Activity\Listener $listener */
 	$listener = $application->getContainer()->query('OCA\SystemTags\Activity\Listener');

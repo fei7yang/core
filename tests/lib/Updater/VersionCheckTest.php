@@ -3,7 +3,7 @@
  * @author Lukas Reschke <lukas@owncloud.com>
  * @author Victor Dubiniuk <dubiniuk@owncloud.com>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -53,7 +53,7 @@ class VersionCheckTest extends TestCase {
 	 * @return string
 	 */
 	private function buildUpdateUrl($baseUrl) {
-		return $baseUrl . '?version='.implode('x', Util::getVersion()).'xinstalledatxlastupdatedatx'.\OC_Util::getChannel().'x'.\OC_Util::getEditionString().'x'.\OC_Util::getBuild();
+		return $baseUrl . '?version='.\implode('x', Util::getVersion()).'xinstalledatxlastupdatedatx'.\OC_Util::getChannel().'x'.\OC_Util::getEditionString().'x'.\OC_Util::getBuild();
 	}
 
 	public function testCheckInCache() {
@@ -68,12 +68,12 @@ class VersionCheckTest extends TestCase {
 			->expects($this->at(0))
 			->method('getAppValue')
 			->with('core', 'lastupdatedat')
-			->will($this->returnValue(time()));
+			->will($this->returnValue(\time()));
 		$this->config
 			->expects($this->at(1))
 			->method('getAppValue')
 			->with('core', 'lastupdateResult')
-			->will($this->returnValue(json_encode($expectedResult)));
+			->will($this->returnValue(\json_encode($expectedResult)));
 
 		$this->assertSame($expectedResult, $this->updater->check());
 	}
@@ -113,7 +113,7 @@ class VersionCheckTest extends TestCase {
 		$this->config
 			->expects($this->at(6))
 			->method('setAppValue')
-			->with('core', 'lastupdateResult', json_encode($expectedResult));
+			->with('core', 'lastupdateResult', \json_encode($expectedResult));
 
 		$updateXml = '<?xml version="1.0"?>
 <owncloud>
@@ -250,7 +250,7 @@ class VersionCheckTest extends TestCase {
 		$this->config
 			->expects($this->at(6))
 			->method('setAppValue')
-			->with('core', 'lastupdateResult', json_encode($expectedResult));
+			->with('core', 'lastupdateResult', \json_encode($expectedResult));
 
 		$updateXml = '';
 		$this->updater

@@ -2,7 +2,7 @@
 /**
  * @author Olivier Paroz <owncloud@interfasys.ch>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -29,7 +29,6 @@ namespace Test\Preview;
  * @package Test\Preview
  */
 class MovieTest extends Provider {
-
 	public function setUp() {
 		$avconvBinary = \OC_Helper::findBinaryPath('avconv');
 		$ffmpegBinary = ($avconvBinary) ? null : \OC_Helper::findBinaryPath('ffmpeg');
@@ -49,5 +48,4 @@ class MovieTest extends Provider {
 			$this->markTestSkipped('No Movie provider present');
 		}
 	}
-
 }

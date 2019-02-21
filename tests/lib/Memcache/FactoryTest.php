@@ -2,7 +2,7 @@
 /**
  * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -116,9 +116,9 @@ class FactoryTest extends \Test\TestCase {
 		$expectedLocalCache, $expectedDistributedCache, $expectedLockingCache) {
 		$logger = $this->getMockBuilder('\OCP\ILogger')->getMock();
 		$factory = new \OC\Memcache\Factory('abc', $logger, $localCache, $distributedCache, $lockingCache);
-		$this->assertTrue(is_a($factory->createLocal(), $expectedLocalCache));
-		$this->assertTrue(is_a($factory->createDistributed(), $expectedDistributedCache));
-		$this->assertTrue(is_a($factory->createLocking(), $expectedLockingCache));
+		$this->assertTrue(\is_a($factory->createLocal(), $expectedLocalCache));
+		$this->assertTrue(\is_a($factory->createDistributed(), $expectedDistributedCache));
+		$this->assertTrue(\is_a($factory->createLocking(), $expectedLockingCache));
 	}
 
 	/**

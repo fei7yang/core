@@ -4,7 +4,7 @@
  * @author Joas Schilling <coding@schilljs.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -25,7 +25,7 @@ namespace OC;
 
 class NaturalSort_DefaultCollator {
 	public function compare($a, $b) {
-		$result = strcasecmp($a, $b);
+		$result = \strcasecmp($a, $b);
 		if ($result === 0) {
 			if ($a === $b) {
 				return 0;

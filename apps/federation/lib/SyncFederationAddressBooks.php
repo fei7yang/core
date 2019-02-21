@@ -4,7 +4,7 @@
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -24,10 +24,6 @@ namespace OCA\Federation;
 
 use OCA\DAV\CardDAV\SyncService;
 use OCP\AppFramework\Http;
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Helper\ProgressBar;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Output\OutputInterface;
 
 class SyncFederationAddressBooks {
 
@@ -41,7 +37,7 @@ class SyncFederationAddressBooks {
 	 * @param DbHandler $dbHandler
 	 * @param SyncService $syncService
 	 */
-	function __construct(DbHandler $dbHandler, SyncService $syncService) {
+	public function __construct(DbHandler $dbHandler, SyncService $syncService) {
 		$this->syncService = $syncService;
 		$this->dbHandler = $dbHandler;
 	}
@@ -50,7 +46,6 @@ class SyncFederationAddressBooks {
 	 * @param \Closure $callback
 	 */
 	public function syncThemAll(\Closure $callback) {
-
 		$trustedServers = $this->dbHandler->getAllServer();
 		foreach ($trustedServers as $trustedServer) {
 			$url = $trustedServer['url'];
@@ -58,7 +53,7 @@ class SyncFederationAddressBooks {
 			$sharedSecret = $trustedServer['shared_secret'];
 			$syncToken = $trustedServer['sync_token'];
 
-			if (is_null($sharedSecret)) {
+			if ($sharedSecret === null) {
 				continue;
 			}
 			$targetBookId = $trustedServer['url_hash'];

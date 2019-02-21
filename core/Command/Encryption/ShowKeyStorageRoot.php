@@ -2,7 +2,7 @@
 /**
  * @author Björn Schießle <bjoern@schiessle.org>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -19,7 +19,6 @@
  *
  */
 
-
 namespace OC\Core\Command\Encryption;
 
 use OC\Encryption\Util;
@@ -27,7 +26,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class ShowKeyStorageRoot extends Command{
+class ShowKeyStorageRoot extends Command {
 
 	/** @var Util  */
 	protected $util;
@@ -44,7 +43,7 @@ class ShowKeyStorageRoot extends Command{
 		parent::configure();
 		$this
 			->setName('encryption:show-key-storage-root')
-			->setDescription('Show current key storage root');
+			->setDescription('Show current key storage root.');
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output) {
@@ -54,5 +53,4 @@ class ShowKeyStorageRoot extends Command{
 
 		$output->writeln("Current key storage root:  <info>$rootDescription</info>");
 	}
-
 }

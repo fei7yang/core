@@ -2,7 +2,7 @@
 /**
  * @author Olivier Paroz <owncloud@interfasys.ch>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -29,7 +29,6 @@ namespace Test\Preview;
  * @package Test\Preview
  */
 class MP3Test extends Provider {
-
 	public function setUp() {
 		parent::setUp();
 
@@ -39,5 +38,4 @@ class MP3Test extends Provider {
 		$this->height = 200;
 		$this->provider = new \OC\Preview\MP3;
 	}
-
 }

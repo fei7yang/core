@@ -7,6 +7,13 @@
  */
 
 namespace Test\Files\Node;
+use OC\Files\Mount\Manager;
+use OC\Files\Node\File;
+use OC\Files\Node\NonExistingFile;
+use OC\Files\Node\Root;
+use OC\Files\View;
+use OCP\Constants;
+use OCP\IImage;
 
 /**
  * Class FileTest
@@ -16,25 +23,22 @@ namespace Test\Files\Node;
  * @package Test\Files\Node
  */
 class FileTest extends NodeTest {
-
 	public $viewDeleteMethod = 'unlink';
-	public $nodeClass = '\OC\Files\Node\File';
-	public $nonExistingNodeClass = '\OC\Files\Node\NonExistingFile';
+	public $nodeClass = File::class;
+	public $nonExistingNodeClass = NonExistingFile::class;
 
 	protected function createTestNode($root, $view, $path) {
-		return new \OC\Files\Node\File($root, $view, $path);
+		return new File($root, $view, $path);
 	}
 
 	public function testGetContent() {
+		/** @var Manager $manager */
+		$manager = $this->createMock(Manager::class);
 		/**
-		 * @var \OC\Files\Mount\Manager $manager
+		 * @var View | \PHPUnit_Framework_MockObject_MockObject $view
 		 */
-		$manager = $this->createMock('\OC\Files\Mount\Manager');
-		/**
-		 * @var \OC\Files\View | \PHPUnit_Framework_MockObject_MockObject $view
-		 */
-		$view = $this->createMock('\OC\Files\View');
-		$root = new \OC\Files\Node\Root($manager, $view, $this->user);
+		$view = $this->createMock(View::class);
+		$root = new Root($manager, $view, $this->user);
 
 		$hook = function ($file) {
 			throw new \Exception('Hooks are not supposed to be called');
@@ -51,9 +55,9 @@ class FileTest extends NodeTest {
 		$view->expects($this->once())
 			->method('getFileInfo')
 			->with('/bar/foo')
-			->will($this->returnValue($this->getFileInfo(['permissions' => \OCP\Constants::PERMISSION_READ])));
+			->will($this->returnValue($this->getFileInfo(['permissions' => Constants::PERMISSION_READ])));
 
-		$node = new \OC\Files\Node\File($root, $view, '/bar/foo');
+		$node = new File($root, $view, '/bar/foo');
 		$this->assertEquals('bar', $node->getContent());
 	}
 
@@ -61,11 +65,10 @@ class FileTest extends NodeTest {
 	 * @expectedException \OCP\Files\NotPermittedException
 	 */
 	public function testGetContentNotPermitted() {
-		/**
-		 * @var \OC\Files\View | \PHPUnit_Framework_MockObject_MockObject $view
-		 */
-		$view = $this->createMock('\OC\Files\View');
-		$root = $this->createMock('\OC\Files\Node\Root');
+		/** @var View | \PHPUnit_Framework_MockObject_MockObject $view */
+		$view = $this->createMock(View::class);
+		/** @var Root | \PHPUnit_Framework_MockObject_MockObject $root */
+		$root = $this->createMock(Root::class);
 
 		$root->expects($this->any())
 			->method('getUser')
@@ -76,16 +79,15 @@ class FileTest extends NodeTest {
 			->with('/bar/foo')
 			->will($this->returnValue($this->getFileInfo(['permissions' => 0])));
 
-		$node = new \OC\Files\Node\File($root, $view, '/bar/foo');
+		$node = new File($root, $view, '/bar/foo');
 		$node->getContent();
 	}
 
 	public function testPutContent() {
-		/**
-		 * @var \OC\Files\View | \PHPUnit_Framework_MockObject_MockObject $view
-		 */
-		$view = $this->createMock('\OC\Files\View');
-		$root = $this->createMock('\OC\Files\Node\Root');
+		/** @var View | \PHPUnit_Framework_MockObject_MockObject $view */
+		$view = $this->createMock(View::class);
+		/** @var Root | \PHPUnit_Framework_MockObject_MockObject $root */
+		$root = $this->createMock(Root::class);
 
 		$root->expects($this->any())
 			->method('getUser')
@@ -94,14 +96,14 @@ class FileTest extends NodeTest {
 		$view->expects($this->once())
 			->method('getFileInfo')
 			->with('/bar/foo')
-			->will($this->returnValue($this->getFileInfo(['permissions' => \OCP\Constants::PERMISSION_ALL])));
+			->will($this->returnValue($this->getFileInfo(['permissions' => Constants::PERMISSION_ALL])));
 
 		$view->expects($this->once())
 			->method('file_put_contents')
 			->with('/bar/foo', 'bar')
 			->will($this->returnValue(true));
 
-		$node = new \OC\Files\Node\File($root, $view, '/bar/foo');
+		$node = new File($root, $view, '/bar/foo');
 		$node->putContent('bar');
 	}
 
@@ -109,51 +111,49 @@ class FileTest extends NodeTest {
 	 * @expectedException \OCP\Files\NotPermittedException
 	 */
 	public function testPutContentNotPermitted() {
-		/**
-		 * @var \OC\Files\View | \PHPUnit_Framework_MockObject_MockObject $view
-		 */
-		$view = $this->createMock('\OC\Files\View');
-		$root = $this->createMock('\OC\Files\Node\Root');
+		/** @var View | \PHPUnit_Framework_MockObject_MockObject $view */
+		$view = $this->createMock(View::class);
+		/** @var Root | \PHPUnit_Framework_MockObject_MockObject $root */
+		$root = $this->createMock(Root::class);
 
 		$view->expects($this->once())
 			->method('getFileInfo')
 			->with('/bar/foo')
-			->will($this->returnValue($this->getFileInfo(['permissions' => \OCP\Constants::PERMISSION_READ])));
+			->will($this->returnValue($this->getFileInfo(['permissions' => Constants::PERMISSION_READ])));
 
-		$node = new \OC\Files\Node\File($root, $view, '/bar/foo');
+		$node = new File($root, $view, '/bar/foo');
 		$node->putContent('bar');
 	}
 
 	public function testGetMimeType() {
-		/**
-		 * @var \OC\Files\View | \PHPUnit_Framework_MockObject_MockObject $view
-		 */
-		$view = $this->createMock('\OC\Files\View');
-		$root = $this->createMock('\OC\Files\Node\Root');
+		/** @var View | \PHPUnit_Framework_MockObject_MockObject $view */
+		$view = $this->createMock(View::class);
+		/** @var Root | \PHPUnit_Framework_MockObject_MockObject $root */
+		$root = $this->createMock(Root::class);
 
 		$view->expects($this->once())
 			->method('getFileInfo')
 			->with('/bar/foo')
 			->will($this->returnValue($this->getFileInfo(['mimetype' => 'text/plain'])));
 
-		$node = new \OC\Files\Node\File($root, $view, '/bar/foo');
+		$node = new File($root, $view, '/bar/foo');
 		$this->assertEquals('text/plain', $node->getMimeType());
 	}
 
 	public function testFOpenRead() {
-		$stream = fopen('php://memory', 'w+');
-		fwrite($stream, 'bar');
-		rewind($stream);
+		$stream = \fopen('php://memory', 'w+');
+		\fwrite($stream, 'bar');
+		\rewind($stream);
 
 		/**
-		 * @var \OC\Files\Mount\Manager $manager
+		 * @var Manager $manager
 		 */
-		$manager = $this->createMock('\OC\Files\Mount\Manager');
+		$manager = $this->createMock(Manager::class);
 		/**
-		 * @var \OC\Files\View | \PHPUnit_Framework_MockObject_MockObject $view
+		 * @var View | \PHPUnit_Framework_MockObject_MockObject $view
 		 */
-		$view = $this->createMock('\OC\Files\View');
-		$root = new \OC\Files\Node\Root($manager, $view, $this->user);
+		$view = $this->createMock(View::class);
+		$root = new Root($manager, $view, $this->user);
 
 		$hook = function ($file) {
 			throw new \Exception('Hooks are not supposed to be called');
@@ -170,26 +170,26 @@ class FileTest extends NodeTest {
 		$view->expects($this->once())
 			->method('getFileInfo')
 			->with('/bar/foo')
-			->will($this->returnValue($this->getFileInfo(['permissions' => \OCP\Constants::PERMISSION_ALL])));
+			->will($this->returnValue($this->getFileInfo(['permissions' => Constants::PERMISSION_ALL])));
 
-		$node = new \OC\Files\Node\File($root, $view, '/bar/foo');
+		$node = new File($root, $view, '/bar/foo');
 		$fh = $node->fopen('r');
 		$this->assertEquals($stream, $fh);
-		$this->assertEquals('bar', fread($fh, 3));
+		$this->assertEquals('bar', \fread($fh, 3));
 	}
 
 	public function testFOpenWrite() {
-		$stream = fopen('php://memory', 'w+');
+		$stream = \fopen('php://memory', 'w+');
 
 		/**
-		 * @var \OC\Files\Mount\Manager $manager
+		 * @var Manager $manager
 		 */
-		$manager = $this->createMock('\OC\Files\Mount\Manager');
+		$manager = $this->createMock(Manager::class);
 		/**
-		 * @var \OC\Files\View | \PHPUnit_Framework_MockObject_MockObject $view
+		 * @var View | \PHPUnit_Framework_MockObject_MockObject $view
 		 */
-		$view = $this->createMock('\OC\Files\View');
-		$root = new \OC\Files\Node\Root($manager, new $view, $this->user);
+		$view = $this->createMock(View::class);
+		$root = new Root($manager, new $view, $this->user);
 
 		$hooksCalled = 0;
 		$hook = function ($file) use (&$hooksCalled) {
@@ -207,14 +207,14 @@ class FileTest extends NodeTest {
 		$view->expects($this->once())
 			->method('getFileInfo')
 			->with('/bar/foo')
-			->will($this->returnValue($this->getFileInfo(['permissions' => \OCP\Constants::PERMISSION_ALL])));
+			->will($this->returnValue($this->getFileInfo(['permissions' => Constants::PERMISSION_ALL])));
 
-		$node = new \OC\Files\Node\File($root, $view, '/bar/foo');
+		$node = new File($root, $view, '/bar/foo');
 		$fh = $node->fopen('w');
 		$this->assertEquals($stream, $fh);
-		fwrite($fh, 'bar');
-		rewind($fh);
-		$this->assertEquals('bar', fread($stream, 3));
+		\fwrite($fh, 'bar');
+		\rewind($fh);
+		$this->assertEquals('bar', \fread($stream, 3));
 		$this->assertEquals(2, $hooksCalled);
 	}
 
@@ -223,14 +223,14 @@ class FileTest extends NodeTest {
 	 */
 	public function testFOpenReadNotPermitted() {
 		/**
-		 * @var \OC\Files\Mount\Manager $manager
+		 * @var Manager $manager
 		 */
-		$manager = $this->createMock('\OC\Files\Mount\Manager');
+		$manager = $this->createMock(Manager::class);
 		/**
-		 * @var \OC\Files\View | \PHPUnit_Framework_MockObject_MockObject $view
+		 * @var View | \PHPUnit_Framework_MockObject_MockObject $view
 		 */
-		$view = $this->createMock('\OC\Files\View');
-		$root = new \OC\Files\Node\Root($manager, $view, $this->user);
+		$view = $this->createMock(View::class);
+		$root = new Root($manager, $view, $this->user);
 
 		$hook = function ($file) {
 			throw new \Exception('Hooks are not supposed to be called');
@@ -241,7 +241,7 @@ class FileTest extends NodeTest {
 			->with('/bar/foo')
 			->will($this->returnValue($this->getFileInfo(['permissions' => 0])));
 
-		$node = new \OC\Files\Node\File($root, $view, '/bar/foo');
+		$node = new File($root, $view, '/bar/foo');
 		$node->fopen('r');
 	}
 
@@ -250,14 +250,14 @@ class FileTest extends NodeTest {
 	 */
 	public function testFOpenReadWriteNoReadPermissions() {
 		/**
-		 * @var \OC\Files\Mount\Manager $manager
+		 * @var Manager $manager
 		 */
-		$manager = $this->createMock('\OC\Files\Mount\Manager');
+		$manager = $this->createMock(Manager::class);
 		/**
-		 * @var \OC\Files\View | \PHPUnit_Framework_MockObject_MockObject $view
+		 * @var View | \PHPUnit_Framework_MockObject_MockObject $view
 		 */
-		$view = $this->createMock('\OC\Files\View');
-		$root = new \OC\Files\Node\Root($manager, $view, $this->user);
+		$view = $this->createMock(View::class);
+		$root = new Root($manager, $view, $this->user);
 
 		$hook = function () {
 			throw new \Exception('Hooks are not supposed to be called');
@@ -266,9 +266,9 @@ class FileTest extends NodeTest {
 		$view->expects($this->once())
 			->method('getFileInfo')
 			->with('/bar/foo')
-			->will($this->returnValue($this->getFileInfo(['permissions' => \OCP\Constants::PERMISSION_UPDATE])));
+			->will($this->returnValue($this->getFileInfo(['permissions' => Constants::PERMISSION_UPDATE])));
 
-		$node = new \OC\Files\Node\File($root, $view, '/bar/foo');
+		$node = new File($root, $view, '/bar/foo');
 		$node->fopen('w');
 	}
 
@@ -277,14 +277,14 @@ class FileTest extends NodeTest {
 	 */
 	public function testFOpenReadWriteNoWritePermissions() {
 		/**
-		 * @var \OC\Files\Mount\Manager $manager
+		 * @var Manager $manager
 		 */
-		$manager = $this->createMock('\OC\Files\Mount\Manager');
+		$manager = $this->createMock(Manager::class);
 		/**
-		 * @var \OC\Files\View | \PHPUnit_Framework_MockObject_MockObject $view
+		 * @var View | \PHPUnit_Framework_MockObject_MockObject $view
 		 */
-		$view = $this->createMock('\OC\Files\View');
-		$root = new \OC\Files\Node\Root($manager, new $view, $this->user);
+		$view = $this->createMock(View::class);
+		$root = new Root($manager, new $view, $this->user);
 
 		$hook = function () {
 			throw new \Exception('Hooks are not supposed to be called');
@@ -293,11 +293,48 @@ class FileTest extends NodeTest {
 		$view->expects($this->once())
 			->method('getFileInfo')
 			->with('/bar/foo')
-			->will($this->returnValue($this->getFileInfo(['permissions' => \OCP\Constants::PERMISSION_READ])));
+			->will($this->returnValue($this->getFileInfo(['permissions' => Constants::PERMISSION_READ])));
 
-		$node = new \OC\Files\Node\File($root, $view, '/bar/foo');
+		$node = new File($root, $view, '/bar/foo');
 		$node->fopen('w');
 	}
 
+	public function testThumbnail() {
+		/** @var Manager $manager */
+		$manager = $this->createMock(Manager::class);
+		/**
+		 * @var View | \PHPUnit_Framework_MockObject_MockObject $view
+		 */
+		$view = $this->createMock(View::class);
+		$root = new Root($manager, $view, $this->user);
 
+		$hook = function ($file) {
+			throw new \Exception('Hooks are not supposed to be called');
+		};
+
+		$root->listen('\OC\Files', 'preWrite', $hook);
+		$root->listen('\OC\Files', 'postWrite', $hook);
+
+		$content = $stream = \fopen('data://text/plain,hello world!', 'r');
+		;
+		$view->expects($this->once())
+			->method('fopen')
+			->with('/bar/foo')
+			->will($this->returnValue($content));
+
+		$view->expects($this->once())
+			->method('getFileInfo')
+			->with('/bar/foo')
+			->will($this->returnValue($this->getFileInfo([
+				'permissions' => Constants::PERMISSION_READ,
+				'mimetype' => 'text/plain',
+				'fileid' => 666
+			])));
+
+		$node = new File($root, $view, '/bar/foo');
+		$image = $node->getThumbnail([]);
+		$this->assertInstanceOf(IImage::class, $image);
+		$this->assertEquals(32, $image->height());
+		$this->assertEquals(32, $image->width());
+	}
 }

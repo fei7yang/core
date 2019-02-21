@@ -2,7 +2,7 @@
 /**
  * @author Robin Appelman <icewind@owncloud.com>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -28,7 +28,7 @@ class StorageNoRecursiveCopy extends Temporary {
 		if ($this->is_dir($path1)) {
 			return false;
 		}
-		return copy($this->getSourcePath($path1), $this->getSourcePath($path2));
+		return \copy($this->getSourcePath($path1), $this->getSourcePath($path2));
 	}
 }
 
@@ -44,10 +44,8 @@ class CopyDirectoryStorage extends StorageNoRecursiveCopy {
  * @package Test\Files\Storage
  */
 class CopyDirectoryTest extends Storage {
-
 	protected function setUp() {
 		parent::setUp();
 		$this->instance = new CopyDirectoryStorage([]);
 	}
 }
-

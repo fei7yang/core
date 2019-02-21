@@ -3,7 +3,7 @@
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -22,8 +22,6 @@
 
 namespace OC\Security;
 
-use RandomLib;
-use Sabre\DAV\Exception;
 use OCP\Security\ISecureRandom;
 
 /**
@@ -73,10 +71,10 @@ class SecureRandom implements ISecureRandom {
 	 */
 	public function generate($length,
 							 $characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/') {
-		$maxCharIndex = strlen($characters) - 1;
+		$maxCharIndex = \strlen($characters) - 1;
 		$randomString = '';
 
-		while($length > 0) {
+		while ($length > 0) {
 			$randomNumber = \random_int(0, $maxCharIndex);
 			$randomString .= $characters[$randomNumber];
 			$length--;

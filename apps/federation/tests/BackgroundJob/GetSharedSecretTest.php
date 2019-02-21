@@ -4,7 +4,7 @@
  * @author Joas Schilling <coding@schilljs.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,12 +21,9 @@
  *
  */
 
-
 namespace OCA\Federation\Tests\BackgroundJob;
 
-
 use OCA\Federation\BackgroundJob\GetSharedSecret;
-use OCA\Files_Sharing\Tests\TestCase;
 use OCA\Federation\DbHandler;
 use OCA\Federation\TrustedServers;
 use OCP\AppFramework\Http;
@@ -35,6 +32,7 @@ use OCP\Http\Client\IClient;
 use OCP\Http\Client\IResponse;
 use OCP\ILogger;
 use OCP\IURLGenerator;
+use Test\TestCase;
 
 /**
  * Class GetSharedSecretTest
@@ -128,7 +126,6 @@ class GetSharedSecretTest extends TestCase {
 		}
 
 		$getSharedSecret->execute($this->jobList);
-
 	}
 
 	public function dataTestExecute() {
@@ -145,7 +142,6 @@ class GetSharedSecretTest extends TestCase {
 	 * @param int $statusCode
 	 */
 	public function testRun($statusCode) {
-
 		$target = 'targetURL';
 		$source = 'sourceURL';
 		$token = 'token';
@@ -176,7 +172,7 @@ class GetSharedSecretTest extends TestCase {
 			&& $statusCode !== Http::STATUS_FORBIDDEN
 		) {
 			$this->dbHandler->expects($this->never())->method('addToken');
-		}  else {
+		} else {
 			$this->dbHandler->expects($this->once())->method('addToken')->with($target, '');
 		}
 
@@ -198,7 +194,6 @@ class GetSharedSecretTest extends TestCase {
 		} else {
 			$this->assertFalse($this->invokePrivate($this->getSharedSecret, 'retainJob'));
 		}
-
 	}
 
 	public function dataTestRun() {
@@ -208,5 +203,4 @@ class GetSharedSecretTest extends TestCase {
 			[Http::STATUS_CONFLICT],
 		];
 	}
-
 }

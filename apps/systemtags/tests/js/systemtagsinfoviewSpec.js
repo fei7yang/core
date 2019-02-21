@@ -2,7 +2,7 @@
 * ownCloud
 *
 * @author Vincent Petry
-* @copyright 2016 Vincent Petry <pvince81@owncloud.com>
+* @copyright Copyright (c) 2016 Vincent Petry <pvince81@owncloud.com>
 *
 * This library is free software; you can redistribute it and/or
 * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
@@ -114,6 +114,33 @@ describe('OCA.SystemTags.SystemTagsInfoView tests', function() {
 				id: '1', name: 'test1', userVisible: true, userAssignable: true, canAssign: true
 			}, {
 				id: '3', name: 'test3', userVisible: true, userAssignable: false, canAssign: false, locked: true
+			}]);
+
+			inputViewSpy.restore();
+		});
+		it('sets locked flag on static tags when user is not an admin and tag not part of the group', function () {
+			isAdminStub.returns(false);
+
+			var inputViewSpy = sinon.spy(OC.SystemTags, 'SystemTagsInputField');
+			var element = $('<input type="hidden" val="1,3"/>');
+			view.remove();
+			view = new OCA.SystemTags.SystemTagsInfoView();
+			view.selectedTagsCollection.add([
+				{id: '1', name: 'test1'},
+				{id: '3', name: 'test3', userAssignable: false, canAssign: false},
+				{id: '4', name: 'statictag', userAssignable: true, userEditable: false, userVisible: true, canAssign: false, editableInGroup: false}
+			]);
+
+			var callback = sinon.stub();
+			inputViewSpy.getCall(0).args[0].initSelection(element, callback);
+
+			expect(callback.calledOnce).toEqual(true);
+			expect(callback.getCall(0).args[0]).toEqual([{
+				id: '1', name: 'test1', userVisible: true, userAssignable: true, canAssign: true
+			}, {
+				id: '3', name: 'test3', userVisible: true, userAssignable: false, canAssign: false, locked: true
+			}, {
+				id: '4', name: 'statictag', userAssignable: true, userEditable: false, userVisible: true, canAssign: false, editableInGroup: false, locked: true
 			}]);
 
 			inputViewSpy.restore();

@@ -2,7 +2,7 @@
 /**
  * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,6 +21,7 @@
 
 namespace OC\Settings\Panels\Admin;
 
+use OC\LargeFileHelper;
 use OC\Settings\Panels\Helper;
 use OCP\Settings\ISettings;
 use OCP\Template;
@@ -51,10 +52,11 @@ class Logging implements ISettings {
 	public function getPanel() {
 		$tmpl = new Template('settings', 'panels/admin/logging');
 		$logFilePath = $this->helper->getLogFilePath();
-		$doesLogFileExist = file_exists($logFilePath);
+		$doesLogFileExist = \file_exists($logFilePath);
 		$logFileSize = 0;
-		if($doesLogFileExist) {
-			$logFileSize = filesize($logFilePath);
+		if ($doesLogFileExist) {
+			$h = new LargeFileHelper();
+			$logFileSize = $h->getFileSize($logFilePath);
 		}
 		$tmpl->assign('loglevel', $this->config->getSystemValue("loglevel", 2));
 		$tmpl->assign('doesLogFileExist', $doesLogFileExist);
@@ -67,5 +69,4 @@ class Logging implements ISettings {
 	public function getSectionID() {
 		return 'general';
 	}
-
 }

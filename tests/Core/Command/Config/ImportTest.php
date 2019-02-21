@@ -2,7 +2,7 @@
 /**
  * @author Joas Schilling <nickvergessen@owncloud.com>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -20,7 +20,6 @@
  */
 
 namespace Tests\Core\Command\Config;
-
 
 use OC\Core\Command\Config\Import;
 use Test\TestCase;
@@ -56,7 +55,7 @@ class ImportTest extends TestCase {
 			[1],
 			[null],
 			['new \Exception()'],
-			[json_encode([])],
+			[\json_encode([])],
 		];
 	}
 
@@ -99,7 +98,7 @@ class ImportTest extends TestCase {
 			[1],
 			[null],
 			['new \Exception()'],
-			[json_encode([])],
+			[\json_encode([])],
 			[false],
 			[true],
 			[[]],

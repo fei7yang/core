@@ -3,7 +3,7 @@
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -130,8 +130,8 @@ class MoveAvatarOutsideHome implements IRepairStep {
 	 */
 	public function run(IOutput $output) {
 		$ocVersionFromBeforeUpdate = $this->config->getSystemValue('version', '0.0.0');
-		if (version_compare($ocVersionFromBeforeUpdate, '9.2.0.2', '<')) {
-			$function = function(IUser $user) use ($output) {
+		if (\version_compare($ocVersionFromBeforeUpdate, '9.2.0.2', '<')) {
+			$function = function (IUser $user) use ($output) {
 				$this->moveAvatars($output, $user);
 				$output->advance();
 			};
@@ -141,7 +141,8 @@ class MoveAvatarOutsideHome implements IRepairStep {
 			$this->userManager->callForSeenUsers($function);
 
 			$output->finishProgress();
+		} else {
+			$output->info("No action required");
 		}
 	}
 }
-

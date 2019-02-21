@@ -4,7 +4,7 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -27,7 +27,6 @@ use OCP\Migration\IOutput;
 use OCP\Migration\IRepairStep;
 
 class SearchLuceneTables implements IRepairStep {
-
 	public function getName() {
 		return 'Repair duplicate entries in oc_lucene_status';
 	}
@@ -74,6 +73,4 @@ class SearchLuceneTables implements IRepairStep {
 			$out->info('lucene_status table does not exist -> nothing to do');
 		}
 	}
-
 }
-

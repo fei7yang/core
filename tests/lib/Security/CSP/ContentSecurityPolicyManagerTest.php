@@ -2,7 +2,7 @@
 /**
  * @author Lukas Reschke <lukas@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -20,7 +20,6 @@
  */
 
 namespace Test\Security\CSP;
-
 
 use OC\Security\CSP\ContentSecurityPolicy;
 use OC\Security\CSP\ContentSecurityPolicyManager;
@@ -68,5 +67,4 @@ class ContentSecurityPolicyManagerTest extends TestCase {
 		$this->assertEquals($expected, $this->contentSecurityPolicyManager->getDefaultPolicy());
 		$this->assertSame($expectedStringPolicy, $this->contentSecurityPolicyManager->getDefaultPolicy()->buildPolicy());
 	}
-
 }

@@ -9,7 +9,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -32,7 +32,6 @@ use OC\Files\View;
 use OCP\Constants;
 use OCP\Files\Cache\ICacheEntry;
 use OCP\Files\FileInfo;
-use Test\Traits\UserTrait;
 
 /**
  * Class CacheTest
@@ -90,7 +89,7 @@ class CacheTest extends TestCase {
 		$this->view->file_put_contents('container/shareddir/subdir/another too.txt', $textData);
 		$this->view->file_put_contents('container/shareddir/subdir/not a text file.xml', '<xml></xml>');
 
-		list($this->ownerStorage,) = $this->view->resolvePath('');
+		list($this->ownerStorage, ) = $this->view->resolvePath('');
 		$this->ownerCache = $this->ownerStorage->getCache();
 		$this->ownerStorage->getScanner()->scan('');
 
@@ -120,12 +119,12 @@ class CacheTest extends TestCase {
 
 		// retrieve the shared storage
 		$secondView = new View('/' . self::TEST_FILES_SHARING_API_USER2);
-		list($this->sharedStorage,) = $secondView->resolvePath('files/shareddir');
+		list($this->sharedStorage, ) = $secondView->resolvePath('files/shareddir');
 		$this->sharedCache = $this->sharedStorage->getCache();
 	}
 
 	protected function tearDown() {
-		if($this->sharedCache) {
+		if ($this->sharedCache) {
 			$this->sharedCache->clear();
 		}
 
@@ -143,7 +142,7 @@ class CacheTest extends TestCase {
 		parent::tearDown();
 	}
 
-	function searchDataProvider() {
+	public function searchDataProvider() {
 		return [
 			['%another%',
 				[
@@ -207,7 +206,7 @@ class CacheTest extends TestCase {
 	 * we cannot use a dataProvider because that would cause the stray hook detection to remove the hooks
 	 * that were added in setUpBeforeClass.
 	 */
-	function testSearch() {
+	public function testSearch() {
 		foreach ($this->searchDataProvider() as $data) {
 			list($pattern, $expectedFiles) = $data;
 
@@ -215,12 +214,11 @@ class CacheTest extends TestCase {
 
 			$this->verifyFiles($expectedFiles, $results);
 		}
-
 	}
 	/**
 	 * Test searching by mime type
 	 */
-	function testSearchByMime() {
+	public function testSearchByMime() {
 		$results = $this->sharedStorage->getCache()->searchByMime('text');
 		$check = [
 				[
@@ -242,13 +240,13 @@ class CacheTest extends TestCase {
 	/**
 	 * Test searching by tag
 	 */
-	function testSearchByTag() {
+	public function testSearchByTag() {
 		$userId = \OC::$server->getUserSession()->getUser()->getUId();
 		$id1 = $this->sharedCache->get('bar.txt')['fileid'];
 		$id2 = $this->sharedCache->get('subdir/another too.txt')['fileid'];
 		$id3 = $this->sharedCache->get('subdir/not a text file.xml')['fileid'];
 		$id4 = $this->sharedCache->get('subdir/another.txt')['fileid'];
-		$tagManager = \OC::$server->getTagManager()->load('files', null, null, $userId);
+		$tagManager = \OC::$server->getTagManager()->load('files', [], null, $userId);
 		$tagManager->tagAs($id1, 'tag1');
 		$tagManager->tagAs($id1, 'tag2');
 		$tagManager->tagAs($id2, 'tag1');
@@ -276,7 +274,7 @@ class CacheTest extends TestCase {
 	/**
 	 * Test searching by tag for multiple sections of the tree
 	 */
-	function testSearchByTagTree() {
+	public function testSearchByTagTree() {
 		$userId = \OC::$server->getUserSession()->getUser()->getUId();
 		$this->sharedStorage->mkdir('subdir/emptydir');
 		$this->sharedStorage->mkdir('subdir/emptydir2');
@@ -290,7 +288,7 @@ class CacheTest extends TestCase {
 			$this->sharedCache->get('subdir/emptydir')['fileid'],
 			$this->sharedCache->get('subdir/emptydir2')['fileid'],
 		];
-		$tagManager = \OC::$server->getTagManager()->load('files', null, null, $userId);
+		$tagManager = \OC::$server->getTagManager()->load('files', [], null, $userId);
 		foreach ($allIds as $id) {
 			$tagManager->tagAs($id, 'tag1');
 		}
@@ -329,7 +327,7 @@ class CacheTest extends TestCase {
 		$tagManager->delete(['tag1']);
 	}
 
-	function testGetFolderContentsInRoot() {
+	public function testGetFolderContentsInRoot() {
 		$results = $this->user2View->getDirectoryContent('/');
 
 		// we should get the shared items "shareddir" and "shared single file.txt"
@@ -354,7 +352,7 @@ class CacheTest extends TestCase {
 		);
 	}
 
-	function testGetFolderContentsInSubdir() {
+	public function testGetFolderContentsInSubdir() {
 		$results = $this->user2View->getDirectoryContent('/shareddir');
 
 		$this->verifyFiles(
@@ -385,7 +383,7 @@ class CacheTest extends TestCase {
 		);
 	}
 
-	function testGetFolderContentsWhenSubSubdirShared() {
+	public function testGetFolderContentsWhenSubSubdirShared() {
 		self::loginHelper(self::TEST_FILES_SHARING_API_USER1);
 
 		$rootFolder = \OC::$server->getUserFolder(self::TEST_FILES_SHARING_API_USER1);
@@ -442,8 +440,8 @@ class CacheTest extends TestCase {
 	 * @param array $results array of files
 	 */
 	private function verifyFiles($examples, $results) {
-		$this->assertEquals(count($examples), count($results),
-			'Files found: ' . implode(', ', array_map(function( $f) {
+		$this->assertCount(\count($examples), $results,
+			'Files found: ' . \implode(', ', \array_map(function ($f) {
 				/** @var FileInfo | ICacheEntry $f */
 				return $f->getPath();
 			}, $results)));

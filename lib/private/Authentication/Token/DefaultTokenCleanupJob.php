@@ -2,7 +2,7 @@
 /**
  * @author Christoph Wurst <christoph@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -25,12 +25,10 @@ use OC;
 use OC\BackgroundJob\Job;
 
 class DefaultTokenCleanupJob extends Job {
-
 	protected function run($argument) {
 		/* @var $provider DefaultTokenProvider */
 		// TODO: add OC\Authentication\Token\IProvider::invalidateOldTokens and query interface
 		$provider = OC::$server->query('OC\Authentication\Token\DefaultTokenProvider');
 		$provider->invalidateOldTokens();
 	}
-
 }

@@ -6,7 +6,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -36,12 +36,13 @@ use OCP\IConfig;
 use OCP\IUser;
 
 class Util {
-
 	const HEADER_START = 'HBEGIN';
 	const HEADER_END = 'HEND';
 	const HEADER_PADDING_CHAR = '-';
 
 	const HEADER_ENCRYPTION_MODULE_KEY = 'oc_encryption_module';
+
+	const ID = 'OC_DEFAULT_MODULE';
 
 	/**
 	 * block size will always be 8192 for a PHP stream
@@ -87,7 +88,6 @@ class Util {
 		\OC\User\Manager $userManager,
 		\OC\Group\Manager $groupManager,
 		IConfig $config) {
-
 		$this->ocHeaderKeys = [
 			self::HEADER_ENCRYPTION_MODULE_KEY
 		];
@@ -119,10 +119,10 @@ class Util {
 		if (isset($header[$encryptionModuleKey])) {
 			$id = $header[$encryptionModuleKey];
 		} elseif (isset($header['cipher'])) {
-			if (class_exists('\OCA\Encryption\Crypto\Encryption')) {
+			if (\class_exists('\OCA\Encryption\Crypto\Encryption')) {
 				// fall back to default encryption if the user migrated from
 				// ownCloud <= 8.0 with the old encryption
-				$id = \OCA\Encryption\Crypto\Encryption::ID;
+				$id = self::ID;
 			} else {
 				throw new ModuleDoesNotExistsException('Default encryption module missing');
 			}
@@ -143,18 +143,18 @@ class Util {
 	public function createHeader(array $headerData, IEncryptionModule $encryptionModule) {
 		$header = self::HEADER_START . ':' . self::HEADER_ENCRYPTION_MODULE_KEY . ':' . $encryptionModule->getId() . ':';
 		foreach ($headerData as $key => $value) {
-			if (in_array($key, $this->ocHeaderKeys)) {
+			if (\in_array($key, $this->ocHeaderKeys)) {
 				throw new EncryptionHeaderKeyExistsException($key);
 			}
 			$header .= $key . ':' . $value . ':';
 		}
 		$header .= self::HEADER_END;
 
-		if (strlen($header) > $this->getHeaderSize()) {
+		if (\strlen($header) > $this->getHeaderSize()) {
 			throw new EncryptionHeaderToLargeException();
 		}
 
-		$paddedHeader = str_pad($header, $this->headerSize, self::HEADER_PADDING_CHAR, STR_PAD_RIGHT);
+		$paddedHeader = \str_pad($header, $this->headerSize, self::HEADER_PADDING_CHAR, STR_PAD_RIGHT);
 
 		return $paddedHeader;
 	}
@@ -170,7 +170,7 @@ class Util {
 		$dirList = [$dir];
 
 		while ($dirList) {
-			$dir = array_pop($dirList);
+			$dir = \array_pop($dirList);
 			$content = $this->rootView->getDirectoryContent($dir);
 
 			foreach ($content as $c) {
@@ -180,7 +180,6 @@ class Util {
 					$result[] =  $c->getPath();
 				}
 			}
-
 		}
 
 		return $result;
@@ -194,7 +193,7 @@ class Util {
 	 * @return boolean
 	 */
 	public function isFile($path) {
-		$parts = explode('/', Filesystem::normalizePath($path), 4);
+		$parts = \explode('/', Filesystem::normalizePath($path), 4);
 		if (isset($parts[2]) && $parts[2] === 'files') {
 			return true;
 		}
@@ -227,10 +226,9 @@ class Util {
 	 * @throws \BadMethodCallException
 	 */
 	public function getUidAndFilename($path) {
-
-		$parts = explode('/', $path);
+		$parts = \explode('/', $path);
 		$uid = '';
-		if (count($parts) > 2) {
+		if (\count($parts) > 2) {
 			$uid = $parts[1];
 		}
 		if (!$this->userManager->userExists($uid)) {
@@ -239,10 +237,9 @@ class Util {
 			);
 		}
 
-		$ownerPath = implode('/', array_slice($parts, 2));
+		$ownerPath = \implode('/', \array_slice($parts, 2));
 
 		return [$uid, Filesystem::normalizePath($ownerPath)];
-
 	}
 
 	/**
@@ -252,21 +249,19 @@ class Util {
 	 * @note this is needed for reusing keys
 	 */
 	public function stripPartialFileExtension($path) {
-		$extension = pathinfo($path, PATHINFO_EXTENSION);
+		$extension = \pathinfo($path, PATHINFO_EXTENSION);
 
-		if ( $extension === 'part') {
-
-			$newLength = strlen($path) - 5; // 5 = strlen(".part")
-			$fPath = substr($path, 0, $newLength);
+		if ($extension === 'part') {
+			$newLength = \strlen($path) - 5; // 5 = strlen(".part")
+			$fPath = \substr($path, 0, $newLength);
 
 			// if path also contains a transaction id, we remove it too
-			$extension = pathinfo($fPath, PATHINFO_EXTENSION);
-			if(substr($extension, 0, 12) === 'ocTransferId') { // 12 = strlen("ocTransferId")
-				$newLength = strlen($fPath) - strlen($extension) -1;
-				$fPath = substr($fPath, 0, $newLength);
+			$extension = \pathinfo($fPath, PATHINFO_EXTENSION);
+			if (\substr($extension, 0, 12) === 'ocTransferId') { // 12 = strlen("ocTransferId")
+				$newLength = \strlen($fPath) - \strlen($extension) -1;
+				$fPath = \substr($fPath, 0, $newLength);
 			}
 			return $fPath;
-
 		} else {
 			return $path;
 		}
@@ -274,17 +269,17 @@ class Util {
 
 	public function getUserWithAccessToMountPoint($users, $groups) {
 		$result = [];
-		if (in_array('all', $users)) {
+		if (\in_array('all', $users)) {
 			$result = \OCP\User::getUsers();
 		} else {
-			$result = array_merge($result, $users);
+			$result = \array_merge($result, $users);
 			foreach ($groups as $group) {
 				$g = \OC::$server->getGroupManager()->get($group);
-				if (!is_null($g)) {
-					$users = array_values(array_map(function(IUser $u){
+				if ($g !== null) {
+					$users = \array_values(\array_map(function (IUser $u) {
 						return $u->getUID();
 					}, $g->getUsers()));
-					$result = array_merge($result, $users);
+					$result = \array_merge($result, $users);
 				}
 			}
 		}
@@ -302,7 +297,7 @@ class Util {
 		if (\OCP\App::isEnabled("files_external")) {
 			$mounts = \OC\Files\External\LegacyUtil::getSystemMountPoints();
 			foreach ($mounts as $mount) {
-				if (strpos($path, '/files/' . $mount['mountpoint']) === 0) {
+				if (\strpos($path, '/files/' . $mount['mountpoint']) === 0) {
 					if ($this->isMountPointApplicableToUser($mount, $uid)) {
 						return true;
 					}
@@ -322,7 +317,7 @@ class Util {
 	private function isMountPointApplicableToUser($mount, $uid) {
 		$acceptedUids = ['all', $uid];
 		// check if mount point is applicable for the user
-		$intersection = array_intersect($acceptedUids, $mount['applicable']['users']);
+		$intersection = \array_intersect($acceptedUids, $mount['applicable']['users']);
 		if (!empty($intersection)) {
 			return true;
 		}
@@ -343,30 +338,28 @@ class Util {
 	 */
 	public function isExcluded($path) {
 		$normalizedPath = Filesystem::normalizePath($path);
-		$root = explode('/', $normalizedPath, 4);
-		if (count($root) > 1) {
+		$root = \explode('/', $normalizedPath, 4);
+		if (\count($root) > 1) {
 
 			// detect alternative key storage root
 			$rootDir = $this->getKeyStorageRoot();
 			if ($rootDir !== '' &&
-				0 === strpos(
+				\strpos(
 					Filesystem::normalizePath($path),
 					Filesystem::normalizePath($rootDir)
-				)
+				) === 0
 			) {
 				return true;
 			}
 
-
 			//detect system wide folders
-			if (in_array($root[1], $this->excludedPaths)) {
+			if (\in_array($root[1], $this->excludedPaths)) {
 				return true;
 			}
 
 			// detect user specific folders
 			if ($this->userManager->userExists($root[1])
-				&& in_array($root[2], $this->excludedPaths)) {
-
+				&& \in_array($root[2], $this->excludedPaths)) {
 				return true;
 			}
 		}
@@ -402,5 +395,4 @@ class Util {
 	public function getKeyStorageRoot() {
 		return $this->config->getAppValue('core', 'encryption_key_storage_root', '');
 	}
-
 }

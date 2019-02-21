@@ -2,7 +2,7 @@
 /**
  * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -40,7 +40,8 @@ class Quota implements ISettings {
 
 	public function getPanel() {
 		$tmpl = new Template('settings', 'panels/personal/quota');
-		$storageInfo = $this->helper->getStorageInfo('/');;
+		$storageInfo = $this->helper->getStorageInfo('/');
+		;
 		$tmpl->assign('usage', \OC_Helper::humanFileSize($storageInfo['used']));
 		$tmpl->assign('usage_relative', $storageInfo['relative']);
 		$tmpl->assign('quota', $storageInfo['quota']);
@@ -51,5 +52,4 @@ class Quota implements ISettings {
 	public function getSectionID() {
 		return 'general';
 	}
-
 }

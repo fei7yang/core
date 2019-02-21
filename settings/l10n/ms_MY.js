@@ -1,16 +1,15 @@
 OC.L10N.register(
     "settings",
     {
-    "Authentication error" : "Ralat pengesahan",
     "Create" : "Buat",
     "Delete" : "Padam",
-    "__language_name__" : "_nama_bahasa_",
+    "Share" : "Kongsi",
     "Language changed" : "Bahasa diubah",
     "Invalid request" : "Permintaan tidak sah",
     "Disable" : "Nyahaktif",
     "Enable" : "Aktif",
     "Groups" : "Kumpulan",
-    "never" : "jangan",
+    "Language" : "Bahasa",
     "Log" : "Log",
     "Login" : "Log masuk",
     "Server address" : "Alamat pelayan",
@@ -24,15 +23,11 @@ OC.L10N.register(
     "Current password" : "Kata laluan semasa",
     "New password" : "Kata laluan baru",
     "Change password" : "Ubah kata laluan",
-    "Language" : "Bahasa",
     "Help translate" : "Bantu terjemah",
     "Name" : "Nama",
     "Username" : "Nama pengguna",
     "Personal" : "Peribadi",
     "Admin" : "Admin",
-    "Error" : "Ralat",
-    "Default Quota" : "Kuota Lalai",
-    "Other" : "Lain",
-    "Quota" : "Kuota"
+    "Error" : "Ralat"
 },
 "nplurals=1; plural=0;");

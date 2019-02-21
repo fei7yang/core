@@ -9,7 +9,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Thomas Tanghus <thomas@tanghus.net>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -134,7 +134,7 @@ class Route extends SymfonyRoute implements IRoute {
 	 */
 	public function action($class, $function = null) {
 		$action = [$class, $function];
-		if (is_null($function)) {
+		if ($function === null) {
 			$action = $class;
 		}
 		$this->setDefault('action', $action);
@@ -148,11 +148,11 @@ class Route extends SymfonyRoute implements IRoute {
 	 * @return void
 	 */
 	public function actionInclude($file) {
-		$function = create_function('$param',
-			'unset($param["_route"]);'
-			.'$_GET=array_merge($_GET, $param);'
-			.'unset($param);'
-			.'require_once "'.$file.'";');
-		$this->action($function);
+		$this->action(function ($param) use ($file) {
+			unset($param["_route"]);
+			$_GET = \array_merge($_GET, $param);
+			unset($param);
+			require_once $file;
+		});
 	}
 }

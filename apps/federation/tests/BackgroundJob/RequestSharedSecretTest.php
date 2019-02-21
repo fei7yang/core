@@ -4,7 +4,7 @@
  * @author Joas Schilling <coding@schilljs.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,9 +21,7 @@
  *
  */
 
-
 namespace OCA\Federation\Tests\BackgroundJob;
-
 
 use OCA\Federation\BackgroundJob\RequestSharedSecret;
 use OCA\Federation\DbHandler;
@@ -114,7 +112,6 @@ class RequestSharedSecretTest extends TestCase {
 		}
 
 		$requestSharedSecret->execute($this->jobList);
-
 	}
 
 	public function dataTestExecute() {
@@ -131,7 +128,6 @@ class RequestSharedSecretTest extends TestCase {
 	 * @param int $statusCode
 	 */
 	public function testRun($statusCode) {
-
 		$target = 'targetURL';
 		$source = 'sourceURL';
 		$token = 'token';

@@ -2,7 +2,7 @@
 /**
  * @author Roeland Jago Douma <roeland@famdouma.nl>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -38,7 +38,7 @@ class CapabilitiesManagerTest extends TestCase {
 	public function testValidCapability() {
 		$manager = new \OC\CapabilitiesManager();
 
-		$manager->registerCapability(function() {
+		$manager->registerCapability(function () {
 			return new SimpleCapability();
 		});
 
@@ -54,7 +54,7 @@ class CapabilitiesManagerTest extends TestCase {
 	public function testNoICapability() {
 		$manager = new \OC\CapabilitiesManager();
 
-		$manager->registerCapability(function() {
+		$manager->registerCapability(function () {
 			return new NoCapability();
 		});
 
@@ -68,13 +68,13 @@ class CapabilitiesManagerTest extends TestCase {
 	public function testMergedCapabilities() {
 		$manager = new \OC\CapabilitiesManager();
 
-		$manager->registerCapability(function() {
+		$manager->registerCapability(function () {
 			return new SimpleCapability();
 		});
-		$manager->registerCapability(function() {
+		$manager->registerCapability(function () {
 			return new SimpleCapability2();
 		});
-		$manager->registerCapability(function() {
+		$manager->registerCapability(function () {
 			return new SimpleCapability3();
 		});
 
@@ -96,10 +96,10 @@ class CapabilitiesManagerTest extends TestCase {
 	public function testDeepIdenticalCapabilities() {
 		$manager = new \OC\CapabilitiesManager();
 
-		$manager->registerCapability(function() {
+		$manager->registerCapability(function () {
 			return new DeepCapability();
 		});
-		$manager->registerCapability(function() {
+		$manager->registerCapability(function () {
 			return new DeepCapability();
 		});
 
@@ -159,4 +159,3 @@ class DeepCapability implements \OCP\Capabilities\ICapability {
 		];
 	}
 }
-

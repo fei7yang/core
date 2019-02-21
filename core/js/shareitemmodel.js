@@ -61,7 +61,7 @@
 	 * of integers, so we need to convert them accordingly...
 	 */
 	var SHARE_RESPONSE_INT_PROPS = [
-		'id', 'file_parent', 'mail_send', 'file_source', 'item_source', 'permissions',
+		'id', 'mail_send', 'permissions',
 		'storage', 'share_type', 'parent', 'stime'
 	];
 
@@ -285,6 +285,20 @@
 		/**
 		 * @returns {string}
 		 */
+		getFileOwner: function() {
+			return this.get('reshare').uid_file_owner;
+		},
+
+		/**
+		 * @returns {string}
+		 */
+		getFileOwnerDisplayname: function() {
+			return this.get('reshare').displayname_file_owner;
+		},
+
+		/**
+		 * @returns {string}
+		 */
 		getReshareOwner: function() {
 			return this.get('reshare').uid_owner;
 		},
@@ -358,6 +372,19 @@
 			return share.share_with_displayname;
 		},
 
+		/**
+		 * @param shareIndex
+		 * @returns {string}
+		 */
+		getShareWithAdditionalInfo: function(shareIndex) {
+			/** @type OC.Share.Types.ShareInfo **/
+			var share = this.get('shares')[shareIndex];
+			if(!_.isObject(share)) {
+				throw "Unknown Share";
+			}
+			return share.share_with_additional_info;
+		},
+
 		getShareType: function(shareIndex) {
 			/** @type OC.Share.Types.ShareInfo **/
 			var share = this.get('shares')[shareIndex];
@@ -403,21 +430,17 @@
 		sendNotificationForShare: function(shareType, shareWith, state) {
 			var itemType = this.get('itemType');
 			var itemSource = this.get('itemSource');
+			var baseUrl = OC.linkToOCS('/apps/files_sharing/api/v1/notification/', 2);
+			var action = state ? 'send' : 'marksent';
 
 			return $.post(
-				OC.generateUrl('core/ajax/share.php'),
+				baseUrl + action,
 				{
-					action: state ? 'informRecipients' : 'informRecipientsDisabled',
+					format: 'json',
 					recipient: shareWith,
 					shareType: shareType,
 					itemSource: itemSource,
 					itemType: itemType
-				},
-				function(result) {
-					if (result.status !== 'success') {
-						// FIXME: a model should not show dialogs
-						OC.dialogs.alert(t('core', result.data.message), t('core', 'Warning'));
-					}
 				}
 			);
 		},

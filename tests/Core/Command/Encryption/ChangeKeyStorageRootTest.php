@@ -2,7 +2,7 @@
 /**
  * @author Björn Schießle <schiessle@owncloud.com>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -19,9 +19,7 @@
  *
  */
 
-
 namespace Tests\Core\Command\Encryption;
-
 
 use OC\Core\Command\Encryption\ChangeKeyStorageRoot;
 use OC\Encryption\Util;
@@ -85,14 +83,12 @@ class ChangeKeyStorageRootTest extends TestCase {
 			$this->util,
 			$this->questionHelper
 		);
-
 	}
 
 	/**
 	 * @dataProvider dataTestExecute
 	 */
 	public function testExecute($newRoot, $answer, $successMoveKey) {
-
 		$changeKeyStorageRoot = $this->getMockBuilder('OC\Core\Command\Encryption\ChangeKeyStorageRoot')
 			->setConstructorArgs(
 				[
@@ -164,7 +160,6 @@ class ChangeKeyStorageRootTest extends TestCase {
 		$changeKeyStorageRoot->expects($this->at(2))->method('moveUserKeys')->with('oldRoot', 'newRoot', $this->outputInterface);
 
 		$this->invokePrivate($changeKeyStorageRoot, 'moveAllKeys', ['oldRoot', 'newRoot', $this->outputInterface]);
-
 	}
 
 	public function testPrepareNewRoot() {
@@ -200,6 +195,24 @@ class ChangeKeyStorageRootTest extends TestCase {
 		];
 	}
 
+	public function nulldir() {
+		return [
+			[null]
+		];
+	}
+
+	/**
+	 * @dataProvider nulldir
+	 * @expectedException \Exception
+	 * @expectedExceptionMessage New root folder doesn't exist. Please create the folder or check the permissions and try again.
+	 * @param $dirExists
+	 */
+	public function testPrepareNewRootExceptionForNullDir($dirExists) {
+		$this->view->expects($this->once())->method('is_dir')->with('../../newRoot')
+			->willReturn($dirExists);
+		$this->invokePrivate($this->changeKeyStorageRoot, 'prepareNewRoot', ['../../newRoot']);
+	}
+
 	/**
 	 * @dataProvider dataTestMoveSystemKeys
 	 *
@@ -208,7 +221,6 @@ class ChangeKeyStorageRootTest extends TestCase {
 	 * @param bool $executeRename
 	 */
 	public function testMoveSystemKeys($dirExists, $targetExists, $executeRename) {
-
 		$changeKeyStorageRoot = $this->getMockBuilder('OC\Core\Command\Encryption\ChangeKeyStorageRoot')
 			->setConstructorArgs(
 				[
@@ -233,7 +245,6 @@ class ChangeKeyStorageRootTest extends TestCase {
 		}
 
 		$this->invokePrivate($changeKeyStorageRoot, 'moveSystemKeys', ['oldRoot', 'newRoot']);
-
 	}
 
 	public function dataTestMoveSystemKeys() {
@@ -245,9 +256,7 @@ class ChangeKeyStorageRootTest extends TestCase {
 		];
 	}
 
-
 	public function testMoveUserKeys() {
-
 		$changeKeyStorageRoot = $this->getMockBuilder('OC\Core\Command\Encryption\ChangeKeyStorageRoot')
 			->setConstructorArgs(
 				[
@@ -278,7 +287,6 @@ class ChangeKeyStorageRootTest extends TestCase {
 	 * @param bool $shouldRename
 	 */
 	public function testMoveUserEncryptionFolder($userExists, $isDir, $targetExists, $shouldRename) {
-
 		$changeKeyStorageRoot = $this->getMockBuilder('OC\Core\Command\Encryption\ChangeKeyStorageRoot')
 			->setConstructorArgs(
 				[
@@ -308,7 +316,6 @@ class ChangeKeyStorageRootTest extends TestCase {
 		}
 
 		$this->invokePrivate($changeKeyStorageRoot, 'moveUserEncryptionFolder', ['user1', 'oldRoot', 'newRoot']);
-
 	}
 
 	public function dataTestMoveUserEncryptionFolder() {
@@ -323,14 +330,13 @@ class ChangeKeyStorageRootTest extends TestCase {
 		];
 	}
 
-
 	/**
 	 * @dataProvider dataTestPrepareParentFolder
 	 */
 	public function testPrepareParentFolder($path, $pathExists) {
 		$this->view->expects($this->any())->method('file_exists')
 			->willReturnCallback(
-				function($fileExistsPath) use ($path, $pathExists) {
+				function ($fileExistsPath) use ($path, $pathExists) {
 					if ($path === $fileExistsPath) {
 						return $pathExists;
 					}
@@ -339,8 +345,8 @@ class ChangeKeyStorageRootTest extends TestCase {
 			);
 
 		if ($pathExists === false) {
-			$subDirs = explode('/', ltrim($path, '/'));
-			$this->view->expects($this->exactly(count($subDirs)))->method('mkdir');
+			$subDirs = \explode('/', \ltrim($path, '/'));
+			$this->view->expects($this->exactly(\count($subDirs)))->method('mkdir');
 		} else {
 			$this->view->expects($this->never())->method('mkdir');
 		}
@@ -377,5 +383,4 @@ class ChangeKeyStorageRootTest extends TestCase {
 
 		$this->invokePrivate($this->changeKeyStorageRoot, 'targetExists', ['path']);
 	}
-
 }

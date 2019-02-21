@@ -5,7 +5,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -100,7 +100,7 @@ class CertificateController extends Controller {
 		}
 
 		try {
-			$certificate = $certificateManager->addCertificate(file_get_contents($file['tmp_name']), $file['name']);
+			$certificate = $certificateManager->addCertificate(\file_get_contents($file['tmp_name']), $file['name']);
 			return new DataResponse(
 				[
 					'name' => $certificate->getName(),
@@ -130,7 +130,6 @@ class CertificateController extends Controller {
 	 * @return DataResponse
 	 */
 	public function removePersonalRootCertificate($certificateIdentifier) {
-
 		if ($this->isCertificateImportAllowed() === false) {
 			return new DataResponse('Individual certificate management disabled', Http::STATUS_FORBIDDEN);
 		}
@@ -172,7 +171,6 @@ class CertificateController extends Controller {
 	 * @return DataResponse
 	 */
 	public function removeSystemRootCertificate($certificateIdentifier) {
-
 		if ($this->isCertificateImportAllowed() === false) {
 			return new DataResponse('Individual certificate management disabled', Http::STATUS_FORBIDDEN);
 		}

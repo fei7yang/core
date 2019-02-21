@@ -9,7 +9,7 @@
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -33,14 +33,13 @@ use Doctrine\DBAL\Driver;
 use Doctrine\DBAL\Configuration;
 use Doctrine\DBAL\Cache\QueryCacheProfile;
 use Doctrine\Common\EventManager;
-use Doctrine\DBAL\Exception\ConstraintViolationException;
+use Doctrine\DBAL\Driver\ServerInfoAwareConnection;
 use Doctrine\DBAL\Platforms\MySqlPlatform;
 use Doctrine\DBAL\Schema\Schema;
 use OC\DB\QueryBuilder\QueryBuilder;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 use OCP\PreConditionNotMetException;
-use OCP\Util;
 
 class Connection extends \Doctrine\DBAL\Connection implements IDBConnection {
 	/**
@@ -103,7 +102,7 @@ class Connection extends \Doctrine\DBAL\Connection implements IDBConnection {
 	 * @return string
 	 */
 	protected function getCallerBacktrace() {
-		$traces = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2);
+		$traces = \debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2);
 
 		// 0 is the method where we use `getCallerBacktrace`
 		// 1 is the target method which uses the method we want to log
@@ -131,8 +130,7 @@ class Connection extends \Doctrine\DBAL\Connection implements IDBConnection {
 	 * @throws \Exception
 	 */
 	public function __construct(array $params, Driver $driver, Configuration $config = null,
-		EventManager $eventManager = null)
-	{
+		EventManager $eventManager = null) {
 		if (!isset($params['adapter'])) {
 			throw new \Exception('adapter not set');
 		}
@@ -154,11 +152,11 @@ class Connection extends \Doctrine\DBAL\Connection implements IDBConnection {
 	 * @param int $offset
 	 * @return \Doctrine\DBAL\Driver\Statement The prepared statement.
 	 */
-	public function prepare( $statement, $limit=null, $offset=null ) {
+	public function prepare($statement, $limit=null, $offset=null) {
 		if ($limit === -1) {
 			$limit = null;
 		}
-		if (!is_null($limit)) {
+		if ($limit !== null) {
 			$platform = $this->getDatabasePlatform();
 			$statement = $platform->modifyLimitQuery($statement, $limit, $offset);
 		}
@@ -183,8 +181,7 @@ class Connection extends \Doctrine\DBAL\Connection implements IDBConnection {
 	 *
 	 * @throws \Doctrine\DBAL\DBALException
 	 */
-	public function executeQuery($query, array $params = [], $types = [], QueryCacheProfile $qcp = null)
-	{
+	public function executeQuery($query, array $params = [], $types = [], QueryCacheProfile $qcp = null) {
 		$query = $this->replaceTablePrefix($query);
 		$query = $this->adapter->fixupStatement($query);
 		return parent::executeQuery($query, $params, $types, $qcp);
@@ -204,8 +201,7 @@ class Connection extends \Doctrine\DBAL\Connection implements IDBConnection {
 	 *
 	 * @throws \Doctrine\DBAL\DBALException
 	 */
-	public function executeUpdate($query, array $params = [], array $types = [])
-	{
+	public function executeUpdate($query, array $params = [], array $types = []) {
 		$query = $this->replaceTablePrefix($query);
 		$query = $this->adapter->fixupStatement($query);
 		return parent::executeUpdate($query, $params, $types);
@@ -249,10 +245,25 @@ class Connection extends \Doctrine\DBAL\Connection implements IDBConnection {
 		return $this->adapter->insertIfNotExist($table, $input, $compare);
 	}
 
+	/**
+	 * Attempt to update a row, else insert a new one
+	 *
+	 * @param string $table The table name (will replace *PREFIX* with the actual prefix)
+	 * @param array $input data that should be inserted into the table  (column name => value)
+	 * @param array|null $compare List of values that should be checked for "if not exists"
+	 *				If this is null or an empty array, all keys of $input will be compared
+	 *				Please note: text fields (clob) must not be used in the compare array
+	 * @return int number of affected rows
+	 * @throws \Doctrine\DBAL\DBALException
+	 */
+	public function upsert($table, $input, array $compare = null) {
+		return $this->adapter->upsert($table, $input, $compare);
+	}
+
 	private function getType($value) {
-		if (is_bool($value)) {
+		if (\is_bool($value)) {
 			return IQueryBuilder::PARAM_BOOL;
-		} else if (is_int($value)) {
+		} elseif (\is_int($value)) {
 			return IQueryBuilder::PARAM_INT;
 		} else {
 			return IQueryBuilder::PARAM_STR;
@@ -272,8 +283,8 @@ class Connection extends \Doctrine\DBAL\Connection implements IDBConnection {
 	 */
 	public function setValues($table, array $keys, array $values, array $updatePreconditionValues = []) {
 		// Try to insert whole record into the table ($toInsert) if predicate NOT EXISTS ($compare) is satisfied
-		$toInsert = array_merge($keys, $values);
-		$compare = array_keys($keys);
+		$toInsert = \array_merge($keys, $values);
+		$compare = \array_keys($keys);
 		$tableName = $this->tablePrefix . $table;
 		$affected = $this->adapter->insertIfNotExist($tableName, $toInsert, $compare);
 
@@ -285,7 +296,7 @@ class Connection extends \Doctrine\DBAL\Connection implements IDBConnection {
 				$updateQb->set($name, $updateQb->createNamedParameter($value, $this->getType($value)));
 			}
 			$where = $updateQb->expr()->andX();
-			$whereValues = array_merge($keys, $updatePreconditionValues);
+			$whereValues = \array_merge($keys, $updatePreconditionValues);
 			foreach ($whereValues as $name => $value) {
 				$where->add($updateQb->expr()->eq(
 					$name,
@@ -299,7 +310,6 @@ class Connection extends \Doctrine\DBAL\Connection implements IDBConnection {
 			if ($affected === 0 && !empty($updatePreconditionValues)) {
 				throw new PreConditionNotMetException();
 			}
-
 		}
 
 		return $affected;
@@ -340,7 +350,7 @@ class Connection extends \Doctrine\DBAL\Connection implements IDBConnection {
 	public function getError() {
 		$msg = $this->errorCode() . ': ';
 		$errorInfo = $this->errorInfo();
-		if (is_array($errorInfo)) {
+		if (\is_array($errorInfo)) {
 			$msg .= 'SQLSTATE = '.$errorInfo[0] . ', ';
 			$msg .= 'Driver Code = '.$errorInfo[1] . ', ';
 			$msg .= 'Driver Message = '.$errorInfo[2];
@@ -354,9 +364,9 @@ class Connection extends \Doctrine\DBAL\Connection implements IDBConnection {
 	 * @param string $table table name without the prefix
 	 */
 	public function dropTable($table) {
-		$table = $this->tablePrefix . trim($table);
+		$table = $this->tablePrefix . \trim($table);
 		$schema = $this->getSchemaManager();
-		if($schema->tablesExist([$table])) {
+		if ($schema->tablesExist([$table])) {
 			$schema->dropTable($table);
 		}
 	}
@@ -367,8 +377,8 @@ class Connection extends \Doctrine\DBAL\Connection implements IDBConnection {
 	 * @param string $table table name without the prefix
 	 * @return bool
 	 */
-	public function tableExists($table){
-		$table = $this->tablePrefix . trim($table);
+	public function tableExists($table) {
+		$table = $this->tablePrefix . \trim($table);
 		$schema = $this->getSchemaManager();
 		return $schema->tablesExist([$table]);
 	}
@@ -379,7 +389,7 @@ class Connection extends \Doctrine\DBAL\Connection implements IDBConnection {
 	 * @return string
 	 */
 	protected function replaceTablePrefix($statement) {
-		return str_replace( '*PREFIX*', $this->tablePrefix, $statement );
+		return \str_replace('*PREFIX*', $this->tablePrefix, $statement);
 	}
 
 	/**
@@ -399,7 +409,7 @@ class Connection extends \Doctrine\DBAL\Connection implements IDBConnection {
 	 * @return string
 	 */
 	public function escapeLikeParameter($param) {
-		return addcslashes($param, '\\_%');
+		return \addcslashes($param, '\\_%');
 	}
 
 	/**
@@ -438,5 +448,27 @@ class Connection extends \Doctrine\DBAL\Connection implements IDBConnection {
 			return true;
 		}
 		return false;
+	}
+
+	/**
+	 * Returns the version of the related platform if applicable.
+	 *
+	 * Returns null if either the driver is not capable to create version
+	 * specific platform instances, no explicit server version was specified
+	 * or the underlying driver connection cannot determine the platform
+	 * version without having to query it (performance reasons).
+	 *
+	 * @return null|string
+	 */
+	public function getDatabaseVersionString() {
+		// Automatic platform version detection.
+		if ($this->_conn instanceof ServerInfoAwareConnection &&
+			! $this->_conn->requiresQueryForServerVersion()
+		) {
+			return $this->_conn->getServerVersion();
+		}
+
+		// Unable to detect platform version.
+		return null;
 	}
 }

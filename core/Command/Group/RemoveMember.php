@@ -2,7 +2,7 @@
 /**
  * @author Phil Davis <phil@jankaritech.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -33,6 +33,9 @@ class RemoveMember extends Command {
 	/** @var \OCP\IGroupManager */
 	protected $groupManager;
 
+	/** @var IUserManager  */
+	private $userManager;
+
 	/**
 	 * @param IGroupManager $groupManager
 	 */
@@ -45,17 +48,17 @@ class RemoveMember extends Command {
 	protected function configure() {
 		$this
 			->setName('group:remove-member')
-			->setDescription('remove member(s) from a group')
+			->setDescription('Remove member(s) from a group.')
 			->addArgument(
 				'group',
 				InputArgument::REQUIRED,
-				'Name of the group'
+				'Name of the group.'
 			)
 			->addOption(
 				'member',
 				'm',
 				InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY,
-				'member that should be removed from the group'
+				'The member that should be removed from the group.'
 			);
 	}
 
@@ -69,7 +72,7 @@ class RemoveMember extends Command {
 
 		$members = $input->getOption('member');
 
-		if (!count($members)) {
+		if (!\count($members)) {
 			$output->writeln('<error>No members specified</error>');
 			return 1;
 		}

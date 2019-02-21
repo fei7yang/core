@@ -2,7 +2,7 @@
 /**
  * @author Robin Appelman <icewind@owncloud.com>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -163,7 +163,6 @@ abstract class LockingProvider extends TestCase {
 		$this->instance->releaseLock('foo', ILockingProvider::LOCK_SHARED);
 	}
 
-
 	/**
 	 * @expectedException \OCP\Lock\LockedException
 	 */
@@ -248,6 +247,6 @@ abstract class LockingProvider extends TestCase {
 	 * @expectedException \InvalidArgumentException
 	 */
 	public function testTooLongLockName() {
-		$this->instance->acquireLock(str_repeat("x", 250), ILockingProvider::LOCK_EXCLUSIVE);
+		$this->instance->acquireLock(\str_repeat("x", 250), ILockingProvider::LOCK_EXCLUSIVE);
 	}
 }

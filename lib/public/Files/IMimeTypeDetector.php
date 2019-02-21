@@ -2,7 +2,7 @@
 /**
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -22,7 +22,6 @@
 // use OCP namespace for all classes that are considered public.
 // This means that they should be used by apps instead of the internal ownCloud classes
 namespace OCP\Files;
-
 
 /**
  * Interface IMimeTypeDetector

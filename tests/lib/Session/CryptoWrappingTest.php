@@ -2,7 +2,7 @@
 /**
  * @author Joas Schilling <nickvergessen@owncloud.com>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -51,7 +51,7 @@ class CryptoWrappingTest extends TestCase {
 		$this->crypto->expects($this->any())
 			->method('decrypt')
 			->willReturnCallback(function ($input) {
-				return substr($input, 1, -1);
+				return \substr($input, 1, -1);
 			});
 
 		$this->instance = new CryptoSessionData($this->wrappedSession, $this->crypto, 'PASS');

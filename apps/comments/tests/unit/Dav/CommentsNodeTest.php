@@ -5,7 +5,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -28,7 +28,6 @@ use OCA\Comments\Dav\CommentNode;
 use OCP\Comments\MessageTooLongException;
 
 class CommentsNodeTest extends \Test\TestCase {
-
 	protected $commentsManager;
 	protected $comment;
 	protected $node;
@@ -132,7 +131,7 @@ class CommentsNodeTest extends \Test\TestCase {
 	}
 
 	public function testGetLastModified() {
-		$this->assertSame($this->node->getLastModified(), null);
+		$this->assertNull($this->node->getLastModified());
 	}
 
 	public function testUpdateComment() {
@@ -420,19 +419,21 @@ class CommentsNodeTest extends \Test\TestCase {
 
 		$properties = $this->node->getProperties(null);
 
-		foreach($properties as $name => $value) {
-			$this->assertTrue(array_key_exists($name, $expected));
+		foreach ($properties as $name => $value) {
+			$this->assertArrayHasKey($name, $expected);
 			$this->assertSame($expected[$name], $value);
 			unset($expected[$name]);
 		}
-		$this->assertTrue(empty($expected));
+		$this->assertEmpty($expected);
 	}
 
 	public function readCommentProvider() {
 		$creationDT = new \DateTime('2016-01-19 18:48:00');
 		$diff = new \DateInterval('PT2H');
-		$readDT1 = clone $creationDT; $readDT1->sub($diff);
-		$readDT2 = clone $creationDT; $readDT2->add($diff);
+		$readDT1 = clone $creationDT;
+		$readDT1->sub($diff);
+		$readDT2 = clone $creationDT;
+		$readDT2->add($diff);
 		return [
 			[$creationDT, $readDT1, 'true'],
 			[$creationDT, $readDT2, 'false'],
@@ -459,7 +460,7 @@ class CommentsNodeTest extends \Test\TestCase {
 
 		$properties = $this->node->getProperties(null);
 
-		$this->assertTrue(array_key_exists(CommentNode::PROPERTY_NAME_UNREAD, $properties));
+		$this->assertArrayHasKey(CommentNode::PROPERTY_NAME_UNREAD, $properties);
 		$this->assertSame($properties[CommentNode::PROPERTY_NAME_UNREAD], $expected);
 	}
 }

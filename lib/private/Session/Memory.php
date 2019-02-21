@@ -7,7 +7,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -39,7 +39,7 @@ use OCP\Session\Exceptions\SessionNotAvailableException;
 class Memory extends Session {
 	protected $data;
 
-	public function __construct($name) {
+	public function __construct() {
 		//no need to use $name since all data is already scoped to this instance
 		$this->data = [];
 	}
@@ -89,7 +89,8 @@ class Memory extends Session {
 	 *
 	 * @param bool $deleteOldSession
 	 */
-	public function regenerateId($deleteOldSession = true) {}
+	public function regenerateId($deleteOldSession = true) {
+	}
 
 	/**
 	 * Wrapper around session_id
@@ -116,7 +117,7 @@ class Memory extends Session {
 	 */
 	private function validateSession() {
 		if ($this->sessionClosed) {
-			throw new Exception('Session has been closed - no further changes to the session are allowed');
+			throw new SessionNotAvailableException('Session has been closed - no further changes to the session are allowed');
 		}
 	}
 }

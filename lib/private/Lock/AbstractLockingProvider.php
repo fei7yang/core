@@ -2,7 +2,7 @@
 /**
  * @author Robin Appelman <icewind@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -81,7 +81,7 @@ abstract class AbstractLockingProvider implements ILockingProvider {
 					unset($this->acquiredLocks['shared'][$path]);
 				}
 			}
-		} else if ($type === self::LOCK_EXCLUSIVE) {
+		} elseif ($type === self::LOCK_EXCLUSIVE) {
 			unset($this->acquiredLocks['exclusive'][$path]);
 		}
 	}
@@ -99,7 +99,7 @@ abstract class AbstractLockingProvider implements ILockingProvider {
 				$this->acquiredLocks['shared'][$path] = 0;
 			}
 			$this->acquiredLocks['shared'][$path]++;
-		} else if ($targetType === self::LOCK_EXCLUSIVE) {
+		} elseif ($targetType === self::LOCK_EXCLUSIVE) {
 			$this->acquiredLocks['exclusive'][$path] = true;
 			$this->acquiredLocks['shared'][$path]--;
 		}

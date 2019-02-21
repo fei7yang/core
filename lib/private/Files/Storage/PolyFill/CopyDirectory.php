@@ -4,7 +4,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Stefan Weil <sw@weilnetz.de>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -86,7 +86,7 @@ trait CopyDirectory {
 	protected function copyRecursive($source, $target) {
 		$dh = $this->opendir($source);
 		$result = true;
-		while ($file = readdir($dh)) {
+		while ($file = \readdir($dh)) {
 			if (!\OC\Files\Filesystem::isIgnoredDir($file)) {
 				if ($this->is_dir($source . '/' . $file)) {
 					$this->mkdir($target . '/' . $file);

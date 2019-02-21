@@ -3,7 +3,7 @@
  * @author Georg Ehrke <georg@owncloud.com>
  * @author Olivier Paroz <owncloud@interfasys.ch>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -22,11 +22,12 @@
 
 namespace Test;
 
-use OC\Files\FileInfo;
 use OC\Files\Filesystem;
 use OC\Files\Storage\Temporary;
 use OC\Files\View;
 use OC\Preview;
+use OC\PreviewManager;
+use OC\Server;
 use Test\Traits\MountProviderTrait;
 use Test\Traits\UserTrait;
 
@@ -36,6 +37,7 @@ use Test\Traits\UserTrait;
  * @group DB
  *
  * @package Test
+ * @requires extension imagick
  */
 class PreviewTest extends TestCase {
 	use UserTrait;
@@ -107,6 +109,13 @@ class PreviewTest extends TestCase {
 		\OC::$server->getConfig()
 			->setSystemValue('enabledPreviewProviders', $providers);
 
+		//re-initialize the preview manager due to config change above
+		unset(\OC::$server['PreviewManager']);
+		\OC::$server->registerService('PreviewManager', function ($c) {
+			/** @var Server $c */
+			return new PreviewManager($c->getConfig(), $c->getLazyRootFolder(), $c->getUserSession());
+		});
+
 		// Sample is 1680x1050 JPEG
 		$this->prepareSample('testimage.jpg', 1680, 1050);
 		// Sample is 2400x1707 EPS
@@ -127,7 +136,6 @@ class PreviewTest extends TestCase {
 	 * Tests if a preview can be deleted
 	 */
 	public function testIsPreviewDeleted() {
-
 		$sampleFile = '/' . self::TEST_PREVIEW_USER1 . '/files/test.txt';
 
 		$this->rootView->file_put_contents($sampleFile, 'dummy file data');
@@ -135,7 +143,8 @@ class PreviewTest extends TestCase {
 		$x = 50;
 		$y = 50;
 
-		$preview = new Preview(self::TEST_PREVIEW_USER1, 'files/', 'test.txt', $x, $y);
+		$file = \OC::$server->getUserFolder(self::TEST_PREVIEW_USER1)->get('test.txt');
+		$preview = new Preview(self::TEST_PREVIEW_USER1, 'files/', $file, $x, $y);
 		$preview->getPreview();
 
 		$fileInfo = $this->rootView->getFileInfo($sampleFile);
@@ -143,13 +152,11 @@ class PreviewTest extends TestCase {
 		$fileId = $fileInfo['fileid'];
 		$thumbCacheFile = $this->buildCachePath($fileId, $x, $y, true);
 
-		$this->assertSame(
-			true, $this->rootView->file_exists($thumbCacheFile), "$thumbCacheFile \n"
-		);
+		$this->assertTrue($this->rootView->file_exists($thumbCacheFile), "$thumbCacheFile \n");
 
 		$preview->deletePreview();
 
-		$this->assertSame(false, $this->rootView->file_exists($thumbCacheFile));
+		$this->assertFalse($this->rootView->file_exists($thumbCacheFile));
 	}
 
 	/**
@@ -158,7 +165,6 @@ class PreviewTest extends TestCase {
 	 * We test this first to make sure we'll be able to cleanup after each preview generating test
 	 */
 	public function testAreAllPreviewsDeleted() {
-
 		$sampleFile = '/' . self::TEST_PREVIEW_USER1 . '/files/test.txt';
 
 		$this->rootView->file_put_contents($sampleFile, 'dummy file data');
@@ -166,7 +172,8 @@ class PreviewTest extends TestCase {
 		$x = 50;
 		$y = 50;
 
-		$preview = new Preview(self::TEST_PREVIEW_USER1, 'files/', 'test.txt', $x, $y);
+		$file = \OC::$server->getUserFolder(self::TEST_PREVIEW_USER1)->get('test.txt');
+		$preview = new Preview(self::TEST_PREVIEW_USER1, 'files/', $file, $x, $y);
 		$preview->getPreview();
 
 		$fileInfo = $this->rootView->getFileInfo($sampleFile);
@@ -176,11 +183,72 @@ class PreviewTest extends TestCase {
 		$thumbCacheFolder = '/' . self::TEST_PREVIEW_USER1 . '/' . Preview::THUMBNAILS_FOLDER .
 			'/' . $fileId . '/';
 
-		$this->assertSame(true, $this->rootView->is_dir($thumbCacheFolder), "$thumbCacheFolder \n");
+		$this->assertTrue($this->rootView->is_dir($thumbCacheFolder), "$thumbCacheFolder \n");
 
 		$preview->deleteAllPreviews();
 
-		$this->assertSame(false, $this->rootView->is_dir($thumbCacheFolder));
+		$this->assertFalse($this->rootView->is_dir($thumbCacheFolder));
+	}
+
+	public function testVersionPreviewsDeleted() {
+		$x = 50;
+		$y = 50;
+		$sampleFile = '/' . self::TEST_PREVIEW_USER1 . '/files/test.txt';
+		$versionPath = '/' . self::TEST_PREVIEW_USER1 . '/files_versions/test.txt';
+		$timestamp1 = 12345678;
+		$timestamp2 = 22222222;
+		$timestamp3 = 45678901;
+
+		$this->rootView->file_put_contents($sampleFile, "dummy data");
+		$file = \OC::$server->getUserFolder(self::TEST_PREVIEW_USER1)->get('test.txt');
+		$preview = new Preview(
+			self::TEST_PREVIEW_USER1, 'files/', $file, $x, $y, null
+		);
+		$preview->getPreview();
+		$this->rootView->mkdir(self::TEST_PREVIEW_USER1 . '/files_versions');
+		foreach ([$timestamp1, $timestamp2, $timestamp3] as $versionId) {
+			$this->rootView->file_put_contents("$versionPath.v$versionId", "file data $versionId");
+			$versionPreview = new Preview(
+				self::TEST_PREVIEW_USER1, 'files/', $file, $x,
+				$y,
+				null,
+				$versionId
+			);
+			$versionPreview->getPreview();
+		}
+
+		$thumbCacheFolder = '/' . self::TEST_PREVIEW_USER1 . '/' . Preview::THUMBNAILS_FOLDER .
+			'/' . $file->getId() . '/';
+
+		foreach ([$timestamp1, $timestamp2, $timestamp3] as $versionId) {
+			$this->assertTrue(
+				$this->rootView->is_dir("$thumbCacheFolder/$versionId"),
+				"version preview $versionId was not created \n"
+			);
+		}
+
+		// Delete  preview for one version and check that others still exist
+		Preview::post_delete_versions(
+			[
+				'user' => self::TEST_PREVIEW_USER1,
+				'path' => '/test.txt.v' . $timestamp2,
+				'original_path' => '/test.txt',
+				'deleted_revision' => $timestamp2
+			]
+		);
+
+		$this->assertFalse(
+			$this->rootView->is_dir("$thumbCacheFolder/$timestamp2"),
+			"version preview $timestamp2 still exists \n"
+		);
+		foreach ([$timestamp1, $timestamp3] as $versionId) {
+			$this->assertTrue(
+				$this->rootView->is_dir("$thumbCacheFolder/$versionId"),
+				"version preview $versionId was deleted \n"
+			);
+		}
+
+		$preview->deleteAllPreviews();
 	}
 
 	public function txtBlacklist() {
@@ -199,22 +267,22 @@ class PreviewTest extends TestCase {
 	 * @param $expectedResult
 	 */
 	public function testIsTransparent($extension, $data, $expectedResult) {
-
 		$x = 32;
 		$y = 32;
 
 		$sample = '/' . self::TEST_PREVIEW_USER1 . '/files/test.' . $extension;
 		$this->rootView->file_put_contents($sample, $data);
+		$file = \OC::$server->getUserFolder(self::TEST_PREVIEW_USER1)->get("test.$extension");
 		$preview = new Preview(
-			self::TEST_PREVIEW_USER1, 'files/', 'test.' . $extension, $x,
+			self::TEST_PREVIEW_USER1, 'files/', $file, $x,
 			$y
 		);
 		$image = $preview->getPreview();
 		$resource = $image->resource();
 
 		//http://stackoverflow.com/questions/5702953/imagecolorat-and-transparency
-		$colorIndex = imagecolorat($resource, 1, 1);
-		$colorInfo = imagecolorsforindex($resource, $colorIndex);
+		$colorIndex = \imagecolorat($resource, 1, 1);
+		$colorInfo = \imagecolorsforindex($resource, $colorIndex);
 		$this->assertSame(
 			$expectedResult,
 			$colorInfo['alpha'] === 127,
@@ -230,16 +298,16 @@ class PreviewTest extends TestCase {
 		$height = 200;
 
 		// Previews for odt files are not enabled
-		$imgData = file_get_contents(\OC::$SERVERROOT . '/tests/data/testimage.odt');
+		$imgData = \file_get_contents(\OC::$SERVERROOT . '/tests/data/testimage.odt');
 		$imgPath = '/' . self::TEST_PREVIEW_USER1 . '/files/testimage.odt';
 		$this->rootView->file_put_contents($imgPath, $imgData);
 
-		$preview =
-			new Preview(self::TEST_PREVIEW_USER1, 'files/', 'testimage.odt', $width, $height);
+		$file = \OC::$server->getUserFolder(self::TEST_PREVIEW_USER1)->get('testimage.odt');
+		$preview = new Preview(self::TEST_PREVIEW_USER1, 'files/', $file, $width, $height);
 		$preview->getPreview();
 		$image = $preview->getPreview();
 
-		$this->assertSame(false, $image->valid());
+		$this->assertFalse($image->valid());
 	}
 
 	/**
@@ -259,26 +327,26 @@ class PreviewTest extends TestCase {
 		$keepAspect = false;
 		$scalingUp = false;
 
-		for ($a = 0; $a < sizeof($samples); $a++) {
+		for ($a = 0; $a < \sizeof($samples); $a++) {
 			for ($b = 0; $b < 2; $b++) {
 				for ($c = 0; $c < 2; $c++) {
 					for ($d = 0; $d < 4; $d++) {
 						$coordinates = [
 							[
-								-rand($samples[$a][0], $samples[$a][1]),
-								-rand($samples[$a][0], $samples[$a][1])
+								-\rand($samples[$a][0], $samples[$a][1]),
+								-\rand($samples[$a][0], $samples[$a][1])
 							],
 							[
-								rand($samples[$a][0], $samples[$a][1]),
-								rand($samples[$a][0], $samples[$a][1])
+								\rand($samples[$a][0], $samples[$a][1]),
+								\rand($samples[$a][0], $samples[$a][1])
 							],
 							[
-								-rand($samples[$a][0], $samples[$a][1]),
-								rand($samples[$a][0], $samples[$a][1])
+								-\rand($samples[$a][0], $samples[$a][1]),
+								\rand($samples[$a][0], $samples[$a][1])
 							],
 							[
-								rand($samples[$a][0], $samples[$a][1]),
-								-rand($samples[$a][0], $samples[$a][1])
+								\rand($samples[$a][0], $samples[$a][1]),
+								-\rand($samples[$a][0], $samples[$a][1])
 							]
 						];
 						$row = [$a];
@@ -330,24 +398,22 @@ class PreviewTest extends TestCase {
 		// There should be no cached thumbnails
 		$thumbnailFolder = '/' . self::TEST_PREVIEW_USER1 . '/' . Preview::THUMBNAILS_FOLDER .
 			'/' . $sampleFileId;
-		$this->assertSame(false, $this->rootView->is_dir($thumbnailFolder));
+		$this->assertFalse($this->rootView->is_dir($thumbnailFolder));
 
 		$image = $preview->getPreview();
-		$this->assertNotSame(false, $image);
+		$this->assertNotFalse($image);
 
 		$maxThumbCacheFile = $this->buildCachePath(
 			$sampleFileId, $this->maxPreviewWidth, $this->maxPreviewHeight, true, '-max'
 		);
 
-		$this->assertSame(
-			true, $this->rootView->file_exists($maxThumbCacheFile), "$maxThumbCacheFile \n"
-		);
+		$this->assertTrue($this->rootView->file_exists($maxThumbCacheFile), "$maxThumbCacheFile \n");
 
 		// We check the dimensions of the file we've just stored
-		$maxPreview = imagecreatefromstring($this->rootView->file_get_contents($maxThumbCacheFile));
+		$maxPreview = \imagecreatefromstring($this->rootView->file_get_contents($maxThumbCacheFile));
 
-		$this->assertEquals($this->maxPreviewWidth, imagesx($maxPreview));
-		$this->assertEquals($this->maxPreviewHeight, imagesy($maxPreview));
+		$this->assertEquals($this->maxPreviewWidth, \imagesx($maxPreview));
+		$this->assertEquals($this->maxPreviewHeight, \imagesy($maxPreview));
 
 		// A thumbnail of the asked dimensions should also have been created (within the constraints of the max preview)
 		list($limitedPreviewWidth, $limitedPreviewHeight) =
@@ -401,7 +467,7 @@ class PreviewTest extends TestCase {
 		$preview = $this->createPreview($previewWidth, $previewHeight);
 
 		// A cache query should return the thumbnail of max dimension
-		$isCached = $preview->isCached($sampleFileId);
+		$isCached = $preview->isCached();
 		$cachedMaxPreview = $this->buildCachePath(
 			$sampleFileId, $this->maxPreviewWidth, $this->maxPreviewHeight, false, '-max'
 		);
@@ -418,14 +484,13 @@ class PreviewTest extends TestCase {
 
 		$this->keepAspect = true;
 		$this->getSample(0);
-		$fileId = $this->sampleFileId;
 
 		//Creates the Max preview which we will try to delete
 		$preview = $this->createMaxPreview();
 
 		// We try to deleted the preview
 		$preview->deletePreview();
-		$this->assertNotSame(false, $preview->isCached($fileId));
+		$this->assertNotFalse($preview->isCached());
 
 		$preview->deleteAllPreviews();
 	}
@@ -483,7 +548,7 @@ class PreviewTest extends TestCase {
 		$preview = $this->createPreview($previewWidth, $previewHeight);
 
 		$image = $preview->getPreview();
-		$this->assertNotSame(false, $image);
+		$this->assertNotFalse($image);
 
 		list($expectedWidth, $expectedHeight) =
 			$this->simulatePreviewDimensions($previewWidth, $previewHeight);
@@ -495,9 +560,7 @@ class PreviewTest extends TestCase {
 		$thumbCacheFile = $this->buildCachePath(
 			$this->sampleFileId, $previewWidth, $previewHeight, false, $postfix
 		);
-		$this->assertSame(
-			false, $this->rootView->file_exists($thumbCacheFile), "$thumbCacheFile \n"
-		);
+		$this->assertFalse($this->rootView->file_exists($thumbCacheFile), "$thumbCacheFile \n");
 
 		$preview->deleteAllPreviews();
 	}
@@ -545,13 +608,13 @@ class PreviewTest extends TestCase {
 		// Small thumbnails are always cropped
 		$this->keepAspect = false;
 		// Smaller previews should be based on the previous, larger preview, with the correct aspect ratio
-		$this->createThumbnailFromBiggerCachedPreview($fileId, 32, 32);
+		$this->createThumbnailFromBiggerCachedPreview(32, 32);
 
 		// 2nd cache query should indicate that we have a cached copy of the exact dimension
 		$this->getCachedSmallThumbnail($fileId, 32, 32);
 
 		// We create a preview in order to be able to delete the cache
-		$preview = $this->createPreview(rand(), rand());
+		$preview = $this->createPreview(\rand(), \rand());
 		$preview->deleteAllPreviews();
 		$this->cachedBigger = [];
 	}
@@ -565,12 +628,13 @@ class PreviewTest extends TestCase {
 	 * @return Preview
 	 */
 	private function createPreview($width, $height) {
+		$file = \OC::$server->getUserFolder(self::TEST_PREVIEW_USER1)->get($this->sampleFilename);
 		$preview = new Preview(
-			self::TEST_PREVIEW_USER1, 'files/', $this->sampleFilename, $width,
+			self::TEST_PREVIEW_USER1, 'files/', $file, $width,
 			$height
 		);
 
-		$this->assertSame(true, $preview->isFileValid());
+		$this->assertTrue($preview->isFileValid());
 
 		$preview->setKeepAspect($this->keepAspect);
 		$preview->setScalingup($this->scalingUp);
@@ -605,9 +669,7 @@ class PreviewTest extends TestCase {
 			$fileId, $previewWidth, $previewHeight, true, $postfix
 		);
 
-		$this->assertSame(
-			true, $this->rootView->file_exists($thumbCacheFile), "$thumbCacheFile \n"
-		);
+		$this->assertTrue($this->rootView->file_exists($thumbCacheFile), "$thumbCacheFile \n");
 	}
 
 	/**
@@ -637,7 +699,7 @@ class PreviewTest extends TestCase {
 		$preview = $this->createPreview($previewWidth, $previewHeight);
 
 		$image = $preview->getPreview();
-		$this->assertNotSame(false, $image);
+		$this->assertNotFalse($image);
 
 		// A thumbnail of the asked dimensions should also have been created (within the constraints of the max preview)
 		list($limitedPreviewWidth, $limitedPreviewHeight) =
@@ -649,21 +711,21 @@ class PreviewTest extends TestCase {
 		// And it should be cached
 		$this->checkCache($fileId, $limitedPreviewWidth, $limitedPreviewHeight);
 
-		$this->cachedBigger[] = $preview->isCached($fileId);
+		$this->cachedBigger[] = $preview->isCached();
 	}
 
-	private function createThumbnailFromBiggerCachedPreview($fileId, $width, $height) {
+	private function createThumbnailFromBiggerCachedPreview($width, $height) {
 		$preview = $this->createPreview($width, $height);
 
 		// A cache query should return a thumbnail of slightly larger dimensions
 		// and with the proper aspect ratio
-		$isCached = $preview->isCached($fileId);
+		$isCached = $preview->isCached();
 		$expectedCachedBigger = $this->getExpectedCachedBigger();
 
 		$this->assertSame($expectedCachedBigger, $isCached);
 
 		$image = $preview->getPreview();
-		$this->assertNotSame(false, $image);
+		$this->assertNotFalse($image);
 	}
 
 	/**
@@ -683,11 +745,11 @@ class PreviewTest extends TestCase {
 		$maxHeight = null;
 
 		foreach ($this->cachedBigger as $cached) {
-			$size = explode('-', basename($cached));
+			$size = \explode('-', \basename($cached));
 			$width = (int)$size[0];
 			$height = (int)$size[1];
 
-			if (strpos($cached, 'max')) {
+			if (\strpos($cached, 'max')) {
 				$maxWidth = $width;
 				$maxHeight = $height;
 				$maxPreview = $cached;
@@ -695,7 +757,7 @@ class PreviewTest extends TestCase {
 			}
 
 			// We pick the larger preview with no aspect ratio
-			if (!strpos($cached, 'aspect') && !strpos($cached, 'max')) {
+			if (!\strpos($cached, 'aspect') && !\strpos($cached, 'max')) {
 				$foundPreview = $cached;
 				$foundWidth = $width;
 				$foundHeight = $height;
@@ -718,7 +780,7 @@ class PreviewTest extends TestCase {
 	private function getCachedSmallThumbnail($fileId, $width, $height) {
 		$preview = $this->createPreview($width, $height);
 
-		$isCached = $preview->isCached($fileId);
+		$isCached = $preview->isCached();
 		$thumbCacheFile = $this->buildCachePath($fileId, $width, $height);
 
 		$this->assertSame($thumbCacheFile, $isCached, "$thumbCacheFile \n");
@@ -753,7 +815,7 @@ class PreviewTest extends TestCase {
 	 * @param int $sampleHeight
 	 */
 	private function prepareSample($fileName, $sampleWidth, $sampleHeight) {
-		$imgData = file_get_contents(\OC::$SERVERROOT . '/tests/data/' . $fileName);
+		$imgData = \file_get_contents(\OC::$SERVERROOT . '/tests/data/' . $fileName);
 		$imgPath = '/' . self::TEST_PREVIEW_USER1 . '/files/' . $fileName;
 		$this->rootView->file_put_contents($imgPath, $imgData);
 		$fileInfo = $this->rootView->getFileInfo($imgPath);
@@ -807,8 +869,8 @@ class PreviewTest extends TestCase {
 		$this->keepAspect = true;
 		// We set this variable in order to be able to calculate the max preview with the proper aspect ratio
 		$this->maxPreviewRatio = $sampleWidth / $sampleHeight;
-		$maxPreviewWidth = min($sampleWidth, $this->configMaxWidth);
-		$maxPreviewHeight = min($sampleHeight, $this->configMaxHeight);
+		$maxPreviewWidth = \min($sampleWidth, $this->configMaxWidth);
+		$maxPreviewHeight = \min($sampleHeight, $this->configMaxHeight);
 		list($maxPreviewWidth, $maxPreviewHeight) =
 			$this->applyAspectRatio($maxPreviewWidth, $maxPreviewHeight);
 
@@ -825,14 +887,14 @@ class PreviewTest extends TestCase {
 	 * @return array
 	 */
 	private function simulatePreviewDimensions($askedWidth, $askedHeight) {
-		$askedWidth = min($askedWidth, $this->configMaxWidth);
-		$askedHeight = min($askedHeight, $this->configMaxHeight);
+		$askedWidth = \min($askedWidth, $this->configMaxWidth);
+		$askedHeight = \min($askedHeight, $this->configMaxHeight);
 
 		if ($this->keepAspect) {
 			// Defines the box in which the preview has to fit
 			$scaleFactor = $this->scalingUp ? $this->maxScaleFactor : 1;
-			$newPreviewWidth = min($askedWidth, $this->maxPreviewWidth * $scaleFactor);
-			$newPreviewHeight = min($askedHeight, $this->maxPreviewHeight * $scaleFactor);
+			$newPreviewWidth = \min($askedWidth, $this->maxPreviewWidth * $scaleFactor);
+			$newPreviewHeight = \min($askedHeight, $this->maxPreviewHeight * $scaleFactor);
 			list($newPreviewWidth, $newPreviewHeight) =
 				$this->applyAspectRatio($newPreviewWidth, $newPreviewHeight);
 		} else {
@@ -854,9 +916,9 @@ class PreviewTest extends TestCase {
 	private function applyAspectRatio($askedWidth, $askedHeight) {
 		$originalRatio = $this->maxPreviewRatio;
 		if ($askedWidth / $originalRatio < $askedHeight) {
-			$askedHeight = round($askedWidth / $originalRatio);
+			$askedHeight = \round($askedWidth / $originalRatio);
 		} else {
-			$askedWidth = round($askedHeight * $originalRatio);
+			$askedWidth = \round($askedHeight * $originalRatio);
 		}
 
 		return [(int)$askedWidth, (int)$askedHeight];
@@ -872,8 +934,8 @@ class PreviewTest extends TestCase {
 	 */
 	private function fixSize($askedWidth, $askedHeight) {
 		if ($this->scalingUp) {
-			$askedWidth = min($this->configMaxWidth, $askedWidth);
-			$askedHeight = min($this->configMaxHeight, $askedHeight);
+			$askedWidth = \min($this->configMaxWidth, $askedWidth);
+			$askedHeight = \min($this->configMaxHeight, $askedHeight);
 		}
 
 		return [(int)$askedWidth, (int)$askedHeight];
@@ -884,8 +946,9 @@ class PreviewTest extends TestCase {
 		$originalHeight = 1050;
 		$originalAspectRation = $originalWidth / $originalHeight;
 
+		$file = \OC::$server->getUserFolder(self::TEST_PREVIEW_USER1)->get('testimage.jpg');
 		$preview = new Preview(
-			self::TEST_PREVIEW_USER1, 'files/', 'testimage.jpg',
+			self::TEST_PREVIEW_USER1, 'files/', $file,
 			150,
 			150
 		);
@@ -893,7 +956,7 @@ class PreviewTest extends TestCase {
 		$image = $preview->getPreview();
 
 		$aspectRatio = $image->width() / $image->height();
-		$this->assertEquals(round($originalAspectRation, 2), round($aspectRatio, 2));
+		$this->assertEquals(\round($originalAspectRation, 2), \round($aspectRatio, 2));
 
 		$this->assertLessThanOrEqual(150, $image->width());
 		$this->assertLessThanOrEqual(150, $image->height());
@@ -904,8 +967,9 @@ class PreviewTest extends TestCase {
 		$originalHeight = 1050;
 		$originalAspectRation = $originalWidth / $originalHeight;
 
+		$file = \OC::$server->getUserFolder(self::TEST_PREVIEW_USER1)->get('testimage.jpg');
 		$preview = new Preview(
-			self::TEST_PREVIEW_USER1, 'files/', 'testimage.jpg',
+			self::TEST_PREVIEW_USER1, 'files/', $file,
 			150,
 			150
 		);
@@ -914,17 +978,10 @@ class PreviewTest extends TestCase {
 		$image = $preview->getPreview();
 
 		$aspectRatio = $image->width() / $image->height();
-		$this->assertEquals(round($originalAspectRation, 2), round($aspectRatio, 2));
+		$this->assertEquals(\round($originalAspectRation, 2), \round($aspectRatio, 2));
 
 		$this->assertGreaterThanOrEqual(150, $image->width());
 		$this->assertGreaterThanOrEqual(150, $image->height());
-	}
-
-	public function testSetFileWithInfo() {
-		$info = new FileInfo('/foo', null, '/foo', ['mimetype' => 'foo/bar'], null);
-		$preview = new Preview();
-		$preview->setFile('/foo', $info);
-		$this->assertEquals($info, $this->invokePrivate($preview, 'getFileInfo'));
 	}
 
 	public function testIsCached() {
@@ -940,17 +997,17 @@ class PreviewTest extends TestCase {
 		\OC_Util::setupFS($userId);
 		$preview = new Preview($userId, 'files');
 		$view = new View('/' . $userId . '/files');
-		$view->file_put_contents('test.png', file_get_contents($sourceFile));
-		$info = $view->getFileInfo('test.png');
-		$preview->setFile('test.png', $info);
+		$view->file_put_contents('test.png', \file_get_contents($sourceFile));
+		$file = \OC::$server->getUserFolder($userId)->get('test.png');
+		$preview->setFile($file);
 
 		$preview->setMaxX(64);
 		$preview->setMaxY(64);
 
-		$this->assertFalse($preview->isCached($info->getId()));
+		$this->assertFalse($preview->isCached());
 
 		$preview->getPreview();
 
-		$this->assertEquals('thumbnails/' . $info->getId() . '/64-64.png', $preview->isCached($info->getId()));
+		$this->assertEquals('thumbnails/' . $file->getId() . '/64-64.png', $preview->isCached());
 	}
 }

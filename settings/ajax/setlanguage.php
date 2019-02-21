@@ -8,7 +8,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -29,17 +29,16 @@ $l = \OC::$server->getL10N('settings');
 OC_JSON::checkLoggedIn();
 OCP\JSON::callCheck();
 
-
 // Get data
-if( isset( $_POST['lang'] ) ) {
+if (isset($_POST['lang'])) {
 	$languageCodes = \OC::$server->getL10NFactory()->findAvailableLanguages();
 	$lang = (string)$_POST['lang'];
-	if(array_search($lang, $languageCodes) or $lang === 'en') {
-		\OC::$server->getConfig()->setUserValue( OC_User::getUser(), 'core', 'lang', $lang );
+	if (\array_search($lang, $languageCodes) or $lang === 'en') {
+		\OC::$server->getConfig()->setUserValue(OC_User::getUser(), 'core', 'lang', $lang);
 		OC_JSON::success(["data" => ["message" => $l->t("Language changed")]]);
-	}else{
+	} else {
 		OC_JSON::error(["data" => ["message" => $l->t("Invalid request")]]);
 	}
-}else{
+} else {
 	OC_JSON::error(["data" => ["message" => $l->t("Invalid request")]]);
 }

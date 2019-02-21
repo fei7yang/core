@@ -46,7 +46,7 @@ describe('OCA.SystemTags.FileList tests', function() {
 	});
 
 	describe('filter field', function() {
-		var select2Stub, oldCollection, fetchTagsStub;
+		var select2Stub, oldCollection, fetchTagsStub, isAdminStub;
 		var $tagsField;
 
 		beforeEach(function() {
@@ -61,6 +61,15 @@ describe('OCA.SystemTags.FileList tests', function() {
 				{
 					id: '456',
 					name: 'def'
+				},
+				{
+					id: '789',
+					name: 'staticTag',
+					userAssignable: true,
+					userEditable: false,
+					userVisible: true,
+					canAssign: true,
+					editableInGroup: false
 				}
 			]);
 
@@ -70,10 +79,12 @@ describe('OCA.SystemTags.FileList tests', function() {
 				}
 			);
 			$tagsField = fileList.$el.find('[name=tags]');
+			isAdminStub = sinon.stub(OC, 'isUserAdmin').returns(false);
 		});
 		afterEach(function() {
 			select2Stub.restore();
 			fetchTagsStub.restore();
+			isAdminStub.restore();
 			OC.SystemTags.collection = oldCollection;
 		});
 		it('inits select2 on filter field', function() {
@@ -115,6 +126,29 @@ describe('OCA.SystemTags.FileList tests', function() {
 			expect(callback.calledOnce).toEqual(true);
 			expect(callback.lastCall.args[0]).toEqual({
 				results: [
+					OC.SystemTags.collection.get('456').toJSON()
+				]
+			});
+		});
+		it('fetches tag list from the global collection and removes static tag', function () {
+			var callback = sinon.stub();
+			var opts = select2Stub.firstCall.args[0];
+
+			opts.query({
+				term: "",
+				callback: callback
+			});
+
+
+			//expect(callback.notCalled).toEqual(true);
+			OCA.SystemTags.FileList.prototype.fetchedResult({
+				term: "",
+				callback: callback
+			});
+
+			expect(callback.lastCall.args[0]).toEqual({
+				results: [
+					OC.SystemTags.collection.get('123').toJSON(),
 					OC.SystemTags.collection.get('456').toJSON()
 				]
 			});
@@ -180,7 +214,7 @@ describe('OCA.SystemTags.FileList tests', function() {
 			expect(getFilteredFilesSpec.lastCall.args[0].systemTagIds).toEqual(['123', '456']);
 
 			var testFiles = [new FileInfo({
-				id: 1,
+				id: '1',
 				type: 'file',
 				name: 'One.txt',
 				mimetype: 'text/plain',
@@ -189,7 +223,7 @@ describe('OCA.SystemTags.FileList tests', function() {
 				etag: 'abc',
 				permissions: OC.PERMISSION_ALL
 			}), new FileInfo({
-				id: 2,
+				id: '2',
 				type: 'file',
 				name: 'Two.jpg',
 				mimetype: 'image/jpeg',
@@ -198,7 +232,7 @@ describe('OCA.SystemTags.FileList tests', function() {
 				etag: 'def',
 				permissions: OC.PERMISSION_ALL
 			}), new FileInfo({
-				id: 3,
+				id: '3',
 				type: 'file',
 				name: 'Three.pdf',
 				mimetype: 'application/pdf',
@@ -207,7 +241,7 @@ describe('OCA.SystemTags.FileList tests', function() {
 				etag: '123',
 				permissions: OC.PERMISSION_ALL
 			}), new FileInfo({
-				id: 4,
+				id: '4',
 				type: 'dir',
 				name: 'somedir',
 				mimetype: 'httpd/unix-directory',

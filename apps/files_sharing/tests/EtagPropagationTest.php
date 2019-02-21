@@ -8,7 +8,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -447,7 +447,7 @@ class EtagPropagationTest extends PropagationTestCase {
 
 		$shares = $this->shareManager->getSharesBy(self::TEST_FILES_SHARING_API_USER1, \OCP\Share::SHARE_TYPE_USER, $node);
 		/** @var \OCP\Share\IShare[] $shares */
-		$shares = array_filter($shares, function(\OCP\Share\IShare $share) {
+		$shares = \array_filter($shares, function (\OCP\Share\IShare $share) {
 			return $share->getSharedWith() === self::TEST_FILES_SHARING_API_USER2;
 		});
 		$this->assertCount(1, $shares);

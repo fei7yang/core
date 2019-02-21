@@ -1,11 +1,8 @@
 <?php
 /**
- * @author Joas Schilling <coding@schilljs.com>
- * @author Lukas Reschke <lukas@statuscode.ch>
- * @author Morris Jobke <hey@morrisjobke.de>
- * @author Thomas Müller <thomas.mueller@tmit.eu>
+ * @author Sujith Haridasan <sharidasan@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -24,137 +21,104 @@
 
 namespace OC\Settings\Controller;
 
-use OC\AppFramework\Http;
-use OC\Group\MetaData;
 use OCP\AppFramework\Controller;
+use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\DataResponse;
+use OCP\IGroup;
 use OCP\IGroupManager;
-use OCP\IL10N;
 use OCP\IRequest;
+use OCP\IUser;
 use OCP\IUserSession;
 
 /**
+ * Class GroupsController
+ *
  * @package OC\Settings\Controller
  */
 class GroupsController extends Controller {
 	/** @var IGroupManager */
 	private $groupManager;
-	/** @var IL10N */
-	private $l10n;
+
 	/** @var IUserSession */
 	private $userSession;
-	/** @var bool */
-	private $isAdmin;
 
 	/**
+	 * GroupsController constructor.
+	 *
 	 * @param string $appName
 	 * @param IRequest $request
 	 * @param IGroupManager $groupManager
 	 * @param IUserSession $userSession
-	 * @param bool $isAdmin
-	 * @param IL10N $l10n
 	 */
-	public function __construct($appName,
+	public function __construct(string $appName,
 								IRequest $request,
 								IGroupManager $groupManager,
-								IUserSession $userSession,
-								$isAdmin,
-								IL10N $l10n) {
+								IUserSession $userSession) {
 		parent::__construct($appName, $request);
 		$this->groupManager = $groupManager;
 		$this->userSession = $userSession;
-		$this->isAdmin = $isAdmin;
-		$this->l10n = $l10n;
 	}
 
 	/**
-	 * @NoAdminRequired
+	 * Get the groups for the user
 	 *
-	 * @param string $pattern
-	 * @param bool $filterGroups
-	 * @param int $sortGroups
+	 * @NoAdminRequired
+	 * @NoCSRFRequired
+	 *
 	 * @return DataResponse
 	 */
-	public function index($pattern = '', $filterGroups = false, $sortGroups = MetaData::SORT_USERCOUNT) {
-		$groupPattern = $filterGroups ? $pattern : '';
+	public function getGroupsForUser() {
+		$user = $this->userSession->getUser();
 
-		$groupsInfo = new MetaData(
-			$this->userSession->getUser()->getUID(),
-			$this->isAdmin,
-			$this->groupManager,
-			$this->userSession
-		);
-		$groupsInfo->setSorting($sortGroups);
-		list($adminGroups, $groups) = $groupsInfo->get($groupPattern, $pattern);
-
-		return new DataResponse(
-			[
-				'data' => ['adminGroups' => $adminGroups, 'groups' => $groups]
-			]
-		);
-	}
-
-	/**
-	 * @param string $id
-	 * @return DataResponse
-	 */
-	public function create($id) {
-		if($this->groupManager->groupExists($id)) {
+		if ($user === null) {
 			return new DataResponse(
 				[
-					'message' => (string)$this->l10n->t('Group already exists.')
+					'status' => 'error',
+					'data' => [
+						'message' => 'User not logged in'
+					]
 				],
-				Http::STATUS_CONFLICT
-			);
-		}
-		if($this->groupManager->createGroup($id)) {
-			return new DataResponse(
-				[
-					'groupname' => $id
-				],
-				Http::STATUS_CREATED
+				Http::STATUS_NOT_FOUND
 			);
 		}
 
-		return new DataResponse(
-			[
-				'status' => 'error',
-				'data' => [
-					'message' => (string)$this->l10n->t('Unable to add group.')
-				]
-			],
-			Http::STATUS_FORBIDDEN
-		);
-	}
-
-	/**
-	 * @param string $id
-	 * @return DataResponse
-	 */
-	public function destroy($id) {
-		$group = $this->groupManager->get($id);
-		if ($group) {
-			if ($group->delete()) {
-				return new DataResponse(
-					[
-						'status' => 'success',
-						'data' => [
-							'groupname' => $id
-						]
-					],
-					Http::STATUS_NO_CONTENT
-				);
+		$adminGroups = [];
+		$userGroups = [];
+		$isAdmin = $this->groupManager->isAdmin($user->getUID());
+		$groups = $this->getGroups($isAdmin, $user, '');
+		foreach ($groups as $group) {
+			if ($group->getGID() === 'admin') {
+				$adminGroup['id'] = $group->getGID();
+				$adminGroup['name'] = $group->getDisplayName();
+				$adminGroup['userCount'] = $group->count('');
+				$adminGroups[] = $adminGroup;
+			} else {
+				$userGroup['id'] = $group->getGID();
+				$userGroup['name'] = $group->getDisplayName();
+				$userGroup['userCount'] = $group->count('');
+				$userGroups[] = $userGroup;
 			}
 		}
 		return new DataResponse(
 			[
-				'status' => 'error',
-				'data' => [
-					'message' => (string)$this->l10n->t('Unable to delete group.')
-				],
-			],
-			Http::STATUS_FORBIDDEN
-		);
+				'data' => ['adminGroups' => $adminGroups, 'groups' => $userGroups]
+			], Http::STATUS_OK);
 	}
 
+	/**
+	 * @param $isAdmin
+	 * @param IUser $user
+	 * @param string $search
+	 * @return IGroup[]
+	 */
+	private function getGroups($isAdmin, IUser $user, $search = '') {
+		if ($isAdmin === true) {
+			return $this->groupManager->search($search, null, null, 'management');
+		}
+
+		if ($user !== null) {
+			return $this->groupManager->getSubAdmin()->getSubAdminsGroups($user);
+		}
+		return [];
+	}
 }

@@ -6,7 +6,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -25,18 +25,18 @@
 
 namespace OCA\Files_External\Controller;
 
+use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\DataResponse;
 use OCP\Files\External\Auth\AuthMechanism;
 use OCP\Files\External\Auth\IUserProvided;
+use OCP\Files\External\Backend\Backend;
 use OCP\Files\External\InsufficientDataForMeaningfulAnswerException;
+use OCP\Files\External\IStorageConfig;
+use OCP\Files\External\NotFoundException;
+use OCP\Files\External\Service\IUserGlobalStoragesService;
+use OCP\IL10N;
 use OCP\ILogger;
 use OCP\IRequest;
-use OCP\IL10N;
-use OCP\AppFramework\Http\DataResponse;
-use OCP\AppFramework\Http;
-use OCP\Files\External\Service\IUserGlobalStoragesService;
-use OCP\Files\External\NotFoundException;
-use OCP\Files\External\IStorageConfig;
-use OCP\Files\External\Backend\Backend;
 use OCP\IUserSession;
 
 /**
@@ -183,7 +183,6 @@ class UserGlobalStoragesController extends StoragesController {
 			$storage,
 			Http::STATUS_OK
 		);
-
 	}
 
 	/**
@@ -203,5 +202,4 @@ class UserGlobalStoragesController extends StoragesController {
 			}
 		}
 	}
-
 }

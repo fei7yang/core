@@ -3,7 +3,7 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -98,7 +98,7 @@ interface IMountPoint {
 	/**
 	 * Get the file id of the root of the storage
 	 *
-	 * @return int
+	 * @return int storage numeric id or -1 in case of invalid storage
 	 * @since 9.1.0
 	 */
 	public function getStorageRootId();

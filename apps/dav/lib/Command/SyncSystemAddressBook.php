@@ -2,7 +2,7 @@
 /**
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -34,7 +34,7 @@ class SyncSystemAddressBook extends Command {
 	/**
 	 * @param SyncService $syncService
 	 */
-	function __construct(SyncService $syncService) {
+	public function __construct(SyncService $syncService) {
 		parent::__construct();
 		$this->syncService = $syncService;
 	}
@@ -53,7 +53,7 @@ class SyncSystemAddressBook extends Command {
 		$output->writeln('Syncing users ...');
 		$progress = new ProgressBar($output);
 		$progress->start();
-		$this->syncService->syncInstance(function() use ($progress) {
+		$this->syncService->syncInstance(function () use ($progress) {
 			$progress->advance();
 		});
 

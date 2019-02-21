@@ -1,7 +1,7 @@
 <?php
 /**
 * @author Tom Needham
-* @copyright 2016 Tom Needham tom@owncloud.com
+* @copyright Copyright (c) 2016 Tom Needham tom@owncloud.com
 *
 * This file is licensed under the Affero General Public License version 3 or
 * later.
@@ -10,12 +10,13 @@
 
 namespace Tests\Settings\Panels\Personal;
 
+use OC\Helper\LocaleHelper;
 use OC\Settings\Panels\Personal\Profile;
 use OCP\IConfig;
 use OCP\IGroupManager;
+use OCP\IUser;
 use OCP\IUserSession;
 use OCP\L10N\IFactory;
-use OCP\IUser;
 
 /**
 * @package Tests\Settings\Panels\Personal
@@ -43,7 +44,9 @@ class ProfileTest extends \Test\TestCase {
 			$this->config,
 			$this->groupManager,
 			$this->userSession,
-			$this->lfactory);
+			$this->lfactory,
+			new LocaleHelper()
+		);
 	}
 
 	public function testGetSection() {
@@ -51,8 +54,8 @@ class ProfileTest extends \Test\TestCase {
 	}
 
 	public function testGetPriority() {
-		$this->assertTrue(is_integer($this->panel->getPriority()));
-		$this->assertTrue($this->panel->getPriority() > 90);
+		$this->assertInternalType('int', $this->panel->getPriority());
+		$this->assertGreaterThan(90, $this->panel->getPriority());
 	}
 
 	public function testGetPanel() {
@@ -67,7 +70,6 @@ class ProfileTest extends \Test\TestCase {
 		$this->assertContains('test@example.com', $templateHtml);
 		$this->assertContains('<div id="groups" class="section">', $templateHtml);
 		$this->assertContains('group2', $templateHtml);
-		$this->assertContains('<form id="language" class="section">', $templateHtml);
+		$this->assertContains('<select id="languageinput" name="lang"', $templateHtml);
 	}
-
 }

@@ -10,7 +10,7 @@
 # @author Joas Schilling
 # @author Lukas Reschke
 # @author Jörn Friedrich Dreyer
-# @copyright 2012-2015 Thomas Müller thomas.mueller@tmit.eu
+# @copyright Copyright (c) 2012-2015 Thomas Müller thomas.mueller@tmit.eu
 #
 
 #$EXECUTOR_NUMBER is set by Jenkins and allows us to run autotest in parallel
@@ -179,10 +179,6 @@ function execute_tests {
 	rm -rf "$DATADIR"
 	mkdir "$DATADIR"
 
-	if [ "$PRIMARY_STORAGE_CONFIG" == "swift" ] ; then
-		tests/objectstore/start-swift-ceph.sh
-		cp tests/objectstore/swift.config.php config/autotest-storage-swift.config.php
-	fi
 	cp tests/preseed-config.php config/config.php
 
 	_DB=$DB
@@ -345,12 +341,6 @@ function execute_tests {
 	echo "${PHPUNIT[@]}" --configuration phpunit-autotest.xml $GROUP $COVER --log-junit "autotest-results-$DB.xml" "$2" "$3"
 	"${PHPUNIT[@]}" --configuration phpunit-autotest.xml $GROUP $COVER --log-junit "autotest-results-$DB.xml" "$2" "$3"
 		RESULT=$?
-
-	if [ "$PRIMARY_STORAGE_CONFIG" == "swift" ] ; then
-		cd ..
-		echo "Kill the swift docker"
-		tests/objectstore/stop-swift-ceph.sh
-	fi
 }
 
 #

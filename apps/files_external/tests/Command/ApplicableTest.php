@@ -3,7 +3,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -54,7 +54,7 @@ class ApplicableTest extends CommandTest {
 			'output' => 'json'
 		]);
 
-		$result = json_decode($this->executeCommand($command, $input), true);
+		$result = \json_decode($this->executeCommand($command, $input), true);
 
 		$this->assertEquals(['users' => [], 'groups' => []], $result);
 	}
@@ -71,7 +71,7 @@ class ApplicableTest extends CommandTest {
 			'output' => 'json'
 		]);
 
-		$result = json_decode($this->executeCommand($command, $input), true);
+		$result = \json_decode($this->executeCommand($command, $input), true);
 
 		$this->assertEquals(['users' => ['test', 'asd'], 'groups' => []], $result);
 	}

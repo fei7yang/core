@@ -2,7 +2,7 @@
 /**
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,10 +21,8 @@
 
 namespace OC\Core\Command\Db\Migrations;
 
-
 use OC\DB\MigrationService;
 use OC\Migration\ConsoleOutput;
-use OCP\IConfig;
 use OCP\IDBConnection;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Exception\RuntimeException;
@@ -33,7 +31,6 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class GenerateCommand extends Command {
-
 	private static $_templateSimple =
 		'<?php
 namespace <namespace>;
@@ -117,11 +114,10 @@ class Version<version> implements ISqlMigration {
 		$ms = new MigrationService($appName, $this->connection, new ConsoleOutput($output));
 
 		$kind = $input->getArgument('kind');
-		$version = date('YmdHis');
+		$version = \date('YmdHis');
 		$path = $this->generateMigration($ms, $version, $kind);
 
 		$output->writeln("New migration class has been generated to <info>$path</info>");
-
 	}
 
 	/**
@@ -139,11 +135,11 @@ class Version<version> implements ISqlMigration {
 			$ms->getMigrationsNamespace(),
 			$version,
 		];
-		$code = str_replace($placeHolders, $replacements, $this->getTemplate($kind));
+		$code = \str_replace($placeHolders, $replacements, $this->getTemplate($kind));
 		$dir = $ms->getMigrationsDirectory();
 		$path = $dir . '/Version' . $version . '.php';
 
-		if (file_put_contents($path, $code) === false) {
+		if (\file_put_contents($path, $code) === false) {
 			throw new RuntimeException('Failed to generate new migration step.');
 		}
 
@@ -162,5 +158,4 @@ class Version<version> implements ISqlMigration {
 		}
 		throw new \InvalidArgumentException('Kind can only be one of the following: simple, schema or sql');
 	}
-
 }

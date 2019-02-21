@@ -7,7 +7,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Lorenzo Perone <lorenzo.perone@yellowspace.net>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -25,7 +25,11 @@
  */
 namespace OC\Preview;
 
-class Movie extends Provider {
+use OCP\Files\File;
+use OCP\Files\FileInfo;
+use OCP\Preview\IProvider2;
+
+class Movie implements IProvider2 {
 	public static $avconvBinary;
 	public static $ffmpegBinary;
 	public static $atomicParsleyBinary;
@@ -34,7 +38,7 @@ class Movie extends Provider {
 	 * Keep track of movies without artwork to avoid retries in same request
 	 * @var array
 	 */
-	private $noArtworkIndex = array();
+	private $noArtworkIndex = [];
 
 	/**
 	 * {@inheritDoc}
@@ -46,23 +50,22 @@ class Movie extends Provider {
 	/**
 	 * {@inheritDoc}
 	 */
-	public function getThumbnail($path, $maxX, $maxY, $scalingup, $fileview) {
+	public function getThumbnail(File $file, $maxX, $maxY, $scalingUp) {
 		// TODO: use proc_open() and stream the source file ?
 
-		$fileInfo = $fileview->getFileInfo($path);
-		$useFileDirectly = (!$fileInfo->isEncrypted() && !$fileInfo->isMounted());
-
+		$useFileDirectly = (!$file->isEncrypted() && !$file->isMounted());
 		if ($useFileDirectly) {
-			$absPath = $fileview->getLocalFile($path);
+			$absPath = $file->getStorage()->getLocalFile($file->getInternalPath());
 		} else {
 			$absPath = \OC::$server->getTempManager()->getTemporaryFile();
 
-			$handle = $fileview->fopen($path, 'rb');
+			$handle = $file->fopen('rb');
 
 			// we better use 5MB (1024 * 1024 * 5 = 5242880) instead of 1MB.
 			// in some cases 1MB was no enough to generate thumbnail
-			$firstmb = stream_get_contents($handle, 5242880);
-			file_put_contents($absPath, $firstmb);
+			$firstmb = \stream_get_contents($handle, 5242880);
+			\file_put_contents($absPath, $firstmb);
+			\fclose($handle);
 		}
 
 		$result = $this->generateThumbNail($maxX, $maxY, $absPath, 5);
@@ -74,7 +77,7 @@ class Movie extends Provider {
 		}
 
 		if (!$useFileDirectly) {
-			unlink($absPath);
+			\unlink($absPath);
 		}
 
 		return $result;
@@ -90,23 +93,23 @@ class Movie extends Provider {
 		}
 
 		if (self::$atomicParsleyBinary) {
-			$suffix = substr($absPath, -4);
-			if ('.mp4' === strtolower($suffix)) {
+			$suffix = \substr($absPath, -4);
+			if (\strtolower($suffix) === '.mp4') {
 				$tmpFolder = \OC::$server->getTempManager()->getTemporaryFolder();
 				$tmpBase = $tmpFolder.'/Cover';
 				$cmd = self::$atomicParsleyBinary . ' ' .
-					escapeshellarg($absPath).
-					' --extractPixToPath ' . escapeshellarg($tmpBase) .
+					\escapeshellarg($absPath).
+					' --extractPixToPath ' . \escapeshellarg($tmpBase) .
 					' > /dev/null 2>&1';
 
-				exec($cmd, $output, $returnCode);
+				\exec($cmd, $output, $returnCode);
 
 				if ($returnCode === 0) {
-					$endings = array('.jpg', '.png');
+					$endings = ['.jpg', '.png'];
 					foreach ($endings as $ending) {
 						$extractedFile = $tmpBase.'_artwork_1'.$ending;
-						if (is_file($extractedFile) &&
-							filesize($extractedFile) > 0) {
+						if (\is_file($extractedFile) &&
+							\filesize($extractedFile) > 0) {
 							return $extractedFile;
 						}
 					}
@@ -126,19 +129,19 @@ class Movie extends Provider {
 		$tmpPath = \OC::$server->getTempManager()->getTemporaryFile();
 
 		if (self::$avconvBinary) {
-			$cmd = self::$avconvBinary . ' -y -ss ' . escapeshellarg($second) .
-				' -i ' . escapeshellarg($absPath) .
-				' -an -f mjpeg -vframes 1 -vsync 1 ' . escapeshellarg($tmpPath) .
+			$cmd = self::$avconvBinary . ' -y -ss ' . \escapeshellarg($second) .
+				' -i ' . \escapeshellarg($absPath) .
+				' -an -f mjpeg -vframes 1 -vsync 1 ' . \escapeshellarg($tmpPath) .
 				' > /dev/null 2>&1';
 		} else {
-			$cmd = self::$ffmpegBinary . ' -y -ss ' . escapeshellarg($second) .
-				' -i ' . escapeshellarg($absPath) .
+			$cmd = self::$ffmpegBinary . ' -y -ss ' . \escapeshellarg($second) .
+				' -i ' . \escapeshellarg($absPath) .
 				' -f mjpeg -vframes 1' .
-				' ' . escapeshellarg($tmpPath) .
+				' ' . \escapeshellarg($tmpPath) .
 				' > /dev/null 2>&1';
 		}
 
-		exec($cmd, $output, $returnCode);
+		\exec($cmd, $output, $returnCode);
 
 		if ($returnCode === 0) {
 			return $tmpPath;
@@ -155,23 +158,29 @@ class Movie extends Provider {
 	 * @return bool|\OCP\IImage
 	 */
 	private function generateThumbNail($maxX, $maxY, $absPath, $second) {
-
 		$extractedCover = $this->extractMp4CoverArtwork($absPath);
-		if (false !== $extractedCover) {
+		if ($extractedCover !== false) {
 			$tmpPath = $extractedCover;
 		} else {
 			$tmpPath = $this->generateFromMovie($absPath, $second);
 		}
 
-		if (is_string($tmpPath) && is_file($tmpPath)) {
+		if (\is_string($tmpPath) && \is_file($tmpPath)) {
 			$image = new \OC_Image();
 			$image->loadFromFile($tmpPath);
-			unlink($tmpPath);
+			\unlink($tmpPath);
 			if ($image->valid()) {
 				$image->scaleDownToFit($maxX, $maxY);
 				return $image;
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * @inheritdoc
+	 */
+	public function isAvailable(FileInfo $file) {
+		return true;
 	}
 }

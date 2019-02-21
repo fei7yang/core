@@ -3,7 +3,7 @@
  * @author Joas Schilling <coding@schilljs.com>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -44,6 +44,11 @@ class SystemTag implements ISystemTag {
 	/**
 	 * @var bool
 	 */
+	private $userEditable;
+
+	/**
+	 * @var bool
+	 */
 	private $userAssignable;
 
 	/**
@@ -53,11 +58,13 @@ class SystemTag implements ISystemTag {
 	 * @param string $name tag name
 	 * @param bool $userVisible whether the tag is user visible
 	 * @param bool $userAssignable whether the tag is user assignable
+	 * @param bool $userEditable whether the tag is user editable
 	 */
-	public function __construct($id, $name, $userVisible, $userAssignable) {
+	public function __construct($id, $name, $userVisible, $userAssignable, $userEditable = false) {
 		$this->id = $id;
 		$this->name = $name;
 		$this->userVisible = $userVisible;
+		$this->userEditable = $userEditable;
 		$this->userAssignable = $userAssignable;
 	}
 
@@ -87,5 +94,12 @@ class SystemTag implements ISystemTag {
 	 */
 	public function isUserAssignable() {
 		return $this->userAssignable;
+	}
+
+	/**
+	 * {@inheritdoc}
+	 */
+	public function isUserEditable() {
+		return $this->userEditable;
 	}
 }

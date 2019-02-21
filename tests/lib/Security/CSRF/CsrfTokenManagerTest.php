@@ -2,7 +2,7 @@
 /**
  * @author Lukas Reschke <lukas@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -103,7 +103,7 @@ class CsrfTokenManagerTest extends \Test\TestCase {
 			->willReturn(false);
 		$token = new \OC\Security\CSRF\CsrfToken('Token');
 
-		$this->assertSame(false, $this->csrfTokenManager->isTokenValid($token));
+		$this->assertFalse($this->csrfTokenManager->isTokenValid($token));
 	}
 
 	public function testIsTokenValidWithWrongToken() {
@@ -117,7 +117,7 @@ class CsrfTokenManagerTest extends \Test\TestCase {
 			->method('getToken')
 			->willReturn('MyToken');
 
-		$this->assertSame(false, $this->csrfTokenManager->isTokenValid($token));
+		$this->assertFalse($this->csrfTokenManager->isTokenValid($token));
 	}
 
 	public function testIsTokenValidWithValidToken() {
@@ -131,6 +131,6 @@ class CsrfTokenManagerTest extends \Test\TestCase {
 				->method('getToken')
 				->willReturn('/3JKTq2ldmzcDr1f5zDJ7Wt0lEgqqfKF');
 
-		$this->assertSame(true, $this->csrfTokenManager->isTokenValid($token));
+		$this->assertTrue($this->csrfTokenManager->isTokenValid($token));
 	}
 }

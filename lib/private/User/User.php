@@ -12,7 +12,7 @@
  * @author Victor Dubiniuk <dubiniuk@owncloud.com>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -34,17 +34,21 @@ namespace OC\User;
 use OC\Files\Cache\Storage;
 use OC\Hooks\Emitter;
 use OC_Helper;
+use OCP\Events\EventEmitterTrait;
 use OCP\IAvatarManager;
 use OCP\IImage;
 use OCP\IURLGenerator;
 use OCP\IUser;
 use OCP\IConfig;
 use OCP\IUserBackend;
+use OCP\IUserSession;
+use OCP\PreConditionNotMetException;
 use OCP\User\IChangePasswordBackend;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\EventDispatcher\GenericEvent;
 
 class User implements IUser {
+	use EventEmitterTrait;
 
 	/** @var Account */
 	private $account;
@@ -67,6 +71,12 @@ class User implements IUser {
 	/** @var AccountMapper */
 	private $mapper;
 
+	/** @var \OC\Group\Manager  */
+	private $groupManager;
+
+	/** @var Session  */
+	private $userSession;
+
 	/**
 	 * User constructor.
 	 *
@@ -76,21 +86,32 @@ class User implements IUser {
 	 * @param IConfig|null $config
 	 * @param null $urlGenerator
 	 * @param EventDispatcher|null $eventDispatcher
+	 * @param \OC\Group\Manager|null $groupManager
+	 * @param Session|null $userSession
 	 */
 	public function __construct(Account $account, AccountMapper $mapper, $emitter = null, IConfig $config = null,
-								$urlGenerator = null, EventDispatcher $eventDispatcher = null
+								$urlGenerator = null, EventDispatcher $eventDispatcher = null,
+								\OC\Group\Manager $groupManager = null, Session $userSession = null
 	) {
 		$this->account = $account;
 		$this->mapper = $mapper;
 		$this->emitter = $emitter;
 		$this->eventDispatcher = $eventDispatcher;
-		if(is_null($config)) {
+		if ($config === null) {
 			$config = \OC::$server->getConfig();
 		}
 		$this->config = $config;
 		$this->urlGenerator = $urlGenerator;
-		if (is_null($this->urlGenerator)) {
+		if ($this->urlGenerator === null) {
 			$this->urlGenerator = \OC::$server->getURLGenerator();
+		}
+		$this->groupManager = $groupManager;
+		if ($this->groupManager === null) {
+			$this->groupManager = \OC::$server->getGroupManager();
+		}
+		$this->userSession = $userSession;
+		if ($this->userSession === null) {
+			$this->userSession = \OC::$server->getUserSession();
 		}
 	}
 
@@ -101,6 +122,35 @@ class User implements IUser {
 	 */
 	public function getUID() {
 		return $this->account->getUserId();
+	}
+
+	/**
+	 * get the user name
+	 * TODO move username to account table
+	 *
+	 * @return string
+	 */
+	public function getUserName() {
+		$uid = $this->getUID();
+		return $this->config->getUserValue($uid, 'core', 'username', $uid);
+	}
+
+	/**
+	 * set the user name
+	 * TODO move username to account table
+	 *
+	 * @param string $userName
+	 */
+	public function setUserName($userName) {
+		$currentUserName = $this->getUserName();
+		if ($userName !== $currentUserName) {
+			$uid = $this->getUID();
+			try {
+				$this->config->setUserValue($uid, 'core', 'username', $userName);
+			} catch (PreConditionNotMetException $e) {
+				// ignore, because precondition is empty
+			}
+		}
 	}
 
 	/**
@@ -126,12 +176,18 @@ class User implements IUser {
 		if (!$this->canChangeDisplayName()) {
 			return false;
 		}
-		$displayName = trim($displayName);
+		$displayName = \trim($displayName);
 		if ($displayName === $this->account->getDisplayName()) {
 			return false;
 		}
 		$this->account->setDisplayName($displayName);
 		$this->mapper->update($this->account);
+
+		$backend = $this->account->getBackendInstance();
+		if ($backend->implementsActions(Backend::SET_DISPLAYNAME)) {
+			$backend->setDisplayName($this->account->getUserId(), $displayName);
+		}
+
 		$this->triggerChange('displayName', $displayName);
 
 		return true;
@@ -145,7 +201,7 @@ class User implements IUser {
 	 * @since 9.0.0
 	 */
 	public function setEMailAddress($mailAddress) {
-		$mailAddress = trim($mailAddress);
+		$mailAddress = \trim($mailAddress);
 		if ($mailAddress === $this->account->getEmail()) {
 			return;
 		}
@@ -169,7 +225,7 @@ class User implements IUser {
 	 */
 	public function updateLastLoginTimestamp() {
 		$firstTimeLogin = ($this->getLastLogin() === 0);
-		$this->account->setLastLogin(time());
+		$this->account->setLastLogin(\time());
 		$this->mapper->update($this->account);
 		return $firstTimeLogin;
 	}
@@ -187,7 +243,7 @@ class User implements IUser {
 		$homePath = $this->getHome();
 		$this->mapper->delete($this->account);
 		$bi = $this->account->getBackendInstance();
-		if (!is_null($bi)) {
+		if ($bi !== null) {
 			$bi->deleteUser($this->account->getUserId());
 		}
 
@@ -200,6 +256,11 @@ class User implements IUser {
 		// Delete the user's keys in preferences
 		\OC::$server->getConfig()->deleteAllUserValues($this->getUID());
 
+		// Delete all mount points for user
+		\OC::$server->getUserStoragesService()->deleteAllMountsForUser($this);
+		//Delete external storage or remove user from applicableUsers list
+		\OC::$server->getGlobalStoragesService()->deleteAllForUser($this);
+
 		// Delete user files in /data/
 		if ($homePath !== false) {
 			// FIXME: this operates directly on FS, should use View instead...
@@ -209,6 +270,7 @@ class User implements IUser {
 
 		// Delete the users entry in the storage table
 		Storage::remove('home::' . $this->getUID());
+		Storage::remove('object::user:' . $this->getUID());
 
 		\OC::$server->getCommentsManager()->deleteReferencesOfActor('users', $this->getUID());
 		\OC::$server->getCommentsManager()->deleteReadMarksFromUser($this);
@@ -220,34 +282,44 @@ class User implements IUser {
 	}
 
 	/**
-	 * Set the password of the user
+	 * Set the user's password
 	 *
 	 * @param string $password
 	 * @param string $recoveryPassword for the encryption app to reset encryption keys
 	 * @return bool
+	 * @throws \InvalidArgumentException
 	 */
 	public function setPassword($password, $recoveryPassword = null) {
-		if ($this->emitter) {
-			$this->emitter->emit('\OC\User', 'preSetPassword', [$this, $password, $recoveryPassword]);
-			\OC::$server->getEventDispatcher()->dispatch(
-				'OCP\User::validatePassword',
-				new GenericEvent(null, ['password' => $password])
-			);
+		if (\OCP\Util::isEmptyString($password)) {
+			throw new \InvalidArgumentException('Password cannot be empty');
 		}
-		if ($this->canChangePassword()) {
-			/** @var IChangePasswordBackend $backend */
-			$backend = $this->account->getBackendInstance();
-			$result = $backend->setPassword($this->getUID(), $password);
-			if ($result) {
-				if ($this->emitter) {
-					$this->emitter->emit('\OC\User', 'postSetPassword', [$this, $password, $recoveryPassword]);
-				}
-				$this->config->deleteUserValue($this->getUID(), 'owncloud', 'lostpassword');
+
+		return $this->emittingCall(function () use (&$password, &$recoveryPassword) {
+			if ($this->emitter) {
+				$this->emitter->emit('\OC\User', 'preSetPassword', [$this, $password, $recoveryPassword]);
+				\OC::$server->getEventDispatcher()->dispatch(
+					'OCP\User::validatePassword',
+					new GenericEvent(null, ['uid'=> $this->getUID(), 'password' => $password])
+				);
 			}
-			return !($result === false);
-		} else {
-			return false;
-		}
+			if ($this->canChangePassword()) {
+				/** @var IChangePasswordBackend $backend */
+				$backend = $this->account->getBackendInstance();
+				$result = $backend->setPassword($this->getUID(), $password);
+				if ($result) {
+					if ($this->emitter) {
+						$this->emitter->emit('\OC\User', 'postSetPassword', [$this, $password, $recoveryPassword]);
+					}
+					$this->config->deleteUserValue($this->getUID(), 'owncloud', 'lostpassword');
+				}
+				return !($result === false);
+			} else {
+				return false;
+			}
+		}, [
+			'before' => ['user' => $this, 'password' => $password, 'recoveryPassword' => $recoveryPassword],
+			'after' => ['user' => $this, 'password' => $password, 'recoveryPassword' => $recoveryPassword]
+		], 'user', 'setpassword');
 	}
 
 	/**
@@ -266,7 +338,7 @@ class User implements IUser {
 	 */
 	public function getBackendClassName() {
 		$b = $this->account->getBackendInstance();
-		if($b instanceof IUserBackend) {
+		if ($b instanceof IUserBackend) {
 			return $b->getBackendName();
 		}
 		return $this->account->getBackend();
@@ -279,13 +351,13 @@ class User implements IUser {
 	 */
 	public function canChangeAvatar() {
 		$backend = $this->account->getBackendInstance();
-		if (is_null($backend)) {
+		if ($backend === null) {
 			return false;
 		}
 		if ($backend->implementsActions(Backend::PROVIDE_AVATAR)) {
-				return $backend->canChangeAvatar($this->getUID());
+			return $backend->canChangeAvatar($this->getUID());
 		}
- 		return true;
+		return true;
 	}
 
 	/**
@@ -295,7 +367,7 @@ class User implements IUser {
 	 */
 	public function canChangePassword() {
 		$backend = $this->account->getBackendInstance();
-		if (is_null($backend)) {
+		if ($backend === null) {
 			return false;
 		}
 		return $backend instanceof IChangePasswordBackend || $backend->implementsActions(Backend::SET_PASSWORD);
@@ -307,11 +379,19 @@ class User implements IUser {
 	 * @return bool
 	 */
 	public function canChangeDisplayName() {
-		if ($this->config->getSystemValue('allow_user_to_change_display_name') === false) {
-			return false;
+		// Only Admin and SubAdmins are allowed to change display name
+		if ($this->userSession instanceof IUserSession) {
+			$user = $this->userSession->getUser();
+			if (
+				($this->config->getSystemValue('allow_user_to_change_display_name') === false) &&
+				(($user !== null) && (!$this->groupManager->isAdmin($user->getUID()))) &&
+				(($user !== null) && (!$this->groupManager->getSubAdmin()->isSubAdmin($user)))
+			) {
+				return false;
+			}
 		}
 		$backend = $this->account->getBackendInstance();
-		if (is_null($backend)) {
+		if ($backend === null) {
 			return false;
 		}
 		return $backend->implementsActions(Backend::SET_DISPLAYNAME);
@@ -339,8 +419,8 @@ class User implements IUser {
 		}
 		$this->mapper->update($this->account);
 
-		if ($this->eventDispatcher){
-			$this->eventDispatcher->dispatch(self::class . '::postSetEnabled',  new GenericEvent($this));
+		if ($this->eventDispatcher) {
+			$this->eventDispatcher->dispatch(self::class . '::postSetEnabled', new GenericEvent($this));
 		}
 	}
 
@@ -362,7 +442,7 @@ class User implements IUser {
 	 */
 	public function getQuota() {
 		$quota = $this->account->getQuota();
-		if(is_null($quota)) {
+		if ($quota === null) {
 			return 'default';
 		}
 		return $quota;
@@ -376,11 +456,13 @@ class User implements IUser {
 	 * @since 9.0.0
 	 */
 	public function setQuota($quota) {
-		if($quota !== 'none' and $quota !== 'default') {
+		if ($quota !== 'none' and $quota !== 'default') {
 			$quota = OC_Helper::computerFileSize($quota);
 			$quota = OC_Helper::humanFileSize($quota);
 		}
 		$this->account->setQuota($quota);
+		// Set the quota on the preferences table as an override
+		$this->config->setUserValue($this->getUID(), 'files', 'quota', $quota);
 		$this->mapper->update($this->account);
 		$this->triggerChange('quota', $quota);
 	}
@@ -394,7 +476,7 @@ class User implements IUser {
 	 */
 	public function getAvatarImage($size) {
 		// delay the initialization
-		if (is_null($this->avatarManager)) {
+		if ($this->avatarManager === null) {
 			$this->avatarManager = \OC::$server->getAvatarManager();
 		}
 
@@ -416,7 +498,7 @@ class User implements IUser {
 	public function getCloudId() {
 		$uid = $this->getUID();
 		$server = $this->urlGenerator->getAbsoluteURL('/');
-		return $uid . '@' . rtrim( $this->removeProtocolFromUrl($server), '/');
+		return $uid . '@' . \rtrim($this->removeProtocolFromUrl($server), '/');
 	}
 
 	/**
@@ -424,17 +506,17 @@ class User implements IUser {
 	 * @return string
 	 */
 	private function removeProtocolFromUrl($url) {
-		if (strpos($url, 'https://') === 0) {
-			return substr($url, strlen('https://'));
-		} else if (strpos($url, 'http://') === 0) {
-			return substr($url, strlen('http://'));
+		if (\strpos($url, 'https://') === 0) {
+			return \substr($url, \strlen('https://'));
+		} elseif (\strpos($url, 'http://') === 0) {
+			return \substr($url, \strlen('http://'));
 		}
 
 		return $url;
 	}
 
 	public function triggerChange($feature, $value = null) {
-		if ($this->emitter && in_array($feature, $this->account->getUpdatedFields())) {
+		if ($this->emitter && \in_array($feature, $this->account->getUpdatedFields())) {
 			$this->emitter->emit('\OC\User', 'changeUser', [$this, $feature, $value]);
 		}
 	}
@@ -457,9 +539,17 @@ class User implements IUser {
 	 */
 	public function setSearchTerms(array $terms) {
 		// Check length of terms, cut if too long
-		$terms = array_map(function($term) {
-			return substr($term, 0, 191);
+		$terms = \array_map(function ($term) {
+			return \substr($term, 0, 191);
 		}, $terms);
 		$this->mapper->setTermsForAccount($this->account->getId(), $terms);
+	}
+
+	/**
+	 * @return integer
+	 * @since 11.0.0
+	 */
+	public function getAccountId() {
+		return $this->account->getId();
 	}
 }

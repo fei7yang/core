@@ -2,7 +2,7 @@
 /**
  * @author Joas Schilling <coding@schilljs.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -43,7 +43,7 @@ class Status extends Base {
 
 		$this
 			->setName('encryption:status')
-			->setDescription('Lists the current status of encryption')
+			->setDescription('Lists the current encryption status.')
 		;
 	}
 

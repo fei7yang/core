@@ -4,7 +4,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -42,7 +42,7 @@ class DownloadTest extends RequestTest {
 
 		$response = $this->request($view, $user, 'pass', 'GET', '/foo.txt');
 		$this->assertEquals(Http::STATUS_OK, $response->getStatus());
-		$this->assertEquals(stream_get_contents($response->getBody()), 'bar');
+		$this->assertEquals(\stream_get_contents($response->getBody()), 'bar');
 	}
 
 	/**
@@ -69,6 +69,6 @@ class DownloadTest extends RequestTest {
 
 		$response = $this->request($view, $user, 'pass', 'GET', '/foo.txt', 'asd');
 		$this->assertEquals(Http::STATUS_OK, $response->getStatus());
-		$this->assertEquals(stream_get_contents($response->getBody()), 'bar');
+		$this->assertEquals(\stream_get_contents($response->getBody()), 'bar');
 	}
 }

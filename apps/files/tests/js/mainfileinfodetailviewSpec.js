@@ -2,7 +2,7 @@
 * ownCloud
 *
 * @author Vincent Petry
-* @copyright 2015 Vincent Petry <pvince81@owncloud.com>
+* @copyright Copyright (c) 2015 Vincent Petry <pvince81@owncloud.com>
 *
 * This library is free software; you can redistribute it and/or
 * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
@@ -33,7 +33,7 @@ describe('OCA.Files.MainFileInfoDetailView tests', function() {
 			fileActions: fileActions
 		});
 		testFileInfo = new OCA.Files.FileInfoModel({
-			id: 5,
+			id: '5',
 			name: 'One.txt',
 			mimetype: 'text/plain',
 			permissions: 31,
@@ -198,7 +198,7 @@ describe('OCA.Files.MainFileInfoDetailView tests', function() {
 		it('unbinds change listener from model', function() {
 			view.setFileInfo(testFileInfo);
 			view.setFileInfo(new OCA.Files.FileInfoModel({
-				id: 999,
+				id: '999',
 				name: 'test.txt',
 				path: '/'
 			}));

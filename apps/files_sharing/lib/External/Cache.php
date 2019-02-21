@@ -4,7 +4,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -35,7 +35,7 @@ class Cache extends \OC\Files\Cache\Cache {
 	 */
 	public function __construct($storage, $remote, $remoteUser) {
 		$this->storage = $storage;
-		list(, $remote) = explode('://', $remote, 2);
+		list(, $remote) = \explode('://', $remote, 2);
 		$this->remote = $remote;
 		$this->remoteUser = $remoteUser;
 		parent::__construct($storage);
@@ -49,8 +49,8 @@ class Cache extends \OC\Files\Cache\Cache {
 		$result['displayname_owner'] = $this->remoteUser . '@' . $this->remote;
 		if (!$file || $file === '') {
 			$result['is_share_mount_point'] = true;
-			$mountPoint = rtrim($this->storage->getMountPoint());
-			$result['name'] = basename($mountPoint);
+			$mountPoint = \rtrim($this->storage->getMountPoint());
+			$result['name'] = \basename($mountPoint);
 		}
 		return $result;
 	}

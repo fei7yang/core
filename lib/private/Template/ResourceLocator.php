@@ -9,7 +9,7 @@
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -28,6 +28,8 @@
 
 namespace OC\Template;
 
+use OCP\App\IAppManager;
+use OCP\ILogger;
 use OCP\Theme\ITheme;
 
 abstract class ResourceLocator {
@@ -38,26 +40,28 @@ abstract class ResourceLocator {
 
 	protected $mapping;
 	protected $serverroot;
-	protected $thirdpartyroot;
 	protected $webroot;
 
 	protected $resources = [];
 
-	/** @var \OCP\ILogger */
+	/** @var $appManager */
+	protected $appManager;
+
+	/** @var ILogger */
 	protected $logger;
 
 	/**
-	 * @param \OCP\ILogger $logger
 	 * @param ITheme $theme
+	 * @param IAppManager $appManager
+	 * @param ILogger $logger
 	 * @param array $core_map
-	 * @param array $party_map
 	 */
-	public function __construct(\OCP\ILogger $logger, $theme, $core_map, $party_map) {
-		$this->logger = $logger;
+	public function __construct(ITheme $theme, IAppManager $appManager, ILogger $logger, $core_map) {
 		$this->theme = $theme;
-		$this->mapping = $core_map + $party_map;
-		$this->serverroot = key($core_map);
-		$this->thirdpartyroot = key($party_map);
+		$this->logger = $logger;
+		$this->appManager = $appManager;
+		$this->mapping = $core_map;
+		$this->serverroot = \key($core_map);
 		$this->webroot = $this->mapping[$this->serverroot];
 	}
 
@@ -72,6 +76,12 @@ abstract class ResourceLocator {
 	abstract public function doFindTheme($resource);
 
 	/**
+	 * @param string $path
+	 * @return string
+	 */
+	abstract protected function addExtension($path);
+
+	/**
 	 * Finds the resources and adds them to the list
 	 *
 	 * @param array $resources
@@ -81,7 +91,7 @@ abstract class ResourceLocator {
 			try {
 				$this->doFind($resource);
 			} catch (ResourceNotFoundException $e) {
-				$resourceApp = substr($resource, 0, strpos($resource, '/'));
+				$resourceApp = \substr($resource, 0, \strpos($resource, '/'));
 				$this->logger->error('Could not find resource file "' . $e->getResourcePath() . '"', ['app' => $resourceApp]);
 			}
 		}
@@ -90,7 +100,7 @@ abstract class ResourceLocator {
 				try {
 					$this->doFindTheme($resource);
 				} catch (ResourceNotFoundException $e) {
-					$resourceApp = substr($resource, 0, strpos($resource, '/'));
+					$resourceApp = \substr($resource, 0, \strpos($resource, '/'));
 					$this->logger->error('Could not find resource file in theme "' . $e->getResourcePath() . '"', ['app' => $resourceApp]);
 				}
 			}
@@ -106,10 +116,10 @@ abstract class ResourceLocator {
 	 * @return bool True if the resource was found, false otherwise
 	 */
 	protected function appendOnceIfExist($root, $file, $webRoot = null) {
-		$file = ltrim($file, '/');
+		$file = \ltrim($file, '/');
 		$path = $this->buildPath([$root, $file]);
 		
-		if (!isset( $this->resources[$path] ) && is_file($path)) {
+		if (!isset($this->resources[$path]) && \is_file($path)) {
 			$this->append($root, $file, $webRoot, false);
 			return true;
 		}
@@ -133,7 +143,7 @@ abstract class ResourceLocator {
 		$path = $this->buildPath([$root, $file]);
 		$this->resources[$path] = [$root, $webRoot, $file];
 
-		if ($throw && !is_file($path) ) {
+		if ($throw && !\is_file($path)) {
 			throw new ResourceNotFoundException($file, $webRoot);
 		}
 	}
@@ -144,8 +154,14 @@ abstract class ResourceLocator {
 	 * @param string[] $parts path parts to concatenate
 	 * @return string $parts concatenated
 	 */
-	private function buildPath($parts){
-		return join(DIRECTORY_SEPARATOR, $parts);
+	protected function buildPath($parts) {
+		$trimmedParts = \array_map(
+			function ($part) {
+				return \rtrim($part, '/');
+			},
+			$parts
+		);
+		return \join(DIRECTORY_SEPARATOR, $trimmedParts);
 	}
 
 	/**

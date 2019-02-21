@@ -3,7 +3,7 @@
  * @author Joas Schilling <coding@schilljs.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -22,10 +22,14 @@
 
 namespace OCA\DAV\Tests\unit\Connector\Sabre;
 
-use OCA\DAV\Connector\Sabre\Exception\InvalidPath;
-use OCA\DAV\Connector\Sabre\ExceptionLoggerPlugin as PluginToTest;
 use OC\Log;
+use OCA\DAV\Connector\Sabre\Exception\InvalidPath;
+use OCA\DAV\Connector\Sabre\Exception\UnsupportedMediaType;
+use OCA\DAV\Connector\Sabre\ExceptionLoggerPlugin as PluginToTest;
+use OCP\Files\ExcludeForbiddenException;
+use OCP\Files\FileContentNotAllowedException;
 use PHPUnit_Framework_MockObject_MockObject;
+use Sabre\DAV\Exception\InsufficientStorage;
 use Sabre\DAV\Exception\NotFound;
 use Sabre\DAV\Server;
 use Test\TestCase;
@@ -67,17 +71,22 @@ class ExceptionLoggerPluginTest extends TestCase {
 	 */
 	public function testLogging($expectedLogLevel, $expectedMessage, $exception) {
 		$this->init();
-		$this->plugin->logException($exception);
+		$result = $this->plugin->logException($exception);
 
-		$this->assertEquals($expectedLogLevel, $this->logger->level);
-		$this->assertStringStartsWith('Exception: {"Message":"' . $expectedMessage, $this->logger->message);
+		if ($exception instanceof FileContentNotAllowedException) {
+			$this->assertNull($result);
+		} else {
+			$this->assertEquals($expectedLogLevel, $this->logger->level);
+			$this->assertStringStartsWith('Exception: ' . $expectedMessage, $this->logger->message);
+		}
 	}
 
 	public function providesExceptions() {
 		return [
-			[0, 'HTTP\/1.1 404 Not Found', new NotFound()],
-			[4, 'HTTP\/1.1 400 This path leads to nowhere', new InvalidPath('This path leads to nowhere')]
+			[0, 'HTTP/1.1 404 Not Found', new NotFound()],
+			[4, 'HTTP/1.1 400 This path leads to nowhere', new InvalidPath('This path leads to nowhere')],
+			[0, '', new FileContentNotAllowedException("Testing", 0, new FileContentNotAllowedException("pervious exception", 0))],
+			[0, "HTTP/1.1 507 Testing", new InsufficientStorage("Testing", 0, null)]
 		];
 	}
-
 }

@@ -8,12 +8,12 @@ OC.L10N.register(
     "Edit" : "এডিট",
     "Remove" : "সরান",
     "Name" : "নাম",
-    "Save" : "সেভ",
     "Share" : "শেয়ার",
-    "Warning" : "সতর্কীকরণ",
+    "Save" : "সেভ",
     "Delete" : "মুছে ফেলা",
     "Rename" : "পুনঃনামকরণ",
     "Add" : "যোগ করা",
+    "Imprint" : "অঙ্কিত করা",
     "Search" : "অনুসন্ধান"
 },
 "nplurals=2; plural=(n != 1);");

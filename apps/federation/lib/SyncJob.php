@@ -2,7 +2,7 @@
 /**
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -25,7 +25,6 @@ use OC\BackgroundJob\TimedJob;
 use OCA\Federation\AppInfo\Application;
 
 class SyncJob extends TimedJob {
-
 	public function __construct() {
 		// Run once a day
 		$this->setInterval(24 * 60 * 60);
@@ -34,7 +33,7 @@ class SyncJob extends TimedJob {
 	protected function run($argument) {
 		$app = new Application();
 		$ss = $app->getSyncService();
-		$ss->syncThemAll(function($url, $ex) {
+		$ss->syncThemAll(function ($url, $ex) {
 			if ($ex instanceof \Exception) {
 				\OC::$server->getLogger()->error("Error while syncing $url : " . $ex->getMessage(), ['app' => 'fed-sync']);
 			}

@@ -2,7 +2,7 @@
 /**
  * @author Robin McCorkell <rmccorkell@owncloud.com>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -22,9 +22,9 @@
 namespace Tests\Core\Command\Maintenance\Mimetype;
 
 use OC\Core\Command\Maintenance\Mimetype\UpdateDB;
-use Test\TestCase;
 use OCP\Files\IMimeTypeDetector;
 use OCP\Files\IMimeTypeLoader;
+use Test\TestCase;
 
 class UpdateDBTest extends TestCase {
 	/** @var IMimeTypeDetector */

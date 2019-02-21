@@ -4,7 +4,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -64,8 +64,8 @@ class ExpressionBuilder implements IExpressionBuilder {
 	 * @return \OCP\DB\QueryBuilder\ICompositeExpression
 	 */
 	public function andX($x = null) {
-		$arguments = func_get_args();
-		$compositeExpression = call_user_func_array([$this->expressionBuilder, 'andX'], $arguments);
+		$arguments = \func_get_args();
+		$compositeExpression = \call_user_func_array([$this->expressionBuilder, 'andX'], $arguments);
 		return new CompositeExpression($compositeExpression);
 	}
 
@@ -84,8 +84,8 @@ class ExpressionBuilder implements IExpressionBuilder {
 	 * @return \OCP\DB\QueryBuilder\ICompositeExpression
 	 */
 	public function orX($x = null) {
-		$arguments = func_get_args();
-		$compositeExpression = call_user_func_array([$this->expressionBuilder, 'orX'], $arguments);
+		$arguments = \func_get_args();
+		$compositeExpression = \call_user_func_array([$this->expressionBuilder, 'orX'], $arguments);
 		return new CompositeExpression($compositeExpression);
 	}
 

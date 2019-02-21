@@ -8,7 +8,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -27,7 +27,7 @@
 
 namespace OCA\Files_External\Tests\Storage;
 
-use \OCA\Files_External\Lib\Storage\SFTP;
+use OCA\Files_External\Lib\Storage\SFTP;
 
 /**
  * Class SftpTest
@@ -49,7 +49,7 @@ class SftpTest extends \Test\Files\Storage\Storage {
 
 		$id = $this->getUniqueID();
 		$this->config = include('files_external/tests/config.sftp.php');
-		if (!is_array($this->config) or !$this->config['run']) {
+		if (!\is_array($this->config) or !$this->config['run']) {
 			$this->markTestSkipped('SFTP backend not configured');
 		}
 		$this->config['root'] .= '/' . $id; //make sure we have an new empty folder to work in

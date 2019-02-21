@@ -5,7 +5,7 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author scolebrook <scolebrook@mac.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -50,7 +50,7 @@ class Defaults {
 	 * actual defaults
 	 * @since 6.0.0
 	 */
-	function __construct() {
+	public function __construct() {
 		$this->defaults = new \OC_Defaults();
 	}
 

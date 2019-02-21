@@ -12,7 +12,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -29,7 +29,8 @@
  *
  */
 
-use \OCA\Files_External\AppInfo\Application;
+use OCA\Files_External\AppInfo\Application;
+use OCP\Files\External\Backend\Backend;
 
 /**
  * Class to configure mount.json globally and for users
@@ -61,7 +62,7 @@ class OC_Mount_Config extends \OC\Files\External\LegacyUtil {
 		}
 
 		foreach ($dependencyGroups as $module => $dependants) {
-			$backends = implode(', ', array_map(function($backend) {
+			$backends = \implode(', ', \array_map(function ($backend) {
 				return '<i>' . $backend->getText() . '</i>';
 			}, $dependants));
 			$message .= '<br />' . OC_Mount_Config::getSingleDependencyMessage($l, $module, $backends);
@@ -79,7 +80,7 @@ class OC_Mount_Config extends \OC\Files\External\LegacyUtil {
 	 * @return string
 	 */
 	private static function getSingleDependencyMessage(\OCP\IL10N $l, $module, $backend) {
-		switch (strtolower($module)) {
+		switch (\strtolower($module)) {
 			case 'curl':
 				return (string)$l->t('<b>Note:</b> The cURL support in PHP is not enabled or installed. Mounting of %s is not possible. Please ask your system administrator to install it.', $backend);
 			default:

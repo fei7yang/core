@@ -4,7 +4,7 @@
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -23,7 +23,7 @@
 namespace OCA\Files_Sharing\Tests;
 
 use OCA\Files_Sharing\Capabilities;
-use OCA\Files_Sharing\Tests\TestCase;
+use OCP\IL10N;
 
 /**
  * Class CapabilitiesTest
@@ -33,8 +33,34 @@ use OCA\Files_Sharing\Tests\TestCase;
 class CapabilitiesTest extends \Test\TestCase {
 
 	/**
+	 * @var \OCP\Util\UserSearch
+	 */
+	protected $userSearch;
+
+	/** @var IL10N | \PHPUnit_Framework_MockObject_MockObject */
+	private $l10n;
+
+	/**
+	 *
+	 */
+	protected function setUp() {
+		parent::setUp();
+		$this->userSearch = $this->getMockBuilder(\OCP\Util\UserSearch::class)
+			->disableOriginalConstructor()
+			->getMock();
+
+		$this->userSearch->expects($this->any())
+			->method('getSearchMinLength')
+			->willReturn(1);
+
+		$this->l10n = $this->createMock(IL10N::class);
+		$this->l10n->method('t')
+			->willReturn('Public link');
+	}
+
+	/**
 	 * Test for the general part in each return statement and assert.
-	 * Strip of the general part on the way.
+	 * Strip off the general part on the way.
 	 *
 	 * @param string[] $data Capabilities
 	 * @return string[]
@@ -45,7 +71,7 @@ class CapabilitiesTest extends \Test\TestCase {
 	}
 
 	/**
-	 * Create a mock config object and insert the values in $map tot the getAppValue
+	 * Create a mock config object and insert the values in $map to the getAppValue
 	 * function. Then obtain the capabilities and extract the first few
 	 * levels in the array
 	 *
@@ -55,7 +81,7 @@ class CapabilitiesTest extends \Test\TestCase {
 	private function getResults(array $map) {
 		$stub = $this->getMockBuilder('\OCP\IConfig')->disableOriginalConstructor()->getMock();
 		$stub->method('getAppValue')->will($this->returnValueMap($map));
-		$cap = new Capabilities($stub);
+		$cap = new Capabilities($stub, $this->userSearch, $this->l10n);
 		$result = $this->getFilesSharingPart($cap->getCapabilities());
 		return $result;
 	}
@@ -66,9 +92,10 @@ class CapabilitiesTest extends \Test\TestCase {
 		];
 		$result = $this->getResults($map);
 		$this->assertTrue($result['api_enabled']);
-		$this->assertContains('public', $result);
-		$this->assertContains('user', $result);
-		$this->assertContains('resharing', $result);
+		$this->assertTrue($result['can_share']);
+		$this->assertArrayHasKey('public', $result);
+		$this->assertArrayHasKey('user', $result);
+		$this->assertArrayHasKey('resharing', $result);
 	}
 
 	public function testDisabledSharingAPI() {
@@ -77,9 +104,10 @@ class CapabilitiesTest extends \Test\TestCase {
 		];
 		$result = $this->getResults($map);
 		$this->assertFalse($result['api_enabled']);
-		$this->assertNotContains('public', $result);
-		$this->assertNotContains('user', $result);
-		$this->assertNotContains('resharing', $result);
+		$this->assertFalse($result['can_share']);
+		$this->assertFalse($result['public']['enabled']);
+		$this->assertFalse($result['user']['send_mail']);
+		$this->assertFalse($result['resharing']);
 	}
 
 	public function testNoLinkSharing() {
@@ -102,28 +130,56 @@ class CapabilitiesTest extends \Test\TestCase {
 		$this->assertTrue($result['public']['enabled']);
 	}
 
-	public function testLinkPassword() {
+	public function linkPasswordProvider() {
+		return [
+			['no', 'no', 'yes'],
+			['no', 'yes', 'no'],
+			['no', 'yes', 'yes'],
+			['yes', 'no', 'no'],
+			['yes', 'no', 'yes'],
+			['yes', 'yes', 'no'],
+			['yes', 'yes', 'yes'],
+		];
+	}
+
+	/**
+	 * @dataProvider linkPasswordProvider
+	 */
+	public function testLinkPassword($readOnly, $readWrite, $writeOnly) {
 		$map = [
 			['core', 'shareapi_enabled', 'yes', 'yes'],
 			['core', 'shareapi_allow_links', 'yes', 'yes'],
-			['core', 'shareapi_enforce_links_password', 'no', 'yes'],
+			['core', 'shareapi_enforce_links_password_read_only', 'no', $readOnly],
+			['core', 'shareapi_enforce_links_password_read_write', 'no', $readWrite],
+			['core', 'shareapi_enforce_links_password_write_only', 'no', $writeOnly],
 		];
 		$result = $this->getResults($map);
 		$this->assertArrayHasKey('password', $result['public']);
 		$this->assertArrayHasKey('enforced', $result['public']['password']);
+		$this->assertArrayHasKey('enforced_for', $result['public']['password']);
 		$this->assertTrue($result['public']['password']['enforced']);
+
+		$this->assertEquals($readOnly === 'yes', $result['public']['password']['enforced_for']['read_only']);
+		$this->assertEquals($readWrite === 'yes', $result['public']['password']['enforced_for']['read_write']);
+		$this->assertEquals($writeOnly === 'yes', $result['public']['password']['enforced_for']['upload_only']);
 	}
 
 	public function testLinkNoPassword() {
 		$map = [
 			['core', 'shareapi_enabled', 'yes', 'yes'],
 			['core', 'shareapi_allow_links', 'yes', 'yes'],
-			['core', 'shareapi_enforce_links_password', 'no', 'no'],
+			['core', 'shareapi_enforce_links_password_read_only', 'no', 'no'],
+			['core', 'shareapi_enforce_links_password_read_write', 'no', 'no'],
+			['core', 'shareapi_enforce_links_password_write_only', 'no', 'no'],
 		];
 		$result = $this->getResults($map);
 		$this->assertArrayHasKey('password', $result['public']);
 		$this->assertArrayHasKey('enforced', $result['public']['password']);
+		$this->assertArrayHasKey('enforced_for', $result['public']['password']);
 		$this->assertFalse($result['public']['password']['enforced']);
+		$this->assertFalse($result['public']['password']['enforced_for']['read_only']);
+		$this->assertFalse($result['public']['password']['enforced_for']['read_write']);
+		$this->assertFalse($result['public']['password']['enforced_for']['upload_only']);
 	}
 
 	public function testLinkNoExpireDate() {
@@ -185,6 +241,25 @@ class CapabilitiesTest extends \Test\TestCase {
 		];
 		$result = $this->getResults($map);
 		$this->assertFalse($result['public']['send_mail']);
+	}
+
+	public function testLinkSocial_Share() {
+		$map = [
+			['core', 'shareapi_enabled', 'yes', 'yes'],
+			['core', 'shareapi_allow_links', 'yes', 'yes'],
+			['core', 'shareapi_allow_social_share', 'yes', 'yes'],
+		];
+		$result = $this->getResults($map);
+		$this->assertTrue($result['public']['social_share']);
+	}
+	public function testLinkNoSocial_Share() {
+		$map = [
+			['core', 'shareapi_enabled', 'yes', 'yes'],
+			['core', 'shareapi_allow_links', 'yes', 'yes'],
+			['core', 'shareapi_allow_social_share', 'yes', 'no'],
+		];
+		$result = $this->getResults($map);
+		$this->assertFalse($result['public']['social_share']);
 	}
 
 	public function testUserSendMail() {
@@ -261,7 +336,81 @@ class CapabilitiesTest extends \Test\TestCase {
 		$this->assertTrue($result['group_sharing']);
 	}
 
-	public function testFederatedSharingIncomming() {
+	public function testNoShareWithGroupMembersOnly() {
+		$map = [
+			['core', 'shareapi_enabled', 'yes', 'yes'],
+			['core', 'shareapi_only_share_with_group_members', 'yes', 'no'],
+		];
+		$result = $this->getResults($map);
+		$this->assertFalse($result['share_with_group_members_only']);
+	}
+
+	public function testShareWithGroupMembersOnly() {
+		$map = [
+			['core', 'shareapi_enabled', 'yes', 'yes'],
+			['core', 'shareapi_only_share_with_group_members', 'yes', 'yes'],
+		];
+		$result = $this->getResults($map);
+		$this->assertTrue($result['share_with_group_members_only']);
+	}
+
+	public function testNoShareWithMembershipGroupsOnly() {
+		$map = [
+			['core', 'shareapi_enabled', 'yes', 'yes'],
+			['core', 'shareapi_only_share_with_membership_groups', 'yes', 'no'],
+		];
+		$result = $this->getResults($map);
+		$this->assertFalse($result['share_with_membership_groups_only']);
+	}
+
+	public function testShareWithMembershipGroupsOnly() {
+		$map = [
+			['core', 'shareapi_enabled', 'yes', 'yes'],
+			['core', 'shareapi_only_share_with_membership_groups', 'yes', 'yes'],
+		];
+		$result = $this->getResults($map);
+		$this->assertTrue($result['share_with_membership_groups_only']);
+	}
+
+	public function testNoUserEnumeration() {
+		$map = [
+			['core', 'shareapi_enabled', 'yes', 'yes'],
+			['core', 'shareapi_allow_share_dialog_user_enumeration', 'yes', 'no'],
+		];
+		$result = $this->getResults($map);
+		$this->assertFalse($result['user_enumeration']['enabled']);
+	}
+
+	public function testUserEnumeration() {
+		$map = [
+			['core', 'shareapi_enabled', 'yes', 'yes'],
+			['core', 'shareapi_allow_share_dialog_user_enumeration', 'yes', 'yes'],
+		];
+		$result = $this->getResults($map);
+		$this->assertTrue($result['user_enumeration']['enabled']);
+	}
+
+	public function testUserEnumerationNoGroupMembersOnly() {
+		$map = [
+			['core', 'shareapi_enabled', 'yes', 'yes'],
+			['core', 'shareapi_allow_share_dialog_user_enumeration', 'yes', 'yes'],
+			['core', 'shareapi_share_dialog_user_enumeration_group_members', 'no', 'no'],
+		];
+		$result = $this->getResults($map);
+		$this->assertFalse($result['user_enumeration']['group_members_only']);
+	}
+
+	public function testUserEnumerationGroupMembersOnly() {
+		$map = [
+			['core', 'shareapi_enabled', 'yes', 'yes'],
+			['core', 'shareapi_allow_share_dialog_user_enumeration', 'yes', 'yes'],
+			['core', 'shareapi_share_dialog_user_enumeration_group_members', 'no', 'yes'],
+		];
+		$result = $this->getResults($map);
+		$this->assertTrue($result['user_enumeration']['group_members_only']);
+	}
+
+	public function testFederatedSharingIncoming() {
 		$map = [
 			['files_sharing', 'incoming_server2server_share_enabled', 'yes', 'yes'],
 		];
@@ -270,7 +419,7 @@ class CapabilitiesTest extends \Test\TestCase {
 		$this->assertTrue($result['federation']['incoming']);
 	}
 
-	public function testFederatedSharingNoIncomming() {
+	public function testFederatedSharingNoIncoming() {
 		$map = [
 			['files_sharing', 'incoming_server2server_share_enabled', 'yes', 'no'],
 		];
@@ -305,5 +454,6 @@ class CapabilitiesTest extends \Test\TestCase {
 		$result = $this->getResults($map);
 		$this->assertArrayHasKey('public', $result);
 		$this->assertTrue($result['public']['multiple']);
+		$this->assertEquals('Public link', $result['public']['defaultPublicLinkShareName']);
 	}
 }

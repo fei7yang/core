@@ -3,7 +3,7 @@
  * ownCloud
  *
  * @author Victor Dubiniuk
- * @copyright 2015 Victor Dubiniuk victor.dubiniuk@owncloud.com
+ * @copyright Copyright (c) 2015 Victor Dubiniuk victor.dubiniuk@owncloud.com
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
@@ -21,18 +21,17 @@
 
 namespace Test\PublicNamespace;
 
-
 class UtilTest extends \Test\TestCase {
 	protected function setUp() {
 		parent::setUp();
 		\OCP\Contacts::clear();
 	}
 	
-	 /**
-	 * @dataProvider channelProvider
-	 *
-	 * @param string $channel
-	 */
+	/**
+	* @dataProvider channelProvider
+	*
+	* @param string $channel
+	*/
 	public function testOverrideChannel($channel) {
 		\OCP\Util::setChannel($channel);
 		$actual = \OCP\Util::getChannel($channel);

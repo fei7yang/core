@@ -2,7 +2,7 @@
 /**
  * @author Lukas Reschke <lukas@owncloud.com>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -22,11 +22,11 @@
 namespace Tests\Settings\Controller;
 
 use OC\Settings\Controller\AppSettingsController;
-use Test\TestCase;
-use OCP\IRequest;
-use OCP\IL10N;
-use OCP\IConfig;
 use OCP\App\IAppManager;
+use OCP\IConfig;
+use OCP\IL10N;
+use OCP\IRequest;
+use Test\TestCase;
 
 /**
  * Class AppSettingsControllerTest
@@ -60,6 +60,7 @@ class AppSettingsControllerTest extends TestCase {
 		$this->appManager = $this->getMockBuilder(IAppManager::class)
 			->disableOriginalConstructor()->getMock();
 
+		$this->config->method('getSystemValue')->willReturnArgument(1);
 		$this->appSettingsController = new AppSettingsController(
 			'settings',
 			$this->request,

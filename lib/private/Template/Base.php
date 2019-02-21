@@ -11,7 +11,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -75,36 +75,61 @@ class Base {
 	}
 
 	/**
-	 * @param string $serverRoot
-	 * @param string|false $app_dir
 	 * @param ITheme $theme
 	 * @param string $app
+	 * @param string|false $appDir
 	 * @return string[]
 	 */
-	protected function getAppTemplateDirs($theme, $app, $serverRoot, $app_dir) {
-		// Check if the app is in the app folder or in the root
-		if( file_exists($app_dir.'/templates/' )) {
-			return [
-				$serverRoot.'/'.$theme->getDirectory().'/apps/'.$app.'/templates/',
-				$app_dir.'/templates/',
-			];
+	protected function getAppTemplateDirs(ITheme $theme, $app, $appDir) {
+		$templateDirectories = [];
+		// Templates dir from the active theme first
+		if ($theme->getDirectory() !== '') {
+			$templateDirectories[] = $theme->getBaseDirectory() . '/' . $theme->getDirectory() . '/apps/' . $app . '/templates/';
 		}
-		return [
-			$serverRoot.'/'.$theme->getDirectory().'/'.$app.'/templates/',
-			$serverRoot.'/'.$app.'/templates/',
-		];
+
+		// Templates dir from the app dir then
+		if ($appDir !== false) {
+			$templateDirectories[] = $appDir . '/templates/';
+		}
+
+		return $templateDirectories;
 	}
 
 	/**
-	 * @param string $serverRoot
 	 * @param ITheme $theme
+	 * @param string $serverRoot
 	 * @return string[]
 	 */
-	protected function getCoreTemplateDirs($theme, $serverRoot) {
-		return [
-			$serverRoot.'/'.$theme->getDirectory().'/core/templates/',
-			$serverRoot.'/core/templates/',
-		];
+	protected function getCoreTemplateDirs(ITheme $theme, $serverRoot) {
+		return $this->getTemplateDirs($theme, $serverRoot, '/core/templates/');
+	}
+
+	/**
+	 * @param ITheme $theme
+	 * @param string $serverRoot
+	 * @return string[]
+	 */
+	protected function getSettingsTemplateDirs(ITheme $theme, $serverRoot) {
+		return $this->getTemplateDirs($theme, $serverRoot, '/settings/templates/');
+	}
+
+	/**
+	 * Get path to templates directory in theme (if any) and then
+	 * in the requested ownCloud location
+	 *
+	 * @param ITheme $theme
+	 * @param string $basePath
+	 * @param string $relativePath
+	 * @return string[]
+	 */
+	protected function getTemplateDirs(ITheme $theme, $basePath, $relativePath) {
+		$directories = [];
+		if ($theme->getDirectory() !== '') {
+			$directories[] = $theme->getBaseDirectory() . '/' . $theme->getDirectory() . $relativePath;
+		}
+		$directories[] = $basePath . $relativePath;
+
+		return $directories;
 	}
 
 	/**
@@ -134,10 +159,9 @@ class Base {
 	 * $_[$key][$position] in the template.
 	 */
 	public function append($key, $value) {
-		if( array_key_exists($key, $this->vars)) {
+		if (\array_key_exists($key, $this->vars)) {
 			$this->vars[$key][] = $value;
-		}
-		else{
+		} else {
 			$this->vars[$key] = [$value];
 		}
 	}
@@ -150,10 +174,9 @@ class Base {
 	 */
 	public function printPage() {
 		$data = $this->fetchPage();
-		if( $data === false ) {
+		if ($data === false) {
 			return false;
-		}
-		else{
+		} else {
 			print $data;
 			return true;
 		}
@@ -187,19 +210,19 @@ class Base {
 		$l = $this->l10n;
 		$theme = $this->themeDefaults;
 
-		if( !is_null($additionalParams)) {
-			$_ = array_merge( $additionalParams, $this->vars );
+		if ($additionalParams !== null) {
+			$_ = \array_merge($additionalParams, $this->vars);
 		}
 
-		ob_start();
+		\ob_start();
 		try {
 			include $file;
-			$data = ob_get_contents();
+			$data = \ob_get_contents();
 		} catch (\Exception $e) {
-			@ob_end_clean();
+			@\ob_end_clean();
 			throw $e;
 		}
-		@ob_end_clean();
+		@\ob_end_clean();
 
 		return $data;
 	}

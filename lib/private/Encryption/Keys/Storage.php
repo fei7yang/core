@@ -5,7 +5,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -72,7 +72,7 @@ class Storage implements IStorage {
 		$this->keys_base_dir = $this->encryption_base_dir .'/keys';
 		$this->root_dir = $this->util->getKeyStorageRoot();
 
-		if (!is_null($session) && !is_null($session->getUser())) {
+		if ($session !== null && $session->getUser() !== null) {
 			$this->currentUser = $session->getUser()->getUID();
 		}
 	}
@@ -182,6 +182,27 @@ class Storage implements IStorage {
 	}
 
 	/**
+	 * @inheritdoc
+	 */
+
+	public function deleteAltUserStorageKeys($uid) {
+		if (\OC::$server->getEncryptionManager()->isEnabled()) {
+			/**
+			 * If the key storage is not the default
+			 * location, then we need to remove the keys
+			 * in the alternate key location
+			 */
+			$keyStorageRoot = $this->util->getKeyStorageRoot();
+			if ($keyStorageRoot !== '') {
+				$this->view->rmdir($keyStorageRoot . '/' . $uid);
+				return true;
+			}
+
+			return false;
+		}
+	}
+
+	/**
 	 * construct path to users key
 	 *
 	 * @param string $encryptionModuleId
@@ -190,7 +211,6 @@ class Storage implements IStorage {
 	 * @return string
 	 */
 	protected function constructUserKeyPath($encryptionModuleId, $keyId, $uid) {
-
 		if ($uid === null) {
 			$path = $this->root_dir . '/' . $this->encryption_base_dir . '/' . $encryptionModuleId . '/' . $keyId;
 		} else {
@@ -209,7 +229,6 @@ class Storage implements IStorage {
 	 * @return string
 	 */
 	private function getKey($path) {
-
 		$key = '';
 
 		if ($this->view->file_exists($path)) {
@@ -233,11 +252,11 @@ class Storage implements IStorage {
 	 * @return bool
 	 */
 	private function setKey($path, $key) {
-		$this->keySetPreparation(dirname($path));
+		$this->keySetPreparation(\dirname($path));
 
 		$result = $this->view->file_put_contents($path, $key);
 
-		if (is_int($result) && $result > 0) {
+		if (\is_int($result) && $result > 0) {
 			$this->keyCache[$path] = $key;
 			return true;
 		}
@@ -253,7 +272,6 @@ class Storage implements IStorage {
 	 * @return string
 	 */
 	private function getFileKeyDir($encryptionModuleId, $path) {
-
 		list($owner, $filename) = $this->util->getUidAndFilename($path);
 
 		// in case of system wide mount points the keys are stored directly in the data directory
@@ -275,12 +293,11 @@ class Storage implements IStorage {
 	 * @return boolean
 	 */
 	public function renameKeys($source, $target) {
-
 		$sourcePath = $this->getPathToKeys($source);
 		$targetPath = $this->getPathToKeys($target);
 
 		if ($this->view->file_exists($sourcePath)) {
-			$this->keySetPreparation(dirname($targetPath));
+			$this->keySetPreparation(\dirname($targetPath));
 			$this->view->rename($sourcePath, $targetPath);
 
 			return true;
@@ -288,7 +305,6 @@ class Storage implements IStorage {
 
 		return false;
 	}
-
 
 	/**
 	 * copy keys if a file was renamed
@@ -298,12 +314,11 @@ class Storage implements IStorage {
 	 * @return boolean
 	 */
 	public function copyKeys($source, $target) {
-
 		$sourcePath = $this->getPathToKeys($source);
 		$targetPath = $this->getPathToKeys($target);
 
 		if ($this->view->file_exists($sourcePath)) {
-			$this->keySetPreparation(dirname($targetPath));
+			$this->keySetPreparation(\dirname($targetPath));
 			$this->view->copy($sourcePath, $targetPath);
 			return true;
 		}
@@ -339,7 +354,7 @@ class Storage implements IStorage {
 	protected function keySetPreparation($path) {
 		// If the file resides within a subdirectory, create it
 		if (!$this->view->file_exists($path)) {
-			$sub_dirs = explode('/', ltrim($path, '/'));
+			$sub_dirs = \explode('/', \ltrim($path, '/'));
 			$dir = '';
 			foreach ($sub_dirs as $sub_dir) {
 				$dir .= '/' . $sub_dir;
@@ -365,9 +380,8 @@ class Storage implements IStorage {
 			// so we don't need to mount anything
 			return;
 		}
-		if (!is_null($uid) && $uid !== '' && $uid !== $this->currentUser) {
+		if ($uid !== null && $uid !== '' && $uid !== $this->currentUser) {
 			\OC\Files\Filesystem::initMountPoints($uid);
 		}
 	}
-
 }

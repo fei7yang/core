@@ -2,7 +2,7 @@
 /**
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -20,7 +20,6 @@
  */
 
 namespace OC\Files\Storage\Wrapper;
-
 
 /**
  * While PermissionMask can mask a whole storage this  can
@@ -48,11 +47,11 @@ class DirMask extends PermissionsMask {
 	public function __construct($arguments) {
 		parent::__construct($arguments);
 		$this->path = $arguments['path'];
-		$this->pathLength = strlen($arguments['path']);
+		$this->pathLength = \strlen($arguments['path']);
 	}
 
 	protected function checkPath($path) {
-		return substr($path, 0, $this->pathLength) === $this->path;
+		return \substr($path, 0, $this->pathLength) === $this->path;
 	}
 
 	public function isUpdatable($path) {

@@ -2,7 +2,7 @@
 /**
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -19,9 +19,7 @@
  *
  */
 
-
 namespace OCA\DAV\Tests\Unit\Avatars;
-
 
 use OCA\DAV\Avatars\AvatarHome;
 use OCA\DAV\Avatars\AvatarNode;
@@ -95,13 +93,13 @@ class AvatarHomeTest extends TestCase {
 
 	public function testGetChildren() {
 		$avatarNodes = $this->home->getChildren();
-		self::assertEquals(0, count($avatarNodes));
+		self::assertCount(0, $avatarNodes);
 
 		$avatar = $this->createMock(IAvatar::class);
 		$avatar->expects($this->once())->method('exists')->willReturn(true);
 		$this->avatarManager->expects($this->any())->method('getAvatar')->with('admin')->willReturn($avatar);
 		$avatarNodes = $this->home->getChildren();
-		self::assertEquals(1, count($avatarNodes));
+		self::assertCount(1, $avatarNodes);
 	}
 
 	/**
@@ -121,5 +119,4 @@ class AvatarHomeTest extends TestCase {
 	public function testGetLastModified() {
 		self::assertNull($this->home->getLastModified());
 	}
-
 }

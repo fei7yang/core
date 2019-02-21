@@ -3,7 +3,7 @@
 /**
  * @author Christoph Wurst <christoph@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -32,8 +32,8 @@
 		/**
 		 * Show recently used sessions/devices first
 		 *
-		 * @param {OC.Settigns.AuthToken} t1
-		 * @param {OC.Settigns.AuthToken} t2
+		 * @param {OC.Settings.AuthToken} t1
+		 * @param {OC.Settings.AuthToken} t2
 		 * @returns {Boolean}
 		 */
 		comparator: function (t1, t2) {

@@ -8,7 +8,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -64,7 +64,6 @@ class Db implements IDb {
 		$statement = $this->connection->prepare($sql, $limit, $offset);
 		return new \OC_DB_StatementWrapper($statement, $isManipulation);
 	}
-
 
 	/**
 	 * @inheritdoc
@@ -253,5 +252,12 @@ class Db implements IDb {
 	 */
 	public function allows4ByteCharacters() {
 		return $this->connection->allows4ByteCharacters();
+	}
+
+	/**
+	 * @inheritdoc
+	 */
+	public function upsert($table, $input, array $compare = null) {
+		return $this->connection->upsert($table, $input, $compare);
 	}
 }

@@ -2,7 +2,7 @@
 /**
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,6 +21,7 @@
 
 namespace OC\Files\Storage\Wrapper;
 
+use OCP\Files\Storage\IStorage;
 use OCP\ICache;
 use OC\Cache\CappedMemoryCache;
 
@@ -41,7 +42,7 @@ class Encoding extends Wrapper {
 	 * @param array $parameters
 	 */
 	public function __construct($parameters) {
-		$this->storage = $parameters['storage'];
+		parent::__construct($parameters);
 		$this->namesCache = new CappedMemoryCache();
 	}
 
@@ -53,7 +54,7 @@ class Encoding extends Wrapper {
 	 * @return bool true if the string is all ASCII, false otherwise
 	 */
 	private function isAscii($str) {
-		return (bool) !preg_match('/[\\x80-\\xff]+/', $str);
+		return (bool) !\preg_match('/[\\x80-\\xff]+/', $str);
 	}
 
 	/**
@@ -71,7 +72,7 @@ class Encoding extends Wrapper {
 			return $cachedPath;
 		}
 
-		$sections = explode('/', $fullPath);
+		$sections = \explode('/', $fullPath);
 		$path = '';
 		foreach ($sections as $section) {
 			$convertedPath = $this->findPathToUseLastSection($path, $section);
@@ -81,7 +82,7 @@ class Encoding extends Wrapper {
 			}
 			$path = $convertedPath . '/';
 		}
-		$path = rtrim($path, '/');
+		$path = \rtrim($path, '/');
 		return $path;
 	}
 
@@ -509,16 +510,14 @@ class Encoding extends Wrapper {
 		if ($sourceStorage === $this) {
 			$result = $this->rename($sourceInternalPath, $this->findPathToUse($targetInternalPath));
 			if ($result) {
-				unset($this->namesCache[$sourceInternalPath]);
-				unset($this->namesCache[$targetInternalPath]);
+				unset($this->namesCache[$sourceInternalPath], $this->namesCache[$targetInternalPath]);
 			}
 			return $result;
 		}
 
 		$result = $this->storage->moveFromStorage($sourceStorage, $sourceInternalPath, $this->findPathToUse($targetInternalPath));
 		if ($result) {
-			unset($this->namesCache[$sourceInternalPath]);
-			unset($this->namesCache[$targetInternalPath]);
+			unset($this->namesCache[$sourceInternalPath], $this->namesCache[$targetInternalPath]);
 		}
 		return $result;
 	}

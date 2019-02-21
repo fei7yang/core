@@ -4,7 +4,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -31,24 +31,20 @@ namespace OCA\DAV\Tests\unit\Connector\Sabre\RequestTest;
  * @package OCA\DAV\Tests\unit\Connector\Sabre\RequestTest
  */
 class PartFileInRootUploadTest extends UploadTest {
+	protected $original;
+
 	protected function setUp() {
 		$config = \OC::$server->getConfig();
-		$mockConfig = $this->createMock('\OCP\IConfig');
-		$mockConfig->expects($this->any())
-			->method('getSystemValue')
-			->will($this->returnCallback(function ($key, $default) use ($config) {
-				if ($key === 'part_file_in_storage') {
-					return false;
-				} else {
-					return $config->getSystemValue($key, $default);
-				}
-			}));
-		$this->overwriteService('AllConfig', $mockConfig);
+		$this->original = $config->getSystemValue('part_file_in_storage', null);
+		$config->setSystemValue('part_file_in_storage', false);
 		parent::setUp();
 	}
 
 	protected function tearDown() {
-		$this->restoreService('AllConfig');
+		if ($this->original !== null) {
+			$config = \OC::$server->getConfig();
+			$this->original = $config->setSystemValue('part_file_in_storage', $this->original);
+		}
 		return parent::tearDown();
 	}
 }

@@ -5,7 +5,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -25,8 +25,8 @@
 namespace OCA\DAV\Tests\unit\Connector\Sabre;
 
 use OCP\IGroupManager;
-use \Sabre\DAV\PropPatch;
 use OCP\IUserManager;
+use Sabre\DAV\PropPatch;
 use Test\TestCase;
 
 class PrincipalTest extends TestCase {
@@ -166,7 +166,7 @@ class PrincipalTest extends TestCase {
 			->will($this->returnValue(null));
 
 		$response = $this->connector->getPrincipalByPath('principals/users/foo');
-		$this->assertSame(null, $response);
+		$this->assertNull($response);
 	}
 
 	public function testGetGroupMemberSet() {

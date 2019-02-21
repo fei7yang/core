@@ -7,7 +7,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -36,7 +36,7 @@ if (isset($_GET['query'])) {
 }
 if (isset($_GET['inApps'])) {
 	$inApps = $_GET['inApps'];
-	if (is_string($inApps)) {
+	if (\is_string($inApps)) {
 		$inApps = [$inApps];
 	}
 } else {
@@ -52,10 +52,9 @@ if (isset($_GET['size'])) {
 } else {
 	$size = 30;
 }
-if($query) {
+if ($query) {
 	$result = \OC::$server->getSearch()->searchPaged($query, $inApps, $page, $size);
 	OC_JSON::encodedPrint($result);
-}
-else {
+} else {
 	echo 'false';
 }

@@ -56,14 +56,14 @@ OCP\Util::addHeader('meta', ['property' => "og:image", 'content' => $_['previewI
 		 data-owner-display-name="<?php p($_['displayName']) ?>" data-owner="<?php p($_['owner']) ?>" data-name="<?php p($_['filename']) ?>">
 		<a href="<?php print_unescaped(link_to('', 'index.php')); ?>" title="" id="owncloud">
 			<h1 class="logo-icon">
-				<span class="own">own</span><span class="cloud">Cloud</span>
+				<?php p($theme->getName()); ?>
 			</h1>
 		</a>
 
 		<div id="logo-claim" style="display:none;"><?php p($theme->getLogoClaim()); ?></div>
 		<?php
 			if ($_['canDownload']) {
-		?>
+				?>
 		<div class="header-right">
 			<span id="details">
 				<a href="<?php p($_['downloadURL']); ?>" id="download" class="button">
@@ -72,7 +72,8 @@ OCP\Util::addHeader('meta', ['property' => "og:image", 'content' => $_['previewI
 				</a>
 			</span>
 		</div>
-		<?php } ?>
+		<?php
+			} ?>
 	</div>
 </header>
 <div id="content-wrapper">
@@ -81,7 +82,7 @@ OCP\Util::addHeader('meta', ['property' => "og:image", 'content' => $_['previewI
 			<?php if (isset($_['folder'])): ?>
 				<?php print_unescaped($_['folder']); ?>
 			<?php else: ?>
-				<?php if ($_['previewEnabled'] && substr($_['mimetype'], 0, strpos($_['mimetype'], '/')) == 'video'): ?>
+				<?php if ($_['previewEnabled'] && \substr($_['mimetype'], 0, \strpos($_['mimetype'], '/')) == 'video'): ?>
 					<div id="imgframe">
 						<video tabindex="0" controls="" preload="none" style="max-width: <?php p($_['previewMaxX']); ?>px; max-height: <?php p($_['previewMaxY']); ?>px">
 							<source src="<?php p($_['downloadURL']); ?>" type="<?php p($_['mimetype']); ?>" />

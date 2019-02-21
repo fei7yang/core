@@ -2,7 +2,7 @@
 /**
  * @author Piotr Filiciak <piotr@filiciak.pl>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -32,4 +32,5 @@ namespace OCP\Files;
  * Exception for seek problem
  * @since 9.1.0
  */
-class UnseekableException extends \Exception {}
+class UnseekableException extends \Exception {
+}

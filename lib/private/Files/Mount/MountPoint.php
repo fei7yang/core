@@ -9,7 +9,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -77,28 +77,29 @@ class MountPoint implements IMountPoint {
 	 * @param array $mountOptions mount specific options
 	 */
 	public function __construct($storage, $mountpoint, $arguments = null, $loader = null, $mountOptions = null) {
-		if (is_null($arguments)) {
+		if ($arguments === null) {
 			$arguments = [];
 		}
-		if (is_null($loader)) {
+		if ($loader === null) {
 			$this->loader = new StorageFactory();
 		} else {
 			$this->loader = $loader;
 		}
 
-		if (!is_null($mountOptions)) {
+		if ($mountOptions !== null) {
 			$this->mountOptions = $mountOptions;
 		}
 
 		$mountpoint = $this->formatPath($mountpoint);
 		$this->mountPoint = $mountpoint;
+		// FIXME: this should also check for IStorage, and the public Storage interface
 		if ($storage instanceof Storage) {
-			$this->class = get_class($storage);
+			$this->class = \get_class($storage);
 			$this->storage = $this->loader->wrap($this, $storage);
 		} else {
 			// Update old classes to new namespace
-			if (strpos($storage, 'OC_Filestorage_') !== false) {
-				$storage = '\OC\Files\Storage\\' . substr($storage, 15);
+			if (\strpos($storage, 'OC_Filestorage_') !== false) {
+				$storage = '\OC\Files\Storage\\' . \substr($storage, 15);
 			}
 			$this->class = $storage;
 			$this->arguments = $arguments;
@@ -133,7 +134,7 @@ class MountPoint implements IMountPoint {
 			return null;
 		}
 
-		if (class_exists($this->class)) {
+		if (\class_exists($this->class)) {
 			try {
 				return $this->loader->getInstance($this, $this->class, $this->arguments);
 			} catch (\Exception $exception) {
@@ -157,7 +158,7 @@ class MountPoint implements IMountPoint {
 	 * @return \OC\Files\Storage\Storage
 	 */
 	public function getStorage() {
-		if (is_null($this->storage)) {
+		if ($this->storage === null) {
 			$this->storage = $this->createStorage();
 		}
 		return $this->storage;
@@ -168,17 +169,17 @@ class MountPoint implements IMountPoint {
 	 */
 	public function getStorageId() {
 		if (!$this->storageId) {
-			if (is_null($this->storage)) {
+			if ($this->storage === null) {
 				$storage = $this->createStorage(); //FIXME: start using exceptions
-				if (is_null($storage)) {
+				if ($storage === null) {
 					return null;
 				}
 
 				$this->storage = $storage;
 			}
 			$this->storageId = $this->storage->getId();
-			if (strlen($this->storageId) > 64) {
-				$this->storageId = md5($this->storageId);
+			if (\strlen($this->storageId) > 64) {
+				$this->storageId = \md5($this->storageId);
 			}
 		}
 		return $this->storageId;
@@ -193,7 +194,7 @@ class MountPoint implements IMountPoint {
 		if ($this->mountPoint === $path or $this->mountPoint . '/' === $path) {
 			$internalPath = '';
 		} else {
-			$internalPath = substr($path, strlen($this->mountPoint));
+			$internalPath = \substr($path, \strlen($this->mountPoint));
 		}
 		// substr returns false instead of an empty string, we always want a string
 		return (string)$internalPath;
@@ -205,7 +206,7 @@ class MountPoint implements IMountPoint {
 	 */
 	private function formatPath($path) {
 		$path = Filesystem::normalizePath($path);
-		if (strlen($path) > 1) {
+		if (\strlen($path) > 1) {
 			$path .= '/';
 		}
 		return $path;
@@ -245,9 +246,20 @@ class MountPoint implements IMountPoint {
 	/**
 	 * Get the file id of the root of the storage
 	 *
-	 * @return int
+	 * @return int storage numeric id or -1 in case of invalid storage
 	 */
 	public function getStorageRootId() {
-		return (int)$this->getStorage()->getCache()->getId('');
+		$storage = $this->getStorage();
+		if ($storage === null || $this->invalidStorage) {
+			return -1;
+		}
+
+		$cache = $storage->getCache();
+
+		if ($cache === null) {
+			return -1;
+		}
+
+		return (int)$cache->getId('');
 	}
 }

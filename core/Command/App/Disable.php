@@ -5,7 +5,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -46,11 +46,11 @@ class Disable extends Command {
 	protected function configure() {
 		$this
 			->setName('app:disable')
-			->setDescription('disable an app')
+			->setDescription('Disable an app.')
 			->addArgument(
 				'app-id',
 				InputArgument::REQUIRED,
-				'disable the specified app'
+				'Disable the specified app.'
 			);
 	}
 
@@ -60,7 +60,7 @@ class Disable extends Command {
 			try {
 				$this->manager->disableApp($appId);
 				$output->writeln($appId . ' disabled');
-			} catch(\Exception $e) {
+			} catch (\Exception $e) {
 				$output->writeln($e->getMessage());
 				return 2;
 			}

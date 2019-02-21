@@ -2,7 +2,7 @@
 /**
  * @author Joas Schilling <coding@schilljs.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -20,7 +20,6 @@
  */
 
 namespace OC\Core\Command\Encryption;
-
 
 use OCP\Encryption\IManager;
 use Symfony\Component\Console\Command\Command;
@@ -45,11 +44,11 @@ class SetDefaultModule extends Command {
 
 		$this
 			->setName('encryption:set-default-module')
-			->setDescription('Set the encryption default module')
+			->setDescription('Set the encryption default module.')
 			->addArgument(
 				'module',
 				InputArgument::REQUIRED,
-				'ID of the encryption module that should be used'
+				'The ID of the encryption module that should be used.'
 			)
 		;
 	}
@@ -59,7 +58,7 @@ class SetDefaultModule extends Command {
 
 		if ($moduleId === $this->encryptionManager->getDefaultEncryptionModuleId()) {
 			$output->writeln('"' . $moduleId . '"" is already the default module');
-		} else if ($this->encryptionManager->setDefaultEncryptionModule($moduleId)) {
+		} elseif ($this->encryptionManager->setDefaultEncryptionModule($moduleId)) {
 			$output->writeln('<info>Set default module to "' . $moduleId . '"</info>');
 		} else {
 			$output->writeln('<error>The specified module "' . $moduleId . '" does not exist</error>');

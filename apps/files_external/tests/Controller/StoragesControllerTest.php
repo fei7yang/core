@@ -5,7 +5,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -23,12 +23,11 @@
  */
 namespace OCA\Files_External\Tests\Controller;
 
-use \OCP\AppFramework\Http;
-
-use OCA\Files_External\Controller\GlobalStoragesController;
-use OCP\Files\External\Service\IGlobalStoragesService;
 use OC\Files\External\StorageConfig;
+use OCA\Files_External\Controller\GlobalStoragesController;
+use OCP\AppFramework\Http;
 use OCP\Files\External\NotFoundException;
+use OCP\Files\External\Service\IGlobalStoragesService;
 
 abstract class StoragesControllerTest extends \Test\TestCase {
 
@@ -168,7 +167,7 @@ abstract class StoragesControllerTest extends \Test\TestCase {
 
 		$data = $response->getData();
 		$this->assertEquals(Http::STATUS_FORBIDDEN, $response->getStatus());
-		$this->assertEquals(null, $data);
+		$this->assertNull($data);
 	}
 
 	public function testUpdateStorage() {
@@ -213,7 +212,7 @@ abstract class StoragesControllerTest extends \Test\TestCase {
 		$this->assertEquals($storageConfig, $data);
 	}
 
-	function mountPointNamesProvider() {
+	public function mountPointNamesProvider() {
 		return [
 			[''],
 			['/'],
@@ -443,5 +442,4 @@ abstract class StoragesControllerTest extends \Test\TestCase {
 			$this->assertEquals(Http::STATUS_UNPROCESSABLE_ENTITY, $response->getStatus());
 		}
 	}
-
 }

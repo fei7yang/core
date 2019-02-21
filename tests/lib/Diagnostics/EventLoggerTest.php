@@ -2,7 +2,7 @@
 /**
  * @author Piotr Mrowczynski <piotr@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -28,7 +28,7 @@ class EventLoggerTest extends TestCase {
 
 	/** @var \OC\Diagnostics\EventLogger */
 	private $logger;
-	
+
 	public function setUp() {
 		parent::setUp();
 
@@ -39,9 +39,9 @@ class EventLoggerTest extends TestCase {
 		// Module is not activated and this should not be logged
 		$this->logger->start("test1", "testevent1");
 		$this->logger->end("test1");
-		$this->logger->log("test2", "testevent2", microtime(true), microtime(true));
+		$this->logger->log("test2", "testevent2", \microtime(true), \microtime(true));
 		$events = $this->logger->getEvents();
-		$this->assertSame(0, sizeof($events));
+		$this->assertCount(0, $events);
 
 		// Activate module and log some query
 		$this->logger->activate();
@@ -50,7 +50,7 @@ class EventLoggerTest extends TestCase {
 		$this->logger->start("test3", "testevent3");
 
 		// force log of another event
-		$this->logger->log("test4", "testevent4", microtime(true), microtime(true));
+		$this->logger->log("test4", "testevent4", \microtime(true), \microtime(true));
 
 		// log started event
 		$this->logger->end("test3");
@@ -60,7 +60,6 @@ class EventLoggerTest extends TestCase {
 		$this->assertSame("testevent4", $events['test4']->getDescription());
 		$this->assertSame("test3", $events['test3']->getId());
 		$this->assertSame("testevent3", $events['test3']->getDescription());
-		$this->assertSame(2, sizeof($events));
-
+		$this->assertCount(2, $events);
 	}
 }

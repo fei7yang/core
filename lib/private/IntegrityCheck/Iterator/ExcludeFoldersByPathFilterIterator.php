@@ -3,7 +3,7 @@
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author RealRancor <Fisch.666@gmx.de>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -29,31 +29,31 @@ class ExcludeFoldersByPathFilterIterator extends \RecursiveFilterIterator {
 		parent::__construct($iterator);
 
 		$appFolders = \OC::$APPSROOTS;
-		foreach($appFolders as $key => $appFolder) {
-			$appFolders[$key] = rtrim($appFolder['path'], '/');
+		foreach ($appFolders as $key => $appFolder) {
+			$appFolders[$key] = \rtrim($appFolder['path'], '/');
 		}
 
 		$excludedFolders = [
-			rtrim($root . '/data', '/'),
-			rtrim($root . '/themes', '/'),
-			rtrim($root . '/config', '/'),
-			rtrim($root . '/apps', '/'),
-			rtrim($root . '/assets', '/'),
-			rtrim($root . '/lost+found', '/'),
+			\rtrim($root . '/data', '/'),
+			\rtrim($root . '/themes', '/'),
+			\rtrim($root . '/config', '/'),
+			\rtrim($root . '/apps', '/'),
+			\rtrim($root . '/assets', '/'),
+			\rtrim($root . '/lost+found', '/'),
 		];
 		$customDataDir = \OC::$server->getConfig()->getSystemValue('datadirectory', '');
-		if($customDataDir !== '') {
-			$excludedFolders[] = rtrim($customDataDir, '/');
+		if ($customDataDir !== '') {
+			$excludedFolders[] = \rtrim($customDataDir, '/');
 		}
 
-		$this->excludedFolders = array_merge($excludedFolders, $appFolders);
+		$this->excludedFolders = \array_merge($excludedFolders, $appFolders);
 	}
 
 	/**
 	 * @return bool
 	 */
 	public function accept() {
-		return !in_array(
+		return !\in_array(
 			$this->current()->getPathName(),
 			$this->excludedFolders,
 			true

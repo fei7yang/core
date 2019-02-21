@@ -3,7 +3,7 @@
  * @author Carla Schroder <carla@owncloud.com>
  * @author Robin Appelman <icewind@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -24,11 +24,8 @@ namespace OC\Core\Command\Security;
 
 use OC\Core\Command\Base;
 use OCP\ICertificateManager;
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class RemoveCertificate extends Base {
@@ -44,11 +41,11 @@ class RemoveCertificate extends Base {
 	protected function configure() {
 		$this
 			->setName('security:certificates:remove')
-			->setDescription('remove trusted certificate')
+			->setDescription('Remove a trusted certificate.')
 			->addArgument(
 				'name',
 				InputArgument::REQUIRED,
-				'the file name of the certificate to remove'
+				'The file name of the certificate to remove.'
 			);
 	}
 

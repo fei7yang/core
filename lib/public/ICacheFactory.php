@@ -3,7 +3,7 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -28,7 +28,7 @@ namespace OCP;
  * @package OCP
  * @since 7.0.0
  */
-interface ICacheFactory{
+interface ICacheFactory {
 	/**
 	 * Get a memory cache instance
 	 *

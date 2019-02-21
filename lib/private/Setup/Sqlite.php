@@ -4,7 +4,7 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -36,11 +36,11 @@ class Sqlite extends AbstractDatabase {
 		$datadir = \OC::$server->getSystemConfig()->getValue('datadirectory');
 
 		//delete the old sqlite database first, might cause infinte loops otherwise
-		if(file_exists("$datadir/owncloud.db")) {
-			unlink("$datadir/owncloud.db");
+		if (\file_exists("$datadir/owncloud.db")) {
+			\unlink("$datadir/owncloud.db");
 		}
 		//in case of sqlite, we can always fill the database
-		error_log("creating sqlite db");
+		\error_log("creating sqlite db");
 		\OC_DB::createDbFromStructure($this->dbDefinitionFile);
 	}
 }

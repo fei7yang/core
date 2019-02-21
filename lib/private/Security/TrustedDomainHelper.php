@@ -3,7 +3,7 @@
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -36,7 +36,7 @@ class TrustedDomainHelper {
 	/**
 	 * @param IConfig $config
 	 */
-	function __construct(IConfig $config) {
+	public function __construct(IConfig $config) {
 		$this->config = $config;
 	}
 
@@ -46,11 +46,11 @@ class TrustedDomainHelper {
 	 * @return string $host without appended port
 	 */
 	private function getDomainWithoutPort($host) {
-		$pos = strrpos($host, ':');
+		$pos = \strrpos($host, ':');
 		if ($pos !== false) {
-			$port = substr($host, $pos + 1);
-			if (is_numeric($port)) {
-				$host = substr($host, 0, $pos);
+			$port = \substr($host, $pos + 1);
+			if (\is_numeric($port)) {
+				$host = \substr($host, 0, $pos);
 			}
 		}
 		return $host;
@@ -70,21 +70,20 @@ class TrustedDomainHelper {
 
 		// Read trusted domains from config
 		$trustedList = $this->config->getSystemValue('trusted_domains', []);
-		if(!is_array($trustedList)) {
+		if (!\is_array($trustedList)) {
 			return false;
 		}
 
 		// Always allow access from localhost
-		if (preg_match(Request::REGEX_LOCALHOST, $domain) === 1) {
+		if (\preg_match(Request::REGEX_LOCALHOST, $domain) === 1) {
 			return true;
 		}
 
 		// Compare with port appended
-		if(in_array($domainWithPort, $trustedList, true)) {
+		if (\in_array($domainWithPort, $trustedList, true)) {
 			return true;
 		}
 
-		return in_array($domain, $trustedList, true);
+		return \in_array($domain, $trustedList, true);
 	}
-
 }

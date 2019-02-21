@@ -2,7 +2,7 @@
 /**
  * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -52,10 +52,10 @@ use OC\Settings\Panels\Admin\BackgroundJobs;
 use OC\Settings\Panels\Admin\Certificates;
 use OC\Settings\Panels\Admin\Encryption;
 use OC\Settings\Panels\Admin\FileSharing;
+use OC\Settings\Panels\Admin\Legal;
 use OC\Settings\Panels\Admin\Mail;
 use OC\Settings\Panels\Admin\Logging;
 use OC\Settings\Panels\Admin\SecurityWarning;
-use OC\Settings\Panels\Admin\Updater;
 use OC\Settings\Panels\Admin\Tips;
 use OC\Settings\Panels\Admin\Status;
 
@@ -166,7 +166,7 @@ class SettingsManager implements ISettingsManager {
 	public function getPersonalPanels($sectionID) {
 		// Trigger a load of all personal panels to discover sections
 		$this->loadPanels('personal');
-		if(isset($this->panels['personal'][$sectionID])) {
+		if (isset($this->panels['personal'][$sectionID])) {
 			return $this->panels['personal'][$sectionID];
 		} else {
 			return [];
@@ -181,7 +181,7 @@ class SettingsManager implements ISettingsManager {
 	public function getAdminPanels($sectionID) {
 		// Trigger a load of all admin panels to discover sections
 		$this->loadPanels('admin');
-		if(isset($this->panels['admin'][$sectionID])) {
+		if (isset($this->panels['admin'][$sectionID])) {
 			return $this->panels['admin'][$sectionID];
 		} else {
 			return [];
@@ -194,7 +194,7 @@ class SettingsManager implements ISettingsManager {
 	 * @return array of ISection
 	 */
 	private function getBuiltInSections($type) {
-		if($type === 'admin') {
+		if ($type === 'admin') {
 			return [
 				new Section('apps', $this->l->t('Apps'), 105, 'list'),
 				new Section('general', $this->l->t('General'), 100),
@@ -205,11 +205,10 @@ class SettingsManager implements ISettingsManager {
 				new Section('workflow', $this->l->t('Workflows & Tags'), 85, 'workflows'),
 				new Section('sharing', $this->l->t('Sharing'), 80, 'share'),
 				new Section('search', $this->l->t('Search'), 75, 'search'),
-				new Section('updates', $this->l->t('Updates'), 20, 'update'),
 				new Section('help', $this->l->t('Help & Tips'), -5, 'info'),
 				new Section('additional', $this->l->t('Additional'), -10, 'more'),
 			];
-		} else if($type === 'personal') {
+		} elseif ($type === 'personal') {
 			return [
 				new Section('general', $this->l->t('General'), 100, 'user'),
 				new Section('storage', $this->l->t('Storage'), 50, 'folder'),
@@ -226,7 +225,7 @@ class SettingsManager implements ISettingsManager {
 	 * @return array of strings
 	 */
 	private function getBuiltInPanels($type) {
-		if($type === 'admin') {
+		if ($type === 'admin') {
 			return [
 				LegacyAdmin::class,
 				BackgroundJobs::class,
@@ -238,9 +237,10 @@ class SettingsManager implements ISettingsManager {
 				Encryption::class,
 				Certificates::class,
 				Apps::class,
+				Legal::class,
 				Status::class
 			];
-		} else if($type === 'personal') {
+		} elseif ($type === 'personal') {
 			return [
 				Profile::class,
 				Clients::class,
@@ -265,7 +265,9 @@ class SettingsManager implements ISettingsManager {
 				$this->config,
 				$this->groupManager,
 				$this->userSession,
-				$this->lfactory),
+				$this->lfactory,
+				new \OC\Helper\LocaleHelper()
+			),
 			LegacyPersonal::class => new LegacyPersonal($this->helper),
 			Clients::class => new Clients($this->config, $this->defaults),
 			Version::class => new Version(),
@@ -293,9 +295,10 @@ class SettingsManager implements ISettingsManager {
 				$this->lockingProvider),
 			Tips::class => new Tips(),
 			LegacyAdmin::class => new LegacyAdmin($this->helper),
-			Apps::class => new Apps($this->config)
+			Apps::class => new Apps($this->config),
+			Legal::class => new Legal($this->config)
 		];
-		if(isset($panels[$className])) {
+		if (isset($panels[$className])) {
 			return $panels[$className];
 		} else {
 			return false;
@@ -308,9 +311,8 @@ class SettingsManager implements ISettingsManager {
 	 * @return array of strings
 	 */
 	public function getPanelsList($type) {
-		return array_merge($this->findRegisteredPanels($type), $this->getBuiltInPanels($type));
+		return \array_merge($this->findRegisteredPanels($type), $this->getBuiltInPanels($type));
 	}
-
 
 	/**
 	 * Searches through the currently enabled apps and returns the panels registered
@@ -319,14 +321,13 @@ class SettingsManager implements ISettingsManager {
 	 */
 	protected function findRegisteredPanels($type) {
 		$panels = [];
-		foreach($this->appManager->getEnabledAppsForUser($this->userSession->getUser()) as $app) {
-			if(isset($this->appManager->getAppInfo($app)['settings'])) {
-				foreach($this->appManager->getAppInfo($app)['settings'] as $t => $detected) {
-					if($t === $type)
-					{
+		foreach ($this->appManager->getEnabledAppsForUser($this->userSession->getUser()) as $app) {
+			if (isset($this->appManager->getAppInfo($app)['settings'])) {
+				foreach ($this->appManager->getAppInfo($app)['settings'] as $t => $detected) {
+					if ($t === $type) {
 						// Allow app to register multiple panels of the same type
-						$detected = is_array($detected) ? $detected : [$detected];
-						$panels = array_merge($panels, $detected);
+						$detected = \is_array($detected) ? $detected : [$detected];
+						$panels = \array_merge($panels, $detected);
 					}
 				}
 			}
@@ -341,10 +342,10 @@ class SettingsManager implements ISettingsManager {
 	 */
 	protected function findRegisteredSections($type) {
 		$sections = [];
-		foreach($this->appManager->getEnabledAppsForUser($this->userSession->getUser()) as $app) {
-			if(isset($this->appManager->getAppInfo($app)['settings-sections'])) {
-				foreach($this->appManager->getAppInfo($app)['settings-sections'] as $t => $section) {
-					if($t === $type) {
+		foreach ($this->appManager->getEnabledAppsForUser($this->userSession->getUser()) as $app) {
+			if (isset($this->appManager->getAppInfo($app)['settings-sections'])) {
+				foreach ($this->appManager->getAppInfo($app)['settings-sections'] as $t => $section) {
+					if ($t === $type) {
 						try {
 							$sections[] = \OC::$server->query($section);
 						} catch (QueryException $e) {
@@ -365,10 +366,10 @@ class SettingsManager implements ISettingsManager {
 	 */
 	protected function loadPanel($className) {
 		try {
-			if(!$panel = $this->getBuiltInPanel($className)) {
+			if (!$panel = $this->getBuiltInPanel($className)) {
 				$panel = \OC::$server->query($className);
 			}
-			if(!$panel instanceof ISettings) {
+			if (!$panel instanceof ISettings) {
 				$this->log->error(
 					'Class: {class} not an instance of OCP\Settings\ISettings',
 					['class' => $className]);
@@ -393,16 +394,16 @@ class SettingsManager implements ISettingsManager {
 	 */
 	public function loadPanels($type) {
 		// If already loaded just return
-		if(!empty($this->panels[$type])) {
+		if (!empty($this->panels[$type])) {
 			return $this->panels[$type];
 		}
 		// Find the panels from info xml
 		$panels = $this->getPanelsList($type);
 		// Load the classes using the server container
-		if(empty($panels)) {
+		if (empty($panels)) {
 			return [];
 		}
-		foreach($panels as $panelClassName) {
+		foreach ($panels as $panelClassName) {
 			// Attempt to load the panel
 			try {
 				$panel = $this->loadPanel($panelClassName);
@@ -415,7 +416,7 @@ class SettingsManager implements ISettingsManager {
 			}
 		}
 		// Return the panel array sorted
-		foreach($this->panels[$type] as $sectionID => $section) {
+		foreach ($this->panels[$type] as $sectionID => $section) {
 			$this->panels[$type][$sectionID] = $this->sortOrder($this->panels[$type][$sectionID]);
 		}
 		// sort section array
@@ -432,22 +433,21 @@ class SettingsManager implements ISettingsManager {
 	 */
 	protected function loadSection($type, $sectionID) {
 		// Load built in sections
-		foreach($this->getBuiltInSections($type) as $section) {
-			if($section->getID() === $sectionID) {
+		foreach ($this->getBuiltInSections($type) as $section) {
+			if ($section->getID() === $sectionID) {
 				return $section;
 			}
 		}
 
 		// Load sections from registered list
-		foreach($this->findRegisteredSections($type) as $section) {
-			if($section->getID() === $sectionID) {
+		foreach ($this->findRegisteredSections($type) as $section) {
+			if ($section->getID() === $sectionID) {
 				return $section;
 			}
 		}
 
 		$this->log->error('Section id not found: "'.$sectionID.'". Apps should register settings sections in info.xml');
 		throw new QueryException();
-
 	}
 
 	/**
@@ -456,12 +456,11 @@ class SettingsManager implements ISettingsManager {
 	 * @return array
 	 */
 	protected function sortOrder($objects) {
-		usort($objects, function($a, $b) {
+		\usort($objects, function ($a, $b) {
 			/** @var ISection | ISettings $a */
 			/** @var ISection | ISettings $b */
 			return $a->getPriority() < $b->getPriority();
 		});
 		return $objects;
 	}
-
 }

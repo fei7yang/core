@@ -44,6 +44,23 @@
 		'<a target="_blank" class="icon icon-info shareWithRemoteInfo hasTooltip" href="{{docLink}}" ' +
 		'title="{{tooltip}}"></a>';
 
+	var TEMPLATE_AUTOCOMPLETE_ITEM =
+		'<li class="{{shareTypeClass}}">' +
+			'<a>' +
+				'<div class="share-autocomplete-item">' +
+					'{{#if showAvatar}}' +
+					'<div class="avatardiv"></div>' +
+					'{{/if}}' +
+					'<div class="autocomplete-item-text">' +
+						'<span class="autocomplete-item-displayname">{{displayName}}</span>' +
+						'{{#if additionalInfo}}' +
+						'<span class="autocomplete-item-additional-info">({{additionalInfo}})</span>' +
+						'{{/if}}' +
+					'</div>' +
+				'</div>' +
+			'</a>' +
+		'</li>';
+
 	/**
 	 * @class OCA.Share.ShareDialogView
 	 * @member {OC.Share.ShareItemModel} model
@@ -251,11 +268,21 @@
 							$('.shareWithField').removeClass('error')
 								.tooltip('hide')
 								.autocomplete("option", "autoFocus", true);
-							response(suggestions);
+							response(suggestions, result);
 						} else {
 							var title = t('core', 'No users or groups found for {search}', {search: $('.shareWithField').val()});
 							if (!view.configModel.get('allowGroupSharing')) {
 								title = t('core', 'No users found for {search}', {search: $('.shareWithField').val()});
+							}
+							var suggestStarts = OC.getCapabilities().files_sharing.search_min_length;
+							if (suggestStarts > $('.shareWithField').val().length) {
+								title = title + '. ' + n(
+									'core',
+									'Please enter at least {chars} character for suggestions',
+									'Please enter at least {chars} characters for suggestions',
+									suggestStarts,
+									{chars: suggestStarts}
+								);
 							}
 							$('.shareWithField').addClass('error')
 								.attr('data-original-title', title)
@@ -266,10 +293,10 @@
 								})
 								.tooltip('fixTitle')
 								.tooltip('show');
-							response();
+							response(undefined, result);
 						}
 					} else {
-						response();
+						response(undefined, result);
 					}
 				}
 			).fail(function() {
@@ -286,7 +313,7 @@
 			if (item.value.shareType === OC.Share.SHARE_TYPE_GROUP) {
 				text = t('core', '{sharee} (group)', {
 					sharee: text
-				});
+				}, null, {escape: false});
 			} else if (item.value.shareType === OC.Share.SHARE_TYPE_REMOTE) {
 				if (item.value.server) {
 					text = t('core', '{sharee} (at {server})', {
@@ -294,37 +321,35 @@
 						server: item.value.server
 					});
 				} else {
-					text = t('core', '{sharee} (remote)', {
+					text = t('core', '{sharee} (federated)', {
 						sharee: text
 					});
 				}
 			}
-			var insert = $("<div class='share-autocomplete-item'/>");
+
+			var template = this._getAutocompleteItemTemplate();
+			var $el = $(template({
+				showAvatar: this.configModel.areAvatarsEnabled(),
+				displayName: text,
+				additionalInfo: item.value.shareWithAdditionalInfo,
+				shareTypeClass: (item.value.shareType === OC.Share.SHARE_TYPE_GROUP) ? 'group' : 'user'
+			}));
 
 			if(this.configModel.areAvatarsEnabled()) {
-				var avatar = $("<div class='avatardiv'></div>").appendTo(insert);
+				var $avatar = $el.find('.avatardiv');
 				if (item.value.shareType === OC.Share.SHARE_TYPE_USER) {
-					avatar.avatar(item.value.shareWith, 32, undefined, undefined, undefined, item.label);
+					$avatar.avatar(item.value.shareWith, 32, undefined, undefined, undefined, item.label);
 				} else {
-					avatar.imageplaceholder(text, undefined, 32);
+					$avatar.imageplaceholder(text, undefined, 32);
 				}
 			}
 
-			$("<div class='autocomplete-item-text'></div>")
-				.text(text)
-				.appendTo(insert);
-			insert.attr('title', item.value.shareWith);
-			insert = $("<a>")
-				.append(insert);
-			return $("<li>")
-				.addClass((item.value.shareType === OC.Share.SHARE_TYPE_GROUP) ? 'group' : 'user')
-				.append(insert)
-				.appendTo(ul);
+			return $el.appendTo(ul);
 		},
 
 		_onSelectRecipient: function(e, s) {
 			e.preventDefault();
-			$(e.target).attr('disabled', true)
+			$(e.target).prop('disabled', true)
 				.val(s.item.label);
 			var $loading = this.$el.find('.shareWithLoading');
 			$loading.removeClass('hidden')
@@ -332,12 +357,12 @@
 
 			this.model.addShare(s.item.value, {success: function() {
 				$(e.target).val('')
-					.attr('disabled', false);
+					.prop('disabled', false);
 				$loading.addClass('hidden')
 					.removeClass('inlineblock');
 			}, error: function(obj, msg) {
 				OC.Notification.showTemporary(msg);
-				$(e.target).attr('disabled', false)
+				$(e.target).prop('disabled', false)
 					.autocomplete('search', $(e.target).val());
 				$loading.addClass('hidden')
 					.removeClass('inlineblock');
@@ -383,7 +408,7 @@
 				isLinkSharingAllowed: this.configModel.isShareWithLinkAllowed(),
 				localSharesLabel: t('core', 'User and Groups'),
 				publicSharesLabel: t('core', 'Public Links'),
-				noSharingPlaceholder: t('core', 'Resharing is not allowed')
+				noSharingPlaceholder: t('core', 'Sharing is not allowed')
 			}));
 
 			var $shareField = this.$el.find('.shareWithField');
@@ -466,6 +491,16 @@
 		 */
 		_getRemoteShareInfoTemplate: function() {
 			return this._getTemplate('remoteShareInfo', TEMPLATE_REMOTE_SHARE_INFO);
+		},
+
+		/**
+		 * Returns the autocomplete item template
+		 *
+		 * @returns {Function}
+		 * @private
+		 */
+		_getAutocompleteItemTemplate: function() {
+			return this._getTemplate('autocompleteItem', TEMPLATE_AUTOCOMPLETE_ITEM);
 		}
 	});
 

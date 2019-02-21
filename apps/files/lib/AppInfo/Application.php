@@ -6,7 +6,7 @@
  * @author Tobias Kaminsky <tobias@kaminsky.me>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -26,9 +26,9 @@ namespace OCA\Files\AppInfo;
 
 use OCA\Files\Controller\ApiController;
 use OCA\Files\Controller\ViewController;
+use OCA\Files\Service\TagService;
 use OCP\AppFramework\App;
-use \OCA\Files\Service\TagService;
-use \OCP\IContainer;
+use OCP\IContainer;
 
 class Application extends App {
 	public function __construct(array $urlParams= []) {
@@ -68,23 +68,26 @@ class Application extends App {
 		/**
 		 * Core
 		 */
-		$container->registerService('L10N', function(IContainer $c) {
+		$container->registerService('L10N', function (IContainer $c) {
 			return $c->query('ServerContainer')->getL10N($c->query('AppName'));
 		});
 
 		/**
 		 * Services
 		 */
-		$container->registerService('Tagger', function(IContainer $c)  {
-			return $c->query('ServerContainer')->getTagManager()->load('files');
-		});
-		$container->registerService('TagService', function(IContainer $c)  {
-			$homeFolder = $c->query('ServerContainer')->getUserFolder();
+		$container->registerService('TagService', function (IContainer $c) {
 			return new TagService(
 				$c->query('ServerContainer')->getUserSession(),
-				$c->query('Tagger'),
-				$homeFolder
+				$c->query('ServerContainer')->getTagManager(),
+				$c->query('ServerContainer')->getLazyRootFolder()
 			);
+		});
+
+		$container->registerService('OCP\Lock\ILockingProvider', function (IContainer $c) {
+			return $c->query('ServerContainer')->getLockingProvider();
+		});
+		$container->registerService('OCP\Files\IMimeTypeLoader', function (IContainer $c) {
+			return $c->query('ServerContainer')->getMimeTypeLoader();
 		});
 
 		/*

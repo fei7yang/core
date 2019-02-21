@@ -7,7 +7,7 @@
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -30,7 +30,6 @@ use OC\Files\Filesystem;
 use OC\Files\Mount\MountPoint;
 use OC\Files\Mount\MoveableMount;
 use OC\Files\View;
-use OCP\Share\IShare;
 
 /**
  * Shared mount points can be moved by the user
@@ -84,9 +83,8 @@ class SharedMount extends MountPoint implements MoveableMount {
 	 * @return string
 	 */
 	private function verifyMountPoint(\OCP\Share\IShare $share, array $mountpoints) {
-
-		$mountPoint = basename($share->getTarget());
-		$parent = dirname($share->getTarget());
+		$mountPoint = \basename($share->getTarget());
+		$parent = \dirname($share->getTarget());
 
 		if (!$this->recipientView->is_dir($parent)) {
 			$parent = Helper::getShareFolder($this->recipientView);
@@ -121,7 +119,6 @@ class SharedMount extends MountPoint implements MoveableMount {
 		}
 	}
 
-
 	/**
 	 * @param string $path
 	 * @param View $view
@@ -129,13 +126,13 @@ class SharedMount extends MountPoint implements MoveableMount {
 	 * @return mixed
 	 */
 	private function generateUniqueTarget($path, $view, array $mountpoints) {
-		$pathinfo = pathinfo($path);
+		$pathinfo = \pathinfo($path);
 		$ext = (isset($pathinfo['extension'])) ? '.'.$pathinfo['extension'] : '';
 		$name = $pathinfo['filename'];
 		$dir = $pathinfo['dirname'];
 
 		// Helper function to find existing mount points
-		$mountpointExists = function($path) use ($mountpoints) {
+		$mountpointExists = function ($path) use ($mountpoints) {
 			foreach ($mountpoints as $mountpoint) {
 				if ($mountpoint->getShare()->getTarget() === $path) {
 					return true;
@@ -161,11 +158,11 @@ class SharedMount extends MountPoint implements MoveableMount {
 	 * @throws \OCA\Files_Sharing\Exceptions\BrokenPath
 	 */
 	protected function stripUserFilesPath($path) {
-		$trimmed = ltrim($path, '/');
-		$split = explode('/', $trimmed);
+		$trimmed = \ltrim($path, '/');
+		$split = \explode('/', $trimmed);
 
 		// it is not a file relative to data/user/files
-		if (count($split) < 3 || $split[1] !== 'files') {
+		if (\count($split) < 3 || $split[1] !== 'files') {
 			\OCP\Util::writeLog('file sharing',
 				'Can not strip userid and "files/" from path: ' . $path,
 				\OCP\Util::ERROR);
@@ -173,8 +170,8 @@ class SharedMount extends MountPoint implements MoveableMount {
 		}
 
 		// skip 'user' and 'files'
-		$sliced = array_slice($split, 2);
-		$relPath = implode('/', $sliced);
+		$sliced = \array_slice($split, 2);
+		$relPath = \implode('/', $sliced);
 
 		return '/' . $relPath;
 	}
@@ -193,18 +190,18 @@ class SharedMount extends MountPoint implements MoveableMount {
 		$fileId = (int)$targetStorage->getCache()->getId($targetInternalPath);
 		if ($fileId === -1) {
 			// target might not exist, need to check parent instead
-			$fileId = (int)$targetStorage->getCache()->getId(dirname($targetInternalPath));
+			$fileId = (int)$targetStorage->getCache()->getId(\dirname($targetInternalPath));
 		}
 
-		$targetNodes = \OC::$server->getRootFolder()->getById($fileId);
-		if (empty($targetNodes)) {
+		$targetNodes = \OC::$server->getRootFolder()->getById($fileId, true);
+		$targetNode = $targetNodes[0] ?? null;
+		if ($targetNode === null) {
 			return false;
 		}
 
 		$shareManager = \OC::$server->getShareManager();
-		$targetNode = $targetNodes[0];
 		// FIXME: make it stop earlier in '/$userId/files'
-		while (!is_null($targetNode) && $targetNode->getPath() !== '/') { 
+		while ($targetNode !== null && $targetNode->getPath() !== '/') {
 			$shares = $shareManager->getSharesByPath($targetNode);
 
 			foreach ($shares as $share) {
@@ -221,7 +218,6 @@ class SharedMount extends MountPoint implements MoveableMount {
 
 		return true;
 	}
-
 
 	/**
 	 * Move the mount point to $target

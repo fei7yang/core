@@ -3,7 +3,7 @@
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -22,15 +22,12 @@
 
 namespace OC\Files\External\Auth;
 
-use \OCP\IL10N;
-
 use \OCP\Files\External\Auth\AuthMechanism;
 
 /**
  * Null authentication mechanism
  */
 class NullMechanism extends AuthMechanism {
-
 	public function __construct() {
 		$l = \OC::$server->getL10N('lib');
 		$this
@@ -39,5 +36,4 @@ class NullMechanism extends AuthMechanism {
 			->setText($l->t('None'))
 		;
 	}
-
 }

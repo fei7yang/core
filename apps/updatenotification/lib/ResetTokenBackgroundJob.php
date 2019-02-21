@@ -2,7 +2,7 @@
 /**
  * @author Lukas Reschke <lukas@statuscode.ch>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -68,9 +68,8 @@ class ResetTokenBackgroundJob extends TimedJob {
 	 */
 	protected function run($argument) {
 		// Delete old tokens after 2 days
-		if($this->timeFactory->getTime() - $this->config->getAppValue('core', 'updater.secret.created', $this->timeFactory->getTime()) >= 172800) {
+		if ($this->timeFactory->getTime() - $this->config->getAppValue('core', 'updater.secret.created', $this->timeFactory->getTime()) >= 172800) {
 			$this->config->deleteSystemValue('updater.secret');
 		}
 	}
-
 }

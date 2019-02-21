@@ -3,7 +3,7 @@
  * @author Markus Goetz <markus@woboq.com>
  * @author Robin Appelman <icewind@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -56,21 +56,24 @@ class MemcacheLockingProvider extends AbstractLockingProvider {
 		$lockValue = $this->memcache->get($path);
 		if ($type === self::LOCK_SHARED) {
 			return $lockValue > 0;
-		} else if ($type === self::LOCK_EXCLUSIVE) {
-			return $lockValue === 'exclusive';
-		} else {
-			return false;
 		}
+
+		if ($type === self::LOCK_EXCLUSIVE) {
+			return $lockValue === 'exclusive';
+		}
+
+		return false;
 	}
 
 	/**
 	 * @param string $path
 	 * @param int $type self::LOCK_SHARED or self::LOCK_EXCLUSIVE
+	 * @throws \InvalidArgumentException
 	 * @throws \OCP\Lock\LockedException
 	 */
 	public function acquireLock($path, $type) {
-		if (strlen($path) > 64) { // max length in file_locks
-			throw new \InvalidArgumentException("Lock key length too long");
+		if (\strlen($path) > 64) { // max length in file_locks
+			throw new \InvalidArgumentException('Lock key length too long');
 		}
 		if ($type === self::LOCK_SHARED) {
 			if (!$this->memcache->inc($path)) {
@@ -101,7 +104,7 @@ class MemcacheLockingProvider extends AbstractLockingProvider {
 				// if we own more than one lock ourselves just decrease
 				$this->memcache->dec($path);
 			}
-		} else if ($type === self::LOCK_EXCLUSIVE) {
+		} elseif ($type === self::LOCK_EXCLUSIVE) {
 			$this->memcache->cad($path, 'exclusive');
 		}
 		$this->markRelease($path, $type);
@@ -119,7 +122,7 @@ class MemcacheLockingProvider extends AbstractLockingProvider {
 			if (!$this->memcache->cas($path, 'exclusive', 1)) {
 				throw new LockedException($path);
 			}
-		} else if ($targetType === self::LOCK_EXCLUSIVE) {
+		} elseif ($targetType === self::LOCK_EXCLUSIVE) {
 			// we can only change a shared lock to an exclusive if there's only a single owner of the shared lock
 			if (!$this->memcache->cas($path, 1, 'exclusive')) {
 				throw new LockedException($path);

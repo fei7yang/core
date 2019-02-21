@@ -2,7 +2,7 @@
 /**
  * @author Joas Schilling <nickvergessen@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -20,7 +20,6 @@
  */
 
 namespace Tests\Core\Command\User;
-
 
 use OC\Core\Command\User\Setting;
 use Test\TestCase;
@@ -71,7 +70,6 @@ class SettingTest extends TestCase {
 				->getMock();
 			return $mock;
 		}
-
 	}
 
 	public function dataCheckInput() {
@@ -287,7 +285,6 @@ class SettingTest extends TestCase {
 			$this->config->expects($this->once())
 				->method('deleteUserValue')
 				->with('username', 'appname', 'configkey');
-
 		} else {
 			$this->consoleOutput->expects($this->once())
 				->method('writeln')
@@ -458,7 +455,6 @@ class SettingTest extends TestCase {
 		$command->expects($this->once())
 			->method('writeArrayInOutputFormat')
 			->with($this->consoleInput, $this->consoleOutput, ['settings']);
-
 
 		$this->assertEquals(0, $this->invokePrivate($command, 'execute', [$this->consoleInput, $this->consoleOutput]));
 	}

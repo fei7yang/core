@@ -6,7 +6,7 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Victor Dubiniuk <dubiniuk@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -28,9 +28,13 @@ script('core', 'lostpassword');
 
 <form action="<?php print_unescaped($_['link']) ?>" id="reset-password" method="post">
 	<fieldset>
-		<p>
+		<p class="groupbottom<?php if (!empty($_['invalidpassword'])) {
+	?> shake<?php
+} ?>">
 			<label for="password" class="infield"><?php p($l->t('New password')); ?></label>
-			<input type="password" name="password" id="password" value="" placeholder="<?php p($l->t('New Password')); ?>" required autofocus />
+			<input type="password" name="password" id="password" value="" placeholder="<?php p($l->t('New Password')); ?>" autocomplete="off" required autofocus />
+			<input type="password" name="retypepassword" id="retypepassword" value="" placeholder="<?php p($l->t('Confirm Password')); ?>"/>
+			<span id='message'></span>
 		</p>
 		<input type="submit" id="submit" value="<?php p($l->t('Reset password')); ?>" />
 		<p class="text-center">

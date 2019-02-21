@@ -8,7 +8,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -46,7 +46,7 @@ class HomeCache extends Cache {
 		}
 
 		$totalSize = 0;
-		if (is_null($entry)) {
+		if ($entry === null) {
 			$entry = $this->get($path);
 		}
 		if ($entry && $entry['mimetype'] === 'httpd/unix-directory') {
@@ -57,7 +57,7 @@ class HomeCache extends Cache {
 			$result = \OC_DB::executeAudited($sql, [$id, $this->getNumericStorageId()]);
 			if ($row = $result->fetchRow()) {
 				$result->closeCursor();
-				list($sum) = array_values($row);
+				list($sum) = \array_values($row);
 				$totalSize = 0 + $sum;
 				$entry['size'] += 0;
 				if ($entry['size'] !== $totalSize) {
@@ -83,5 +83,14 @@ class HomeCache extends Cache {
 			}
 		}
 		return $data;
+	}
+
+	/**
+	 * Returns false because the home cache shouldn't have any relevant incomplete entries.
+	 *
+	 * @return false
+	 */
+	public function getIncomplete() {
+		return false;
 	}
 }

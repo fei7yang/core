@@ -6,7 +6,7 @@
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -24,40 +24,52 @@
  */
 namespace OC\Preview;
 
-abstract class Office extends Provider {
+use OCP\Files\File;
+use OCP\Files\FileInfo;
+use OCP\Preview\IProvider2;
+
+abstract class Office implements IProvider2 {
 	private $cmd;
 
 	/**
 	 * {@inheritDoc}
 	 */
-	public function getThumbnail($path, $maxX, $maxY, $scalingup, $fileview) {
+	public function getThumbnail(File $file, $maxX, $maxY, $scalingUp) {
 		$this->initCmd();
-		if (is_null($this->cmd)) {
+		if ($this->cmd === null) {
 			return false;
 		}
 
-		$absPath = $fileview->toTmpFile($path);
+		$useFileDirectly = (!$file->isEncrypted() && !$file->isMounted());
+		if ($useFileDirectly) {
+			$absPath = $file->getStorage()->getLocalFile($file->getInternalPath());
+		} else {
+			$absPath = \OC::$server->getTempManager()->getTemporaryFile();
+
+			$handle = $file->fopen('rb');
+			\file_put_contents($absPath, $handle);
+			\fclose($handle);
+		}
 
 		$tmpDir = \OC::$server->getTempManager()->getTempBaseDir();
 
-		$defaultParameters = ' -env:UserInstallation=file://' . escapeshellarg($tmpDir . '/owncloud-' . \OC_Util::getInstanceId() . '/') . ' --headless --nologo --nofirststartwizard --invisible --norestore --convert-to pdf --outdir ';
-		$clParameters = \OCP\Config::getSystemValue('preview_office_cl_parameters', $defaultParameters);
+		$defaultParameters = ' -env:UserInstallation=file://' . \escapeshellarg($tmpDir . '/owncloud-' . \OC_Util::getInstanceId() . '/') . ' --headless --nologo --nofirststartwizard --invisible --norestore --convert-to pdf --outdir ';
+		$clParameters = \OC::$server->getConfig()->getSystemValue('preview_office_cl_parameters', $defaultParameters);
 
-		$exec = $this->cmd . $clParameters . escapeshellarg($tmpDir) . ' ' . escapeshellarg($absPath);
+		$exec = $this->cmd . $clParameters . \escapeshellarg($tmpDir) . ' ' . \escapeshellarg($absPath);
 
-		shell_exec($exec);
+		\shell_exec($exec);
 
 		//create imagick object from pdf
 		$pdfPreview = null;
 		try {
-			list($dirname, , , $filename) = array_values(pathinfo($absPath));
-			$pdfPreview = $dirname . '/' . $filename . '.pdf';
+			$pathInfo = \pathinfo($absPath);
+			$pdfPreview = $tmpDir . '/' . $pathInfo['filename'] . '.pdf';
 
-			$pdf = new \imagick($pdfPreview . '[0]');
+			$pdf = new \Imagick($pdfPreview . '[0]');
 			$pdf->setImageFormat('jpg');
 		} catch (\Exception $e) {
-			unlink($absPath);
-			unlink($pdfPreview);
+			@\unlink($pdfPreview);
 			\OCP\Util::writeLog('core', $e->getmessage(), \OCP\Util::ERROR);
 			return false;
 		}
@@ -65,8 +77,7 @@ abstract class Office extends Provider {
 		$image = new \OC_Image();
 		$image->loadFromData($pdf);
 
-		unlink($absPath);
-		unlink($pdfPreview);
+		\unlink($pdfPreview);
 
 		if ($image->valid()) {
 			$image->scaleDownToFit($maxX, $maxY);
@@ -74,23 +85,29 @@ abstract class Office extends Provider {
 			return $image;
 		}
 		return false;
+	}
 
+	/**
+	 * @inheritdoc
+	 */
+	public function isAvailable(FileInfo $file) {
+		return true;
 	}
 
 	private function initCmd() {
 		$cmd = '';
 
 		$libreOfficePath = \OC::$server->getConfig()->getSystemValue('preview_libreoffice_path', null);
-		if (is_string($libreOfficePath)) {
+		if (\is_string($libreOfficePath)) {
 			$cmd = $libreOfficePath;
 		}
 
-		$whichLibreOffice = shell_exec('command -v libreoffice');
+		$whichLibreOffice = \shell_exec('command -v libreoffice');
 		if ($cmd === '' && !empty($whichLibreOffice)) {
 			$cmd = 'libreoffice';
 		}
 
-		$whichOpenOffice = shell_exec('command -v openoffice');
+		$whichOpenOffice = \shell_exec('command -v openoffice');
 		if ($cmd === '' && !empty($whichOpenOffice)) {
 			$cmd = 'openoffice';
 		}

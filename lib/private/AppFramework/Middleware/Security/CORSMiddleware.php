@@ -6,7 +6,7 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Stefan Weil <sw@weilnetz.de>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -27,12 +27,12 @@ namespace OC\AppFramework\Middleware\Security;
 
 use OC\AppFramework\Middleware\Security\Exceptions\SecurityException;
 use OC\AppFramework\Utility\ControllerMethodReflector;
-use OC\Authentication\Exceptions\PasswordLoginForbiddenException;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\AppFramework\Http\Response;
 use OCP\AppFramework\Middleware;
+use OCP\AppFramework\OCSController;
 use OCP\IRequest;
 use OCP\IUserSession;
 use OCP\IConfig;
@@ -92,25 +92,32 @@ class CORSMiddleware extends Middleware {
 	 * @return Response a Response object
 	 * @throws SecurityException
 	 */
-	public function afterController($controller, $methodName, Response $response){
+	public function afterController($controller, $methodName, Response $response) {
 		// only react if its a CORS request and if the request sends origin and
 		$userId = null;
-		if (!is_null($this->session->getUser())) {
+		if ($this->session->getUser() !== null) {
 			$userId = $this->session->getUser()->getUID();
 		}
 
-		if($this->request->getHeader("Origin") !== null &&
-			$this->reflector->hasAnnotation('CORS') && !is_null($userId)) {
+		$requesterDomain = $this->request->getHeader('Origin');
+		if ($requesterDomain === null) {
+			return $response;
+		}
 
-			$requesterDomain = $this->request->getHeader("Origin");
-
-			\OC_Response::setCorsHeaders($userId, $requesterDomain, $response, $this->config);
+		// controller methods with the annotation @CORS will add CORS headers
+		// same for all methods in a OCSController - all OCS requests are allowed via CORS by default
+		if ($controller instanceof OCSController ||
+			$this->reflector->hasAnnotation('CORS')) {
+			$headers = \OC_Response::setCorsHeaders($userId, $requesterDomain, $this->config);
+			foreach ($headers as $key => $value) {
+				$response->addHeader($key, \implode(',', $value));
+			}
 
 			// allow credentials headers must not be true or CSRF is possible
 			// otherwise
-			foreach($response->getHeaders() as $header => $value) {
-				if(strtolower($header) === 'access-control-allow-credentials' &&
-				   strtolower(trim($value)) === 'true') {
+			foreach ($response->getHeaders() as $header => $value) {
+				if (\strtolower($header) === 'access-control-allow-credentials' &&
+				   \strtolower(\trim($value)) === 'true') {
 					$msg = 'Access-Control-Allow-Credentials must not be '.
 						   'set to true in order to prevent CSRF';
 					throw new SecurityException($msg);
@@ -130,10 +137,10 @@ class CORSMiddleware extends Middleware {
 	 * @throws \Exception the passed in exception if it can't handle it
 	 * @return Response a Response object or null in case that the exception could not be handled
 	 */
-	public function afterException($controller, $methodName, \Exception $exception){
-		if($exception instanceof SecurityException){
+	public function afterException($controller, $methodName, \Exception $exception) {
+		if ($exception instanceof SecurityException) {
 			$response =  new JSONResponse(['message' => $exception->getMessage()]);
-			if($exception->getCode() !== 0) {
+			if ($exception->getCode() !== 0) {
 				$response->setStatus($exception->getCode());
 			} else {
 				$response->setStatus(Http::STATUS_INTERNAL_SERVER_ERROR);
@@ -143,5 +150,4 @@ class CORSMiddleware extends Middleware {
 
 		throw $exception;
 	}
-
 }

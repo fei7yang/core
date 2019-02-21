@@ -4,6 +4,20 @@
 
 /* Global Components */
 
+/* Positioning */
+
+.absolute-center {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+}
+
+.full-width {
+	width: 100%;
+	max-width: 100%;
+}
+
 .pull-left {
 	float: left;
 }
@@ -24,13 +38,13 @@
 	clear: both;
 }
 
-.hidden {
+.hidden.hidden {
 	display: none;
 }
 
 .hidden-visually {
 	position: absolute;
-	left:-10000px;
+	left: -10000px;
 	top: auto;
 	width: 1px;
 	height: 1px;
@@ -38,13 +52,32 @@
 }
 
 .bold {
-	font-weight:600;
+	font-weight: 600;
 }
 
-.center {
-	text-align:center;
+.text-small {
+	font-size: 80%;
 }
 
 .inlineblock {
 	display: inline-block;
+}
+
+/* Text */
+
+.text-right {
+	text-align: right;
+}
+
+.center,
+.text-center {
+	text-align: center;
+}
+
+.text-left {
+	text-align: left;
+}
+
+.nowrap {
+	white-space: nowrap;
 }

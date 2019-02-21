@@ -6,7 +6,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -53,10 +53,10 @@ class Report extends Command {
 		$table = new Table($output);
 		$table->setHeaders(['User Report', '']);
 		$userCountArray = $this->countUsers();
-		if(!empty($userCountArray)) {
+		if (!empty($userCountArray)) {
 			$total = 0;
 			$rows = [];
-			foreach($userCountArray as $classname => $users) {
+			foreach ($userCountArray as $classname => $users) {
 				$total += $users;
 				$rows[] = [$classname, $users];
 			}
@@ -82,6 +82,6 @@ class Report extends Command {
 	private function countUserDirectories() {
 		$dataview = new \OC\Files\View('/');
 		$userDirectories = $dataview->getDirectoryContent('/', 'httpd/unix-directory');
-		return count($userDirectories);
+		return \count($userDirectories);
 	}
 }

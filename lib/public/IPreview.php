@@ -5,7 +5,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -74,7 +74,6 @@ interface IPreview {
 	 * @since 6.0.0
 	 */
 	public function createPreview($file, $maxX = 100, $maxY = 75, $scaleUp = false);
-
 
 	/**
 	 * Returns true if the passed mime type is supported

@@ -3,7 +3,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -20,6 +20,7 @@
  *
  */
 namespace OC\Files\Storage\Wrapper;
+use OCP\Files\Storage\IStorage;
 
 /**
  * Availability checker for storages
@@ -32,7 +33,7 @@ class Availability extends Wrapper {
 	public static function shouldRecheck($availability) {
 		if (!$availability['available']) {
 			// trigger a recheck if TTL reached
-			if ((time() - $availability['last_checked']) > self::RECHECK_TTL_SEC) {
+			if ((\time() - $availability['last_checked']) > self::RECHECK_TTL_SEC) {
 				return true;
 			}
 		}

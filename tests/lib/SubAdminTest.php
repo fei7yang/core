@@ -2,7 +2,7 @@
 /**
  * @author Roeland Jago Douma <roeland@famdouma.nl>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -19,6 +19,10 @@
  *
  */
 namespace Test;
+
+use OC\Group\Group;
+use OC\User\User;
+use Symfony\Component\EventDispatcher\GenericEvent;
 
 class SubAdminTest extends TestCase {
 
@@ -80,11 +84,11 @@ class SubAdminTest extends TestCase {
 	}
 
 	public function tearDown() {
-		foreach($this->users as $user) {
+		foreach ($this->users as $user) {
 			$user->delete();
 		}
 
-		foreach($this->groups as $group) {
+		foreach ($this->groups as $group) {
 			$group->delete();
 		}
 
@@ -96,8 +100,40 @@ class SubAdminTest extends TestCase {
 	}
 
 	public function testCreateSubAdmin() {
+		$calledBeforeCreate = [];
+		\OC::$server->getEventDispatcher()->addListener('user.beforefeaturechange',
+			function (GenericEvent $event) use (&$calledBeforeCreate) {
+				$calledBeforeCreate[] = 'user.beforefeaturechange';
+				$calledBeforeCreate[] = $event;
+			});
+		$calledAfterCreate = [];
+		\OC::$server->getEventDispatcher()->addListener('user.afterfeaturechange',
+			function (GenericEvent $event) use (&$calledAfterCreate) {
+				$calledAfterCreate[] = 'user.afterfeaturechange';
+				$calledAfterCreate[] = $event;
+			});
 		$subAdmin = new \OC\SubAdmin($this->userManager, $this->groupManager, $this->dbConn);
 		$this->assertTrue($subAdmin->createSubAdmin($this->users[0], $this->groups[0]));
+		$this->assertInstanceOf(GenericEvent::class, $calledAfterCreate[1]);
+		$this->assertInstanceOf(GenericEvent::class, $calledBeforeCreate[1]);
+		$this->assertEquals('user.beforefeaturechange', $calledBeforeCreate[0]);
+		$this->assertEquals('user.afterfeaturechange', $calledAfterCreate[0]);
+		$this->assertArrayHasKey('user', $calledAfterCreate[1]);
+		$this->assertInstanceOf(User::class, $calledAfterCreate[1]->getArgument('user'));
+		$this->assertArrayHasKey('feature', $calledAfterCreate[1]);
+		$this->assertEquals('groupAdmin', $calledAfterCreate[1]->getArgument('feature'));
+		$this->assertArrayHasKey('value', $calledAfterCreate[1]);
+		$this->assertEquals('create', $calledAfterCreate[1]->getArgument('value'));
+		$this->assertArrayHasKey('group', $calledAfterCreate[1]);
+		$this->assertInstanceOf(Group::class, $calledAfterCreate[1]->getArgument('group'));
+		$this->assertArrayHasKey('user', $calledBeforeCreate[1]);
+		$this->assertInstanceOf(User::class, $calledBeforeCreate[1]->getArgument('user'));
+		$this->assertArrayHasKey('feature', $calledBeforeCreate[1]);
+		$this->assertEquals('groupAdmin', $calledBeforeCreate[1]->getArgument('feature'));
+		$this->assertArrayHasKey('value', $calledBeforeCreate[1]);
+		$this->assertEquals('create', $calledBeforeCreate[1]->getArgument('value'));
+		$this->assertArrayHasKey('group', $calledBeforeCreate[1]);
+		$this->assertInstanceOf(Group::class, $calledBeforeCreate[1]->getArgument('group'));
 
 		// Look for subadmin in the database
 		$qb = $this->dbConn->getQueryBuilder();
@@ -109,7 +145,7 @@ class SubAdminTest extends TestCase {
 			->fetch();
 		$this->assertEquals(
 			[
-				'gid' => $this->groups[0]->getGID(), 
+				'gid' => $this->groups[0]->getGID(),
 				'uid' => $this->users[0]->getUID()
 			], $result);
 
@@ -123,7 +159,40 @@ class SubAdminTest extends TestCase {
 	public function testDeleteSubAdmin() {
 		$subAdmin = new \OC\SubAdmin($this->userManager, $this->groupManager, $this->dbConn);
 		$this->assertTrue($subAdmin->createSubAdmin($this->users[0], $this->groups[0]));
+		$calledBeforeCreate = [];
+		\OC::$server->getEventDispatcher()->addListener('user.beforefeaturechange',
+			function (GenericEvent $event) use (&$calledBeforeCreate) {
+				$calledBeforeCreate[] = 'user.beforefeaturechange';
+				$calledBeforeCreate[] = $event;
+			});
+		$calledAfterCreate = [];
+		\OC::$server->getEventDispatcher()->addListener('user.afterfeaturechange',
+			function (GenericEvent $event) use (&$calledAfterCreate) {
+				$calledAfterCreate[] = 'user.afterfeaturechange';
+				$calledAfterCreate[] = $event;
+			});
 		$this->assertTrue($subAdmin->deleteSubAdmin($this->users[0], $this->groups[0]));
+
+		$this->assertInstanceOf(GenericEvent::class, $calledAfterCreate[1]);
+		$this->assertInstanceOf(GenericEvent::class, $calledBeforeCreate[1]);
+		$this->assertEquals('user.beforefeaturechange', $calledBeforeCreate[0]);
+		$this->assertEquals('user.afterfeaturechange', $calledAfterCreate[0]);
+		$this->assertArrayHasKey('user', $calledAfterCreate[1]);
+		$this->assertInstanceOf(User::class, $calledAfterCreate[1]->getArgument('user'));
+		$this->assertArrayHasKey('feature', $calledAfterCreate[1]);
+		$this->assertEquals('groupAdmin', $calledAfterCreate[1]->getArgument('feature'));
+		$this->assertArrayHasKey('value', $calledAfterCreate[1]);
+		$this->assertEquals('remove', $calledAfterCreate[1]->getArgument('value'));
+		$this->assertArrayHasKey('group', $calledAfterCreate[1]);
+		$this->assertInstanceOf(Group::class, $calledAfterCreate[1]->getArgument('group'));
+		$this->assertArrayHasKey('user', $calledBeforeCreate[1]);
+		$this->assertInstanceOf(User::class, $calledBeforeCreate[1]->getArgument('user'));
+		$this->assertArrayHasKey('feature', $calledBeforeCreate[1]);
+		$this->assertEquals('groupAdmin', $calledBeforeCreate[1]->getArgument('feature'));
+		$this->assertArrayHasKey('value', $calledBeforeCreate[1]);
+		$this->assertEquals('remove', $calledBeforeCreate[1]->getArgument('value'));
+		$this->assertArrayHasKey('group', $calledBeforeCreate[1]);
+		$this->assertInstanceOf(Group::class, $calledBeforeCreate[1]->getArgument('group'));
 
 		// DB query should be empty
 		$qb = $this->dbConn->getQueryBuilder();
@@ -196,19 +265,33 @@ class SubAdminTest extends TestCase {
 
 	public function testIsSubAdmin() {
 		$subAdmin = new \OC\SubAdmin($this->userManager, $this->groupManager, $this->dbConn);
-		$this->assertTrue($subAdmin->createSubAdmin($this->users[0], $this->groups[0]));
 
+		// There is an orphaned group of which users[0] is subadmin of
+		$this->assertNull($this->groupManager->get('orphanedGroup'));
+
+		// Unfortunetelly in this implementation of subadmin manager,
+		// sub admin will say that user is sub admin, however
+		// getSubAdminsGroups will correctly filter out groups which are orphaned
 		$this->assertTrue($subAdmin->isSubAdmin($this->users[0]));
+		$this->assertEmpty($subAdmin->getSubAdminsGroups($this->users[0]));
+
+		// User users[0] is not a subadmin
 		$this->assertFalse($subAdmin->isSubAdmin($this->users[1]));
 
-		$this->assertTrue($subAdmin->deleteSubAdmin($this->users[0], $this->groups[0]));
+		$this->assertTrue($subAdmin->createSubAdmin($this->users[1], $this->groups[0]));
+		$this->assertTrue($subAdmin->isSubAdmin($this->users[1]));
+
+		$this->assertTrue($subAdmin->deleteSubAdmin($this->users[1], $this->groups[0]));
+		$this->assertFalse($subAdmin->isSubAdmin($this->users[1]));
 	}
 
 	public function testIsSubAdminAsAdmin() {
 		$subAdmin = new \OC\SubAdmin($this->userManager, $this->groupManager, $this->dbConn);
-		$this->groupManager->get('admin')->addUser($this->users[0]);
+		$this->groupManager->get('admin')->addUser($this->users[1]);
 
-		$this->assertTrue($subAdmin->isSubAdmin($this->users[0]));
+		// User is not subadmin, but is admin
+		$this->assertFalse($subAdmin->isSubAdmin($this->users[1]));
+		$this->assertTrue($this->groupManager->isAdmin($this->users[1]->getUID()));
 	}
 
 	public function testIsUserAccessible() {
@@ -238,14 +321,13 @@ class SubAdminTest extends TestCase {
 		$this->groupManager->get('admin')->addUser($this->users[1]);
 
 		$this->assertFalse($subAdmin->isUserAccessible($this->users[0], $this->users[1]));
-
 	}
 
 	public function testPostDeleteUser() {
 		$subAdmin = new \OC\SubAdmin($this->userManager, $this->groupManager, $this->dbConn);
 
-		$user = array_shift($this->users);
-		foreach($this->groups as $group) {
+		$user = \array_shift($this->users);
+		foreach ($this->groups as $group) {
 			$this->assertTrue($subAdmin->createSubAdmin($user, $group));
 		}
 
@@ -256,8 +338,8 @@ class SubAdminTest extends TestCase {
 	public function testPostDeleteGroup() {
 		$subAdmin = new \OC\SubAdmin($this->userManager, $this->groupManager, $this->dbConn);
 
-		$group = array_shift($this->groups);
-		foreach($this->users as $user) {
+		$group = \array_shift($this->groups);
+		foreach ($this->users as $user) {
 			$this->assertTrue($subAdmin->createSubAdmin($user, $group));
 		}
 
@@ -291,5 +373,4 @@ class SubAdminTest extends TestCase {
 		$this->assertTrue($subAdmin->deleteSubAdmin($u, $g));
 		$this->assertEquals(2, $count);
 	}
-
 }

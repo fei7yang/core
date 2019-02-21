@@ -2,7 +2,7 @@
 /**
  * @author Lukas Reschke <lukas@owncloud.com>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -22,17 +22,26 @@
 namespace Test\IntegrityCheck;
 
 use OC\IntegrityCheck\Checker;
+use OC\IntegrityCheck\Helpers\AppLocator;
+use OC\IntegrityCheck\Helpers\EnvironmentHelper;
+use OC\IntegrityCheck\Helpers\FileAccessHelper;
 use OC\Memcache\NullCache;
+use OCP\App\IAppManager;
+use OCP\ICacheFactory;
+use OCP\IConfig;
 use phpseclib\Crypt\RSA;
 use phpseclib\File\X509;
 use Test\TestCase;
-use OC\IntegrityCheck\Helpers\EnvironmentHelper;
-use OC\IntegrityCheck\Helpers\FileAccessHelper;
-use OC\IntegrityCheck\Helpers\AppLocator;
-use OCP\IConfig;
-use OCP\ICacheFactory;
-use OCP\App\IAppManager;
 
+/**
+ * Test for integrity checker.
+ *
+ * To regenerate the signature data that is hard-coded in the tests when needed, do the following:
+ * - mkdir -p apps/SomeApp/appinfo
+ * - cp -R tests/data/integritycheck/app/* apps/SomeApp
+ * - occ integrity:sign-app --path apps/SomeApp/ --privateKey tests/data/integritycheck/SomeApp.key --certificate tests/data/integritycheck/SomeApp.crt
+ * - Then grab the signature file from "apps/SomeApp/appinfo/signature.json" and copy it into the hard-coded strings.
+ */
 class CheckerTest extends TestCase {
 	/** @var EnvironmentHelper | \PHPUnit_Framework_MockObject_MockObject */
 	private $environmentHelper;
@@ -79,8 +88,8 @@ class CheckerTest extends TestCase {
 	 * @expectedException \Exception
 	 */
 	public function testWriteAppSignatureOfNotExistingApp() {
-		$keyBundle = file_get_contents(__DIR__ .'/../../data/integritycheck/SomeApp.crt');
-		$rsaPrivateKey = file_get_contents(__DIR__ .'/../../data/integritycheck/SomeApp.key');
+		$keyBundle = \file_get_contents(__DIR__ .'/../../data/integritycheck/SomeApp.crt');
+		$rsaPrivateKey = \file_get_contents(__DIR__ .'/../../data/integritycheck/SomeApp.key');
 		$rsa = new RSA();
 		$rsa->loadKey($rsaPrivateKey);
 		$x509 = new X509();
@@ -91,14 +100,14 @@ class CheckerTest extends TestCase {
 	/**
 	 * @expectedException \Exception
 	 */
-	public function testWriteAppSignatureWrongPermissions(){
+	public function testWriteAppSignatureWrongPermissions() {
 		$this->fileAccessHelper
 			->expects($this->once())
 			->method('file_put_contents')
 			->will($this->throwException(new \Exception))
 		;
-		$keyBundle = file_get_contents(__DIR__ .'/../../data/integritycheck/SomeApp.crt');
-		$rsaPrivateKey = file_get_contents(__DIR__ .'/../../data/integritycheck/SomeApp.key');
+		$keyBundle = \file_get_contents(__DIR__ .'/../../data/integritycheck/SomeApp.crt');
+		$rsaPrivateKey = \file_get_contents(__DIR__ .'/../../data/integritycheck/SomeApp.key');
 		$rsa = new RSA();
 		$rsa->loadKey($rsaPrivateKey);
 		$x509 = new X509();
@@ -122,15 +131,15 @@ class CheckerTest extends TestCase {
 					\OC::$SERVERROOT . '/tests/data/integritycheck/app//appinfo/signature.json',
 					$this->callback(function ($arg) use ($expectedSignatureFileData) {
 						$this->assertEquals(
-							json_decode($expectedSignatureFileData, true),
-							json_decode($arg, true)
+							\json_decode($expectedSignatureFileData, true),
+							\json_decode($arg, true)
 						);
 						return true;
 					})
 			);
 
-		$keyBundle = file_get_contents(__DIR__ .'/../../data/integritycheck/SomeApp.crt');
-		$rsaPrivateKey = file_get_contents(__DIR__ .'/../../data/integritycheck/SomeApp.key');
+		$keyBundle = \file_get_contents(__DIR__ .'/../../data/integritycheck/SomeApp.crt');
+		$rsaPrivateKey = \file_get_contents(__DIR__ .'/../../data/integritycheck/SomeApp.key');
 		$rsa = new RSA();
 		$rsa->loadKey($rsaPrivateKey);
 		$x509 = new X509();
@@ -138,20 +147,41 @@ class CheckerTest extends TestCase {
 		$this->checker->writeAppSignature(\OC::$SERVERROOT . '/tests/data/integritycheck/app/', $x509, $rsa);
 	}
 
+	public function testIgnoredAppSignatureWithoutSignatureData() {
+		$this->environmentHelper
+			->expects($this->once())
+			->method('getChannel')
+			->will($this->returnValue('stable'));
+		$configMap = [
+			['integrity.check.disabled', false, false],
+			['integrity.ignore.missing.app.signature', [], ['SomeApp']]
+		];
+		$this->config
+			->expects($this->any())
+			->method('getSystemValue')
+			->will($this->returnValueMap($configMap));
+
+		$expected = [];
+		$this->assertSame($expected, $this->checker->verifyAppSignature('SomeApp'));
+	}
+
 	public function testVerifyAppSignatureWithoutSignatureData() {
 		$this->environmentHelper
 				->expects($this->once())
 				->method('getChannel')
 				->will($this->returnValue('stable'));
+		$configMap = [
+			['integrity.check.disabled', false, false],
+			['integrity.ignore.missing.app.signature', [], []]
+		];
 		$this->config
-				->expects($this->any())
-				->method('getSystemValue')
-				->with('integrity.check.disabled', false)
-				->will($this->returnValue(false));
+			->expects($this->any())
+			->method('getSystemValue')
+			->will($this->returnValueMap($configMap));
 
 		$expected = [
 			'EXCEPTION' => [
-					'class' => 'OC\IntegrityCheck\Exceptions\InvalidSignatureException',
+					'class' => 'OC\IntegrityCheck\Exceptions\MissingSignatureException',
 					'message' => 'Signature data not found.',
 			],
 		];
@@ -159,15 +189,17 @@ class CheckerTest extends TestCase {
 	}
 
 	public function testVerifyAppSignatureWithValidSignatureData() {
+		$map = [
+			['integrity.check.disabled', false, false],
+			['integrity.excluded.files', [], []],
+		];
 		$this->environmentHelper
 				->expects($this->once())
 				->method('getChannel')
 				->will($this->returnValue('stable'));
 		$this->config
-				->expects($this->any())
-				->method('getSystemValue')
-				->with('integrity.check.disabled', false)
-				->will($this->returnValue(false));
+			->method('getSystemValue')
+			->will($this->returnValueMap($map));
 
 		$this->appLocator
 				->expects($this->once())
@@ -195,7 +227,7 @@ class CheckerTest extends TestCase {
 				->with(
 						'/resources/codesigning/root.crt'
 				)
-				->will($this->returnValue(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
+				->will($this->returnValue(\file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
 
 		$this->assertSame([], $this->checker->verifyAppSignature('SomeApp'));
 	}
@@ -237,7 +269,7 @@ class CheckerTest extends TestCase {
 				->with(
 						'/resources/codesigning/root.crt'
 				)
-				->will($this->returnValue(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
+				->will($this->returnValue(\file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
 
 		$expected = [
 				'EXCEPTION' => [
@@ -249,15 +281,17 @@ class CheckerTest extends TestCase {
 	}
 
 	public function testVerifyAppSignatureWithTamperedFiles() {
+		$map = [
+			['integrity.check.disabled', false, false],
+			['integrity.excluded.files', [], []],
+		];
 		$this->environmentHelper
 				->expects($this->once())
 				->method('getChannel')
 				->will($this->returnValue('stable'));
 		$this->config
-				->expects($this->any())
-				->method('getSystemValue')
-				->with('integrity.check.disabled', false)
-				->will($this->returnValue(false));
+			->method('getSystemValue')
+			->will($this->returnValueMap($map));
 
 		$this->appLocator
 				->expects($this->once())
@@ -285,8 +319,7 @@ class CheckerTest extends TestCase {
 				->with(
 						'/resources/codesigning/root.crt'
 				)
-				->will($this->returnValue(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
-
+				->will($this->returnValue(\file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
 
 		$expected = [
 			'INVALID_HASH' => [
@@ -312,16 +345,77 @@ class CheckerTest extends TestCase {
 		$this->assertSame($expected, $this->checker->verifyAppSignature('SomeApp'));
 	}
 
-	public function testVerifyAppSignatureWithTamperedFilesAndAlternatePath() {
+	public function testVerifyAppSignatureWithRenamedFiles() {
+		$map = [
+			['integrity.check.disabled', false, false],
+			['integrity.excluded.files', [], []],
+		];
 		$this->environmentHelper
 				->expects($this->once())
 				->method('getChannel')
 				->will($this->returnValue('stable'));
 		$this->config
-				->expects($this->any())
-				->method('getSystemValue')
-				->with('integrity.check.disabled', false)
-				->will($this->returnValue(false));
+			->method('getSystemValue')
+			->will($this->returnValueMap($map));
+
+		$this->appLocator
+				->expects($this->once())
+				->method('getAppPath')
+				->with('SomeApp')
+				->will($this->returnValue(\OC::$SERVERROOT . '/tests/data/integritycheck/app/'));
+		$signatureDataFile = '{
+			"hashes": {
+				"AnotherFileOrigin.txt": "1570ca9420e37629de4328f48c51da29840ddeaa03ae733da4bf1d854b8364f594aac560601270f9e1797ed4cd57c1aea87bf44cf4245295c94f2e935a2f0112",
+				"subfolder\/file.txt": "410738545fb623c0a5c8a71f561e48ea69e3ada0981a455e920a5ae9bf17c6831ae654df324f9328ff8453de179276ae51931cca0fa71fe8ccde6c083ca0574b"
+			},
+			"signature": "OlP+AJfOD1bkAaPJmYoEMg4JMHdeBsPSrg9ogEHjnCrm\/Ze5GDF5iTmmSNX++hPjGVrSElAPEkrdkysm595XLBfpM6wPSARSKWbXIMsUPSlCut0AtI0arl1UsYsnbHmjINZh9JHJMNq56yMPJX\/jU9ot4DQvnDw\/moq6sK1JpORpzzuyfVn77BHKpem\/3Iq9OK8alCR0Admo6gR14NDDI7cfdIwoK5G6mp4Od+RN95qM+5ttuwBARjD0v93mLDuiUEZtJjNgCNHs6jslvSEFlzRD2jwltZ9Fzqnzd+ua7ET4AMm9hVmOsK6CB0PkbWhRd+QsnSSIynfMHszf1PmbOCaJsZg4lnXDdrPKgYNGYbb9yPaG+6aLNtRtpwtnQkRUcI09fhx+c3o3h\/XHu9iObFICQww\/TVTC5OjGfWW5QWHomFwK9xzrMP8uNU1MZoI23oCa8F8M69EXDZinFzE6qM462Mnl7kPCzsB\/xsfIUn5OhmVjkf80ww0nIrsMUUCy1K87nr7zdNbhtmp1xzxkln4uwDj\/joULe3GyohPUD8Yzq3E5TUDRhtmYV6D7ZpFm5BcgPLZe3MfDicfn5wbrvCM0Zvi9o1h0V6377b+zLceZ4SSoiibt5j8A0VydSYyZP7HfxLhAkIz26K7rb+vAPJJUsvGPbOFFzP90lzBVJvE=",
+			"certificate": "-----BEGIN CERTIFICATE-----\r\nMIIEwTCCAqmgAwIBAgIUWv0iujufs5lUr0svCf\/qTQvoyKAwDQYJKoZIhvcNAQEF\r\nBQAwIzEhMB8GA1UECgwYb3duQ2xvdWQgQ29kZSBTaWduaW5nIENBMB4XDTE1MTEw\r\nMzIyNDk1M1oXDTE2MTEwMzIyNDk1M1owEjEQMA4GA1UEAwwHU29tZUFwcDCCAiIw\r\nDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBAK8q0x62agGSRBqeWsaeEwFfepMk\r\nF8cAobMMi50qHCv9IrOn\/ZH9l52xBrbIkErVmRjmly0d4JhD8Ymhidsh9ONKYl\/j\r\n+ishsZDM8eNNdp3Ew+fEYVvY1W7mR1qU24NWj0bzVsClI7hvPVIuw7AjfBDq1C5+\r\nA+ZSLSXYvOK2cEWjdxQfuNZwEZSjmA63DUllBIrm35IaTvfuyhU6BW9yHZxmb8+M\r\nw0xDv30D5UkE\/2N7Pa\/HQJLxCR+3zKibRK3nUyRDLSXxMkU9PnFNaPNX59VPgyj4\r\nGB1CFSToldJVPF4pzh7p36uGXZVxs8m3LFD4Ol8mhi7jkxDZjqFN46gzR0r23Py6\r\ndol9vfawGIoUwp9LvL0S7MvdRY0oazLXwClLP4OQ17zpSMAiCj7fgNT661JamPGj\r\nt5O7Zn2wA7I4ddDS\/HDTWCu98Zwc9fHIpsJPgCZ9awoqxi4Mnf7Pk9g5nnXhszGC\r\ncxxIASQKM+GhdzoRxKknax2RzUCwCzcPRtCj8AQT\/x\/mqN3PfRmlnFBNACUw9bpZ\r\nSOoNq2pCF9igftDWpSIXQ38pVpKLWowjjg3DVRmVKBgivHnUnVLyzYBahHPj0vaz\r\ntFtUFRaqXDnt+4qyUGyrT5h5pjZaTcHIcSB4PiarYwdVvgslgwnQzOUcGAzRWBD4\r\n6jV2brP5vFY3g6iPAgMBAAEwDQYJKoZIhvcNAQEFBQADggIBACTY3CCHC+Z28gCf\r\nFWGKQ3wAKs+k4+0yoti0qm2EKX7rSGQ0PHSas6uW79WstC4Rj+DYkDtIhGMSg8FS\r\nHVGZHGBCc0HwdX+BOAt3zi4p7Sf3oQef70\/4imPoKxbAVCpd\/cveVcFyDC19j1yB\r\nBapwu87oh+muoeaZxOlqQI4UxjBlR\/uRSMhOn2UGauIr3dWJgAF4pGt7TtIzt+1v\r\n0uA6FtN1Y4R5O8AaJPh1bIG0CVvFBE58esGzjEYLhOydgKFnEP94kVPgJD5ds9C3\r\npPhEpo1dRpiXaF7WGIV1X6DI\/ipWvfrF7CEy6I\/kP1InY\/vMDjQjeDnJ\/VrXIWXO\r\nyZvHXVaN\/m+1RlETsH7YO\/QmxRue9ZHN3gvvWtmpCeA95sfpepOk7UcHxHZYyQbF\r\n49\/au8j+5tsr4A83xzsT1JbcKRxkAaQ7WDJpOnE5O1+H0fB+BaLakTg6XX9d4Fo7\r\n7Gin7hVWX7pL+JIyxMzME3LhfI61+CRcqZQIrpyaafUziPQbWIPfEs7h8tCOWyvW\r\nUO8ZLervYCB3j44ivkrxPlcBklDCqqKKBzDP9dYOtS\/P4RB1NkHA9+NTvmBpTonS\r\nSFXdg9fFMD7VfjDE3Vnk+8DWkVH5wBYowTAD7w9Wuzr7DumiAULexnP\/Y7xwxLv7\r\n4B+pXTAcRK0zECDEaX3npS8xWzrB\r\n-----END CERTIFICATE-----"
+		}';
+		$this->fileAccessHelper
+				->expects($this->at(0))
+				->method('file_get_contents')
+				->with(
+						\OC::$SERVERROOT . '/tests/data/integritycheck/app//appinfo/signature.json'
+				)
+				->will($this->returnValue($signatureDataFile));
+		$this->fileAccessHelper
+				->expects($this->at(1))
+				->method('file_get_contents')
+				->with(
+						'/resources/codesigning/root.crt'
+				)
+				->will($this->returnValue(\file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
+
+		$expected = [
+			'FILE_MISSING' => [
+				'AnotherFileOrigin.txt' => [
+						'expected' => '1570ca9420e37629de4328f48c51da29840ddeaa03ae733da4bf1d854b8364f594aac560601270f9e1797ed4cd57c1aea87bf44cf4245295c94f2e935a2f0112',
+						'current' => '',
+				],
+			],
+			'EXTRA_FILE' => [
+				'AnotherFile.txt' => [
+						'expected' => '',
+						'current' => '1570ca9420e37629de4328f48c51da29840ddeaa03ae733da4bf1d854b8364f594aac560601270f9e1797ed4cd57c1aea87bf44cf4245295c94f2e935a2f0112',
+				],
+			],
+
+		];
+		$this->assertSame($expected, $this->checker->verifyAppSignature('SomeApp'));
+	}
+
+	public function testVerifyAppSignatureWithTamperedFilesAndAlternatePath() {
+		$map = [
+			['integrity.check.disabled', false, false],
+			['integrity.excluded.files', [], []],
+		];
+		$this->environmentHelper
+				->expects($this->once())
+				->method('getChannel')
+				->will($this->returnValue('stable'));
+		$this->config
+			->method('getSystemValue')
+			->will($this->returnValueMap($map));
 
 		$this->appLocator
 				->expects($this->never())
@@ -348,8 +442,7 @@ class CheckerTest extends TestCase {
 				->with(
 						'/resources/codesigning/root.crt'
 				)
-				->will($this->returnValue(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
-
+				->will($this->returnValue(\file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
 
 		$expected = [
 				'INVALID_HASH' => [
@@ -410,7 +503,7 @@ class CheckerTest extends TestCase {
 				->with(
 						'/resources/codesigning/root.crt'
 				)
-				->will($this->returnValue(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
+				->will($this->returnValue(\file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
 
 		$expected = [
 				'EXCEPTION' => [
@@ -422,15 +515,17 @@ class CheckerTest extends TestCase {
 	}
 
 	public function testVerifyAppWithDifferentScopeAndAlwaysTrustedCore() {
+		$map = [
+			['integrity.check.disabled', false, false],
+			['integrity.excluded.files', [], []],
+		];
 		$this->environmentHelper
 				->expects($this->once())
 				->method('getChannel')
 				->will($this->returnValue('stable'));
 		$this->config
-				->expects($this->any())
-				->method('getSystemValue')
-				->with('integrity.check.disabled', false)
-				->will($this->returnValue(false));
+			->method('getSystemValue')
+			->will($this->returnValueMap($map));
 
 		$this->appLocator
 				->expects($this->once())
@@ -456,7 +551,7 @@ class CheckerTest extends TestCase {
 				->with(
 					'/resources/codesigning/root.crt'
 				)
-				->will($this->returnValue(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
+				->will($this->returnValue(\file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
 
 		$this->assertSame([], $this->checker->verifyAppSignature('SomeApp'));
 	}
@@ -481,15 +576,15 @@ class CheckerTest extends TestCase {
 						\OC::$SERVERROOT . '/tests/data/integritycheck/app//core/signature.json',
 						$this->callback(function ($arg) use ($expectedSignatureFileData) {
 							$this->assertEquals(
-								json_decode($expectedSignatureFileData, true),
-								json_decode($arg, true)
+								\json_decode($expectedSignatureFileData, true),
+								\json_decode($arg, true)
 							);
 							return true;
 						})
 				);
 
-		$keyBundle = file_get_contents(__DIR__ .'/../../data/integritycheck/core.crt');
-		$rsaPrivateKey = file_get_contents(__DIR__ .'/../../data/integritycheck/core.key');
+		$keyBundle = \file_get_contents(__DIR__ .'/../../data/integritycheck/core.crt');
+		$rsaPrivateKey = \file_get_contents(__DIR__ .'/../../data/integritycheck/core.key');
 		$rsa = new RSA();
 		$rsa->loadKey($rsaPrivateKey);
 		$x509 = new X509();
@@ -517,15 +612,15 @@ class CheckerTest extends TestCase {
 						\OC::$SERVERROOT . '/tests/data/integritycheck/htaccessUnmodified//core/signature.json',
 						$this->callback(function ($arg) use ($expectedSignatureFileData) {
 							$this->assertEquals(
-								json_decode($expectedSignatureFileData, true),
-								json_decode($arg, true)
+								\json_decode($expectedSignatureFileData, true),
+								\json_decode($arg, true)
 							);
 							return true;
 						})
 				);
 
-		$keyBundle = file_get_contents(__DIR__ .'/../../data/integritycheck/core.crt');
-		$rsaPrivateKey = file_get_contents(__DIR__ .'/../../data/integritycheck/core.key');
+		$keyBundle = \file_get_contents(__DIR__ .'/../../data/integritycheck/core.crt');
+		$rsaPrivateKey = \file_get_contents(__DIR__ .'/../../data/integritycheck/core.key');
 		$rsa = new RSA();
 		$rsa->loadKey($rsaPrivateKey);
 		$x509 = new X509();
@@ -548,15 +643,15 @@ class CheckerTest extends TestCase {
 						\OC::$SERVERROOT . '/tests/data/integritycheck/htaccessWithInvalidModifiedContent//core/signature.json',
 						$this->callback(function ($arg) use ($expectedSignatureFileData) {
 							$this->assertEquals(
-								json_decode($expectedSignatureFileData, true),
-								json_decode($arg, true)
+								\json_decode($expectedSignatureFileData, true),
+								\json_decode($arg, true)
 							);
 							return true;
 						})
 				);
 
-		$keyBundle = file_get_contents(__DIR__ .'/../../data/integritycheck/core.crt');
-		$rsaPrivateKey = file_get_contents(__DIR__ .'/../../data/integritycheck/core.key');
+		$keyBundle = \file_get_contents(__DIR__ .'/../../data/integritycheck/core.crt');
+		$rsaPrivateKey = \file_get_contents(__DIR__ .'/../../data/integritycheck/core.key');
 		$rsa = new RSA();
 		$rsa->loadKey($rsaPrivateKey);
 		$x509 = new X509();
@@ -589,15 +684,15 @@ class CheckerTest extends TestCase {
 					\OC::$SERVERROOT . '/tests/data/integritycheck/htaccessWithValidModifiedContent/core/signature.json',
 					$this->callback(function ($arg) use ($expectedSignatureFileData) {
 						$this->assertEquals(
-							json_decode($expectedSignatureFileData, true),
-							json_decode($arg, true)
+							\json_decode($expectedSignatureFileData, true),
+							\json_decode($arg, true)
 						);
 						return true;
 					})
 			);
 
-		$keyBundle = file_get_contents(__DIR__ .'/../../data/integritycheck/core.crt');
-		$rsaPrivateKey = file_get_contents(__DIR__ .'/../../data/integritycheck/core.key');
+		$keyBundle = \file_get_contents(__DIR__ .'/../../data/integritycheck/core.crt');
+		$rsaPrivateKey = \file_get_contents(__DIR__ .'/../../data/integritycheck/core.key');
 		$rsa = new RSA();
 		$rsa->loadKey($rsaPrivateKey);
 		$x509 = new X509();
@@ -618,7 +713,7 @@ class CheckerTest extends TestCase {
 
 		$expected = [
 			'EXCEPTION' => [
-				'class' => 'OC\\IntegrityCheck\\Exceptions\\InvalidSignatureException',
+				'class' => 'OC\\IntegrityCheck\\Exceptions\\MissingSignatureException',
 				'message' => 'Signature data not found.',
 			],
 		];
@@ -626,15 +721,17 @@ class CheckerTest extends TestCase {
 	}
 
 	public function testVerifyCoreSignatureWithValidSignatureData() {
+		$map = [
+			['integrity.check.disabled', false, false],
+			['integrity.excluded.files', [], []],
+		];
 		$this->environmentHelper
 				->expects($this->once())
 				->method('getChannel')
 				->will($this->returnValue('stable'));
 		$this->config
-				->expects($this->any())
-				->method('getSystemValue')
-				->with('integrity.check.disabled', false)
-				->will($this->returnValue(false));
+			->method('getSystemValue')
+			->will($this->returnValueMap($map));
 
 		$this->environmentHelper
 				->expects($this->any())
@@ -661,21 +758,23 @@ class CheckerTest extends TestCase {
 				->with(
 						\OC::$SERVERROOT . '/tests/data/integritycheck/app//resources/codesigning/root.crt'
 				)
-				->will($this->returnValue(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
+				->will($this->returnValue(\file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
 
 		$this->assertSame([], $this->checker->verifyCoreSignature());
 	}
 
 	public function testVerifyCoreSignatureWithValidModifiedHtaccessAndUserIniSignatureData() {
+		$map = [
+			['integrity.check.disabled', false, false],
+			['integrity.excluded.files', [], []],
+		];
 		$this->environmentHelper
 			->expects($this->once())
 			->method('getChannel')
 			->will($this->returnValue('stable'));
 		$this->config
-			->expects($this->any())
 			->method('getSystemValue')
-			->with('integrity.check.disabled', false)
-			->will($this->returnValue(false));
+			->will($this->returnValueMap($map));
 
 		$this->environmentHelper
 			->expects($this->any())
@@ -703,21 +802,23 @@ class CheckerTest extends TestCase {
 			->with(
 				\OC::$SERVERROOT . '/tests/data/integritycheck/htaccessWithValidModifiedContent/resources/codesigning/root.crt'
 			)
-			->will($this->returnValue(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
+			->will($this->returnValue(\file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
 
 		$this->assertSame([], $this->checker->verifyCoreSignature());
 	}
 
 	public function testVerifyCoreSignatureWithValidSignatureDataAndNotAlphabeticOrder() {
+		$map = [
+			['integrity.check.disabled', false, false],
+			['integrity.excluded.files', [], []],
+		];
 		$this->environmentHelper
 				->expects($this->once())
 				->method('getChannel')
 				->will($this->returnValue('stable'));
 		$this->config
-				->expects($this->any())
-				->method('getSystemValue')
-				->with('integrity.check.disabled', false)
-				->will($this->returnValue(false));
+			->method('getSystemValue')
+			->will($this->returnValueMap($map));
 
 		$this->environmentHelper
 				->expects($this->any())
@@ -744,7 +845,7 @@ class CheckerTest extends TestCase {
 				->with(
 						\OC::$SERVERROOT . '/tests/data/integritycheck/app//resources/codesigning/root.crt'
 				)
-				->will($this->returnValue(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
+				->will($this->returnValue(\file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
 
 		$this->assertSame([], $this->checker->verifyCoreSignature());
 	}
@@ -785,7 +886,7 @@ class CheckerTest extends TestCase {
 				->with(
 						\OC::$SERVERROOT . '/tests/data/integritycheck/appWithInvalidData//resources/codesigning/root.crt'
 				)
-				->will($this->returnValue(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
+				->will($this->returnValue(\file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
 
 		$expected = [
 				'EXCEPTION' => [
@@ -797,15 +898,17 @@ class CheckerTest extends TestCase {
 	}
 
 	public function testVerifyCoreSignatureWithTamperedFiles() {
+		$map = [
+			['integrity.check.disabled', false, false],
+			['integrity.excluded.files', [], []],
+		];
 		$this->environmentHelper
 				->expects($this->once())
 				->method('getChannel')
 				->will($this->returnValue('stable'));
 		$this->config
-				->expects($this->any())
-				->method('getSystemValue')
-				->with('integrity.check.disabled', false)
-				->will($this->returnValue(false));
+			->method('getSystemValue')
+			->will($this->returnValueMap($map));
 
 		$this->environmentHelper
 				->expects($this->any())
@@ -832,7 +935,7 @@ class CheckerTest extends TestCase {
 				->with(
 						\OC::$SERVERROOT . '/tests/data/integritycheck/appWithInvalidData//resources/codesigning/root.crt'
 				)
-				->will($this->returnValue(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
+				->will($this->returnValue(\file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
 
 		$expected = [
 				'INVALID_HASH' => [
@@ -853,6 +956,64 @@ class CheckerTest extends TestCase {
 								'current' => 'cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e',
 						],
 				],
+
+		];
+		$this->assertSame($expected, $this->checker->verifyCoreSignature());
+	}
+
+	public function testVerifyCoreSignatureWithTamperedFilesExclude() {
+		$map = [
+			['integrity.check.disabled', false, false],
+			['integrity.excluded.files', [], ['AnotherFile.txt']],
+		];
+		$this->environmentHelper
+			->expects($this->once())
+			->method('getChannel')
+			->will($this->returnValue('stable'));
+		$this->config
+			->method('getSystemValue')
+			->will($this->returnValueMap($map));
+
+		$this->environmentHelper
+			->expects($this->any())
+			->method('getServerRoot')
+			->will($this->returnValue(\OC::$SERVERROOT . '/tests/data/integritycheck/appWithInvalidData/'));
+		$signatureDataFile = '{
+    "hashes": {
+        "AnotherFile.txt": "1570ca9420e37629de4328f48c51da29840ddeaa03ae733da4bf1d854b8364f594aac560601270f9e1797ed4cd57c1aea87bf44cf4245295c94f2e935a2f0112",
+        "subfolder\/file.txt": "410738545fb623c0a5c8a71f561e48ea69e3ada0981a455e920a5ae9bf17c6831ae654df324f9328ff8453de179276ae51931cca0fa71fe8ccde6c083ca0574b"
+    },
+    "signature": "dYoohBaWIFR\/To1FXEbMQB5apUhVYlEauBGSPo12nq84wxWkBx2EM3KDRgkB5Sub2tr0CgmAc2EVjPhKIEzAam26cyUb48bJziz1V6wvW7z4GZAfaJpzLkyHdSfV5117VSf5w1rDcAeZDXfGUaaNEJPWytaF4ZIxVge7f3NGshHy4odFVPADy\/u6c43BWvaOtJ4m3aJQbP6sxCO9dxwcm5yJJJR3n36jfh229sdWBxyl8BhwhH1e1DEv78\/aiL6ckKFPVNzx01R6yDFt3TgEMR97YZ\/R6lWiXG+dsJ305jNFlusLu518zBUvl7g5yjzGN778H29b2C8VLZKmi\/h1CH9jGdD72fCqCYdenD2uZKzb6dsUtXtvBmVcVT6BUGz41W1pkkEEB+YJpMrHILIxAiHRGv1+aZa9\/Oz8LWFd+BEUQjC2LJgojPnpzaG\/msw1nBkX16NNVDWWtJ25Bc\/r\/mG46rwjWB\/cmV6Lwt6KODiqlxgrC4lm9ALOCEWw+23OcYhLwNfQTYevXqHqsFfXOkhUnM8z5vDUb\/HBraB1DjFXN8iLK+1YewD4P495e+SRzrR79Oi3F8SEqRIzRLfN2rnW1BTms\/wYsz0p67cup1Slk1XlNmHwbWX25NVd2PPlLOvZRGoqcKFpIjC5few8THiZfyjiNFwt3RM0AFdZcXY=",
+    "certificate": "-----BEGIN CERTIFICATE-----\r\nMIIEvjCCAqagAwIBAgIUc\/0FxYrsgSs9rDxp03EJmbjN0NwwDQYJKoZIhvcNAQEF\r\nBQAwIzEhMB8GA1UECgwYb3duQ2xvdWQgQ29kZSBTaWduaW5nIENBMB4XDTE1MTEw\r\nMzIxMDMzM1oXDTE2MTEwMzIxMDMzM1owDzENMAsGA1UEAwwEY29yZTCCAiIwDQYJ\r\nKoZIhvcNAQEBBQADggIPADCCAgoCggIBALb6EgHpkAqZbO5vRO8XSh7G7XGWHw5s\r\niOf4RwPXR6SE9bWZEm\/b72SfWk\/\/J6AbrD8WiOzBuT\/ODy6k5T1arEdHO+Pux0W1\r\nMxYJJI4kH74KKgMpC0SB0Rt+8WrMqV1r3hhJ46df6Xr\/xolP3oD+eLbShPcblhdS\r\nVtkZEkoev8Sh6L2wDCeHDyPxzvj1w2dTdGVO9Kztn0xIlyfEBakqvBWtcxyi3Ln0\r\nklnxlMx3tPDUE4kqvpia9qNiB1AN2PV93eNr5\/2riAzIssMFSCarWCx0AKYb54+d\r\nxLpcYFyqPJ0ydBCkF78DD45RCZet6PNYkdzgbqlUWEGGomkuDoJbBg4wzgzO0D77\r\nH87KFhYW8tKFFvF1V3AHl\/sFQ9tDHaxM9Y0pZ2jPp\/ccdiqnmdkBxBDqsiRvHvVB\r\nCn6qpb4vWGFC7vHOBfYspmEL1zLlKXZv3ezMZEZw7O9ZvUP3VO\/wAtd2vUW8UFiq\r\ns2v1QnNLN6jNh51obcwmrBvWhJy9vQIdtIjQbDxqWTHh1zUSrw9wrlklCBZ\/zrM0\r\ni8nfCFwTxWRxp3H9KoECzO\/zS5R5KIS7s3\/wq\/w9T2Ie4rcecgXwDizwnn0C\/aKc\r\nbDIjujpL1s9HO05pcD\/V3wKcPZ1izymBkmMyIbL52iRVN5FTVHeZdXPpFuq+CTQJ\r\nQ238lC+A\/KOVAgMBAAEwDQYJKoZIhvcNAQEFBQADggIBAGoKTnh8RfJV4sQItVC2\r\nAvfJagkrIqZ3iiQTUBQGTKBsTnAqE1H7QgUSV9vSd+8rgvHkyZsRjmtyR1e3A6Ji\r\noNCXUbExC\/0iCPUqdHZIVb+Lc\/vWuv4ByFMybGPydgtLoEUX2ZrKFWmcgZFDUSRd\r\n9Uj26vtUhCC4bU4jgu6hIrR9IuxOBLQUxGTRZyAcXvj7obqRAEZwFAKQgFpfpqTb\r\nH+kjcbZSaAlLVSF7vBc1syyI8RGYbqpwvtREqJtl5IEIwe6huEqJ3zPnlP2th\/55\r\ncf3Fovj6JJgbb9XFxrdnsOsDOu\/tpnaRWlvv5ib4+SzG5wWFT5UUEo4Wg2STQiiX\r\nuVSRQxK1LE1yg84bs3NZk9FSQh4B8vZVuRr5FaJsZZkwlFlhRO\/\/+TJtXRbyNgsf\r\noMRZGi8DLGU2SGEAHcRH\/QZHq\/XDUWVzdxrSBYcy7GSpT7UDVzGv1rEJUrn5veP1\r\n0KmauAqtiIaYRm4f6YBsn0INcZxzIPZ0p8qFtVZBPeHhvQtvOt0iXI\/XUxEWOa2F\r\nK2EqhErgMK\/N07U1JJJay5tYZRtvkGq46oP\/5kQG8hYST0MDK6VihJoPpvCmAm4E\r\npEYKQ96x6A4EH9Y9mZlYozH\/eqmxPbTK8n89\/p7Ydun4rI+B2iiLnY8REWWy6+UQ\r\nV204fGUkJqW5CrKy3P3XvY9X\r\n-----END CERTIFICATE-----"
+}';
+		$this->fileAccessHelper
+			->expects($this->at(0))
+			->method('file_get_contents')
+			->with(
+				\OC::$SERVERROOT . '/tests/data/integritycheck/appWithInvalidData//core/signature.json'
+			)
+			->will($this->returnValue($signatureDataFile));
+		$this->fileAccessHelper
+			->expects($this->at(1))
+			->method('file_get_contents')
+			->with(
+				\OC::$SERVERROOT . '/tests/data/integritycheck/appWithInvalidData//resources/codesigning/root.crt'
+			)
+			->will($this->returnValue(\file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
+
+		$expected = [
+			'FILE_MISSING' => [
+				'subfolder/file.txt' => [
+					'expected' => '410738545fb623c0a5c8a71f561e48ea69e3ada0981a455e920a5ae9bf17c6831ae654df324f9328ff8453de179276ae51931cca0fa71fe8ccde6c083ca0574b',
+					'current' => '',
+				],
+			],
+			'EXTRA_FILE' => [
+				'UnecessaryFile' => [
+					'expected' => '',
+					'current' => 'cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e',
+				],
+			],
 
 		];
 		$this->assertSame($expected, $this->checker->verifyCoreSignature());
@@ -894,7 +1055,7 @@ class CheckerTest extends TestCase {
 				->with(
 						\OC::$SERVERROOT . '/tests/data/integritycheck/app//resources/codesigning/root.crt'
 				)
-				->will($this->returnValue(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
+				->will($this->returnValue(\file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
 
 		$expected = [
 				'EXCEPTION' => [
@@ -941,7 +1102,7 @@ class CheckerTest extends TestCase {
 				->with(
 						\OC::$SERVERROOT . '/tests/data/integritycheck/app//resources/codesigning/root.crt'
 				)
-				->will($this->returnValue(file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
+				->will($this->returnValue(\file_get_contents(__DIR__ .'/../../data/integritycheck/root.crt')));
 
 		$expected = [
 				'EXCEPTION' => [
@@ -1101,7 +1262,7 @@ class CheckerTest extends TestCase {
 				->will($this->returnValue(true));
 
 		$result = $this->invokePrivate($this->checker, 'isCodeCheckEnforced');
-		$this->assertSame(false, $result);
+		$this->assertFalse($result);
 	}
 
 	public function testCertRevocation() {
@@ -1141,14 +1302,14 @@ class CheckerTest extends TestCase {
 			->with(
 				'/resources/codesigning/root.crt'
 			)
-			->will($this->returnValue(file_get_contents(__DIR__ .'/../../../resources/codesigning/root.crt')));
+			->will($this->returnValue(\file_get_contents(__DIR__ .'/../../../resources/codesigning/root.crt')));
 		$this->fileAccessHelper
 			->expects($this->at(2))
 			->method('file_get_contents')
 			->with(
 				'/resources/codesigning/intermediate.crl.pem'
 			)
-			->will($this->returnValue(file_get_contents(__DIR__ .'/../../../resources/codesigning/intermediate.crl.pem')));
+			->will($this->returnValue(\file_get_contents(__DIR__ .'/../../../resources/codesigning/intermediate.crl.pem')));
 		$expected = [
 			'EXCEPTION' => [
 				'class' => 'OC\\IntegrityCheck\\Exceptions\\InvalidSignatureException',
@@ -1158,5 +1319,4 @@ class CheckerTest extends TestCase {
 
 		$this->assertSame($expected, $this->checker->verifyAppSignature('SomeApp'));
 	}
-
 }

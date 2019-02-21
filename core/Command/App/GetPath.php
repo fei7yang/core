@@ -2,7 +2,7 @@
 /**
  * @author Victor Dubiniuk <dubiniuk@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -32,11 +32,11 @@ class GetPath extends Base {
 
 		$this
 			->setName('app:getpath')
-			->setDescription('Get an absolute path to the app directory')
+			->setDescription('Get the absolute path to the app directory.')
 			->addArgument(
 				'app',
 				InputArgument::REQUIRED,
-				'Name of the app'
+				'The name of the app.'
 			)
 		;
 	}

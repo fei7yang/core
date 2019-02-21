@@ -4,7 +4,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -24,9 +24,9 @@
 namespace OCA\DAV\Tests\unit\SystemTag;
 
 use OC\SystemTag\SystemTag;
-use OCP\SystemTag\TagNotFoundException;
-use OCP\SystemTag\TagAlreadyExistsException;
 use OCP\SystemTag\ISystemTag;
+use OCP\SystemTag\TagAlreadyExistsException;
+use OCP\SystemTag\TagNotFoundException;
 
 class SystemTagNodeTest extends \Test\TestCase {
 
@@ -115,6 +115,8 @@ class SystemTagNodeTest extends \Test\TestCase {
 			->method('canUserAssignTag')
 			->with($originalTag)
 			->will($this->returnValue($originalTag->isUserAssignable() || $isAdmin));
+		$this->tagManager->method('canUserUseStaticTagInGroup')
+			->willReturn(true);
 		$this->tagManager->expects($this->once())
 			->method('updateTag')
 			->with(1, $changedArgs[0], $changedArgs[1], $changedArgs[2]);
@@ -203,10 +205,28 @@ class SystemTagNodeTest extends \Test\TestCase {
 			->method('canUserAssignTag')
 			->with($tag)
 			->will($this->returnValue(true));
+		$this->tagManager->method('canUserUseStaticTagInGroup')
+			->willReturn(true);
 		$this->tagManager->expects($this->once())
 			->method('updateTag')
 			->with(1, 'Renamed', true, true)
 			->will($this->throwException(new TagAlreadyExistsException()));
+		$this->getTagNode(false, $tag)->update('Renamed', true, true);
+	}
+
+	/**
+	 * @expectedException \Sabre\DAV\Exception\Forbidden
+	 */
+	public function testStaticTagUpdateFail() {
+		$tag = new SystemTag(1, 'tag1', true, true, false);
+		$this->tagManager->expects($this->any())
+			->method('canUserSeeTag')
+			->with($tag)
+			->will($this->returnValue(true));
+		$this->tagManager->expects($this->any())
+			->method('canUserAssignTag')
+			->with($tag)
+			->will($this->returnValue(true));
 		$this->getTagNode(false, $tag)->update('Renamed', true, true);
 	}
 
@@ -223,6 +243,8 @@ class SystemTagNodeTest extends \Test\TestCase {
 			->method('canUserAssignTag')
 			->with($tag)
 			->will($this->returnValue(true));
+		$this->tagManager->method('canUserUseStaticTagInGroup')
+			->willReturn(true);
 		$this->tagManager->expects($this->once())
 			->method('updateTag')
 			->with(1, 'Renamed', true, true)
@@ -243,6 +265,8 @@ class SystemTagNodeTest extends \Test\TestCase {
 			->method('canUserAssignTag')
 			->with($tag)
 			->will($this->returnValue(true));
+		$this->tagManager->method('canUserUseStaticTagInGroup')
+			->willReturn(true);
 		$this->tagManager->expects($this->once())
 			->method('deleteTags')
 			->with('1');
@@ -301,10 +325,28 @@ class SystemTagNodeTest extends \Test\TestCase {
 			->method('canUserAssignTag')
 			->with($tag)
 			->will($this->returnValue($tag->isUserAssignable()));
+		$this->tagManager->method('canUserUseStaticTagInGroup')
+			->willReturn(true);
 		$this->tagManager->expects($this->once())
 			->method('deleteTags')
 			->with('1')
 			->will($this->throwException(new TagNotFoundException()));
+		$this->getTagNode(false, $tag)->delete();
+	}
+
+	/**
+	 * @expectedException \Sabre\DAV\Exception\Forbidden
+	 */
+	public function testStaticTagExceptionForDelete() {
+		$tag = new SystemTag(1, 'tag1', true, true, false);
+		$this->tagManager->expects($this->any())
+			->method('canUserSeeTag')
+			->with($tag)
+			->will($this->returnValue($tag->isUserVisible()));
+		$this->tagManager->expects($this->any())
+			->method('canUserAssignTag')
+			->with($tag)
+			->will($this->returnValue($tag->isUserAssignable()));
 		$this->getTagNode(false, $tag)->delete();
 	}
 }

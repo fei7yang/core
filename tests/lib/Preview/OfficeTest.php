@@ -2,7 +2,7 @@
 /**
  * @author Olivier Paroz <owncloud@interfasys.ch>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -29,7 +29,6 @@ namespace Test\Preview;
  * @package Test\Preview
  */
 class OfficeTest extends Provider {
-
 	public function setUp() {
 		$libreofficeBinary = \OC_Helper::findBinaryPath('libreoffice');
 		$openofficeBinary = ($libreofficeBinary) ? null : \OC_Helper::findBinaryPath('openoffice');
@@ -46,5 +45,4 @@ class OfficeTest extends Provider {
 			$this->markTestSkipped('No Office provider present');
 		}
 	}
-
 }

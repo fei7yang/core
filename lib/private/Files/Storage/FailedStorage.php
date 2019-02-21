@@ -4,7 +4,7 @@
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -24,6 +24,7 @@
 namespace OC\Files\Storage;
 
 use OC\Files\Cache\FailedCache;
+use OCP\Files\Storage\IStorage;
 use \OCP\Lock\ILockingProvider;
 use \OCP\Files\StorageNotAvailableException;
 
@@ -182,7 +183,7 @@ class FailedStorage extends Common {
 		return true;
 	}
 
-	public function copyFromStorage(\OCP\Files\Storage $sourceStorage, $sourceInternalPath, $targetInternalPath) {
+	public function copyFromStorage(\OCP\Files\Storage $sourceStorage, $sourceInternalPath, $targetInternalPath, $preserveMtime = false) {
 		throw new StorageNotAvailableException($this->e->getMessage(), $this->e->getCode(), $this->e);
 	}
 

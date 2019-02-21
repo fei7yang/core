@@ -7,7 +7,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -29,6 +29,9 @@
 
 \OC::$server->getSearch()->registerProvider('OC\Search\Provider\File', ['apps' => ['files']]);
 
+// instantiate to make sure services get registered
+$app = new \OCA\Files\AppInfo\Application();
+
 $templateManager = \OC_Helper::getFileTemplateManager();
 $templateManager->registerTemplate('text/html', 'core/templates/filetemplates/template.html');
 $templateManager->registerTemplate('application/vnd.oasis.opendocument.presentation', 'core/templates/filetemplates/template.odp');
@@ -46,7 +49,7 @@ $templateManager->registerTemplate('application/vnd.oasis.opendocument.spreadshe
 	];
 });
 
-\OC::$server->getActivityManager()->registerExtension(function() {
+\OC::$server->getActivityManager()->registerExtension(function () {
 	return new \OCA\Files\Activity(
 		\OC::$server->query('L10NFactory'),
 		\OC::$server->getURLGenerator(),

@@ -4,7 +4,7 @@
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,9 +21,7 @@
  *
  */
 
-
 namespace OCA\FederatedFileSharing\Tests;
-
 
 use OCA\FederatedFileSharing\TokenHandler;
 use OCP\Security\ISecureRandom;
@@ -48,7 +46,6 @@ class TokenHandlerTest extends \Test\TestCase {
 	}
 
 	public function testGenerateToken() {
-
 		$this->secureRandom->expects($this->once())->method('generate')
 			->with(
 				$this->expectedTokenLength,
@@ -57,7 +54,5 @@ class TokenHandlerTest extends \Test\TestCase {
 			->willReturn(true);
 
 		$this->assertTrue($this->tokenHandler->generateToken());
-
 	}
-
 }

@@ -7,7 +7,7 @@
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -130,7 +130,7 @@ interface FileInfo {
 	/**
 	 * Get the storage the file or folder is storage on
 	 *
-	 * @return \OCP\Files\Storage
+	 * @return \OCP\Files\Storage\IStorage
 	 * @since 7.0.0
 	 */
 	public function getStorage();

@@ -4,7 +4,7 @@
  * @author Laurens Post <lkpost@scept.re>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -64,31 +64,31 @@ class Add extends Command {
 			->addArgument(
 				'uid',
 				InputArgument::REQUIRED,
-				'User ID used to login (must only contain a-z, A-Z, 0-9, -, _ and @)'
+				'User ID used to login (must only contain a-z, A-Z, 0-9, -, _ and @).'
 			)
 			->addOption(
 				'password-from-env',
 				null,
 				InputOption::VALUE_NONE,
-				'read password from environment variable OC_PASS'
+				'Read password from the OC_PASS environment variable.'
 			)
 			->addOption(
 				'display-name',
 				null,
 				InputOption::VALUE_OPTIONAL,
-				'User name used in the web UI (can contain any characters)'
+				'User name used in the web UI (can contain any characters).'
 			)
 			->addOption(
 				'email',
 				null,
 				InputOption::VALUE_OPTIONAL,
-				'Email address for the user'
+				'Email address for the user.'
 			)
 			->addOption(
 				'group',
 				'g',
 				InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY,
-				'groups the user should be added to (The group will be created if it does not exist)'
+				'The groups the user should be added to (The group will be created if it does not exist).'
 			);
 	}
 
@@ -102,7 +102,7 @@ class Add extends Command {
 		// Validate email before we create the user
 		if ($input->getOption('email')) {
 			// Validate first
-			if(!$this->mailer->validateMailAddress($input->getOption('email'))) {
+			if (!$this->mailer->validateMailAddress($input->getOption('email'))) {
 				// Invalid! Error
 				$output->writeln('<error>Invalid email address supplied</error>');
 				return 1;
@@ -114,7 +114,7 @@ class Add extends Command {
 		}
 
 		if ($input->getOption('password-from-env')) {
-			$password = getenv('OC_PASS');
+			$password = \getenv('OC_PASS');
 			if (!$password) {
 				$output->writeln('<error>--password-from-env given, but OC_PASS is empty!</error>');
 				return 1;
@@ -122,10 +122,10 @@ class Add extends Command {
 		} elseif ($input->isInteractive()) {
 			/** @var $dialog \Symfony\Component\Console\Helper\QuestionHelper */
 			$dialog = $this->getHelperSet()->get('question');
-			$q = new Question('<question>Enter password: </question>',false);
+			$q = new Question('<question>Enter password: </question>', false);
 			$q->setHidden(true);
 			$password = $dialog->ask($input, $output, $q);
-			$q = new Question('<question>Confirm password: </question>',false);
+			$q = new Question('<question>Confirm password: </question>', false);
 			$q->setHidden(true);
 			$confirm = $dialog->ask($input, $output, $q);
 
@@ -156,7 +156,7 @@ class Add extends Command {
 		}
 
 		// Set email if supplied & valid
-		if(!is_null($email)) {
+		if ($email !== null) {
 			$user->setEMailAddress($email);
 			$output->writeln('Email address set to "' . $user->getEMailAddress() . '"');
 		}

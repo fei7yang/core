@@ -19,7 +19,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -37,6 +37,7 @@
  */
 
 use OC\TemplateLayout;
+use OCP\IL10N;
 use OCP\Theme\ITheme;
 
 require_once __DIR__.'/template/functions.php';
@@ -76,13 +77,16 @@ class OC_Template extends \OC\Template\Base {
 	 *                         now, $renderAs can be set to "guest", "user" or
 	 *                         "admin".
 	 * @param bool $registerCall = true
+	 * @param string|null $languageCode optional language used to render the template
 	 */
-	public function __construct( $app, $name, $renderAs = "", $registerCall = true ) {
+	public function __construct($app, $name, $renderAs = "", $registerCall = true, $languageCode = null) {
 		self::initTemplateEngine($renderAs);
 		$requestToken = (OC::$server->getSession() && $registerCall) ? \OCP\Util::callRegister() : '';
 
-		$parts = explode('/', $app); // fix translation when app is something like core/lostpassword
-		$l10n = \OC::$server->getL10N($parts[0]);
+		// fix translation when app is something like core/lostpassword
+		$parts = \explode('/', $app);
+
+		$l10n = \OC::$server->getL10N($parts[0], $languageCode);
 
 		$theme = OC_Util::getTheme();
 		$template = $this->findTemplate($theme, $app, $name);
@@ -98,30 +102,30 @@ class OC_Template extends \OC\Template\Base {
 	 * @throws Exception
 	 */
 	public static function initTemplateEngine($renderAs) {
-		if (self::$initTemplateEngineFirstRun){
-
+		if (self::$initTemplateEngineFirstRun) {
+			$isInstalled = \OC::$server->getSystemConfig()->getValue('installed', false);
 			//apps that started before the template initialization can load their own scripts/styles
 			//so to make sure this scripts/styles here are loaded first we use OC_Util::addScript() with $prepend=true
 			//meaning the last script/style in this list will be loaded first
-			if (\OC::$server->getSystemConfig()->getValue ('installed', false) && $renderAs !== 'error' && !\OCP\Util::needUpgrade()) {
-				if (\OC::$server->getConfig ()->getAppValue ( 'core', 'backgroundjobs_mode', 'ajax' ) == 'ajax') {
-					OC_Util::addScript ( 'backgroundjobs', null, true );
+			if ($isInstalled && $renderAs !== 'error' && !\OCP\Util::needUpgrade()) {
+				if (\OC::$server->getConfig()->getAppValue('core', 'backgroundjobs_mode', 'ajax') == 'ajax') {
+					OC_Util::addScript('backgroundjobs', null, true);
 				}
 			}
 
-			OC_Util::addStyle("tooltip",null,true);
-			OC_Util::addStyle('jquery-ui-fixes',null,true);
-			OC_Util::addVendorStyle('jquery-ui/themes/base/jquery-ui',null,true);
-			OC_Util::addStyle("mobile",null,true);
-			OC_Util::addStyle("multiselect",null,true);
-			OC_Util::addStyle("fixes",null,true);
-			OC_Util::addStyle("global",null,true);
-			OC_Util::addStyle("apps",null,true);
-			OC_Util::addStyle("fonts",null,true);
-			OC_Util::addStyle("icons",null,true);
-			OC_Util::addStyle("header",null,true);
-			OC_Util::addStyle("inputs",null,true);
-			OC_Util::addStyle("styles",null,true);
+			OC_Util::addStyle("tooltip", null, true);
+			OC_Util::addStyle('jquery-ui-fixes', null, true);
+			OC_Util::addVendorStyle('jquery-ui/themes/base/jquery-ui', null, true);
+			OC_Util::addStyle("mobile", null, true);
+			OC_Util::addStyle("multiselect", null, true);
+			OC_Util::addStyle("fixes", null, true);
+			OC_Util::addStyle("global", null, true);
+			OC_Util::addStyle("apps", null, true);
+			OC_Util::addStyle("fonts", null, true);
+			OC_Util::addStyle("icons", null, true);
+			OC_Util::addStyle("header", null, true);
+			OC_Util::addStyle("inputs", null, true);
+			OC_Util::addStyle("styles", null, true);
 
 			// avatars
 			if (\OC::$server->getSystemConfig()->getValue('enable_avatars', true) === true) {
@@ -129,8 +133,11 @@ class OC_Template extends \OC\Template\Base {
 				\OC_Util::addScript('placeholder', null, true);
 			}
 
+			OC_Util::addScript('oc-backbone-webdav', null, true);
 			OC_Util::addScript('oc-backbone', null, true);
 			OC_Util::addVendorScript('core', 'backbone/backbone', true);
+			OC_Util::addVendorScript('core', 'select2/select2', true);
+			OC_Util::addVendorStyle('select2/select2', null, true);
 			OC_Util::addVendorScript('snapjs/dist/latest/snap', null, true);
 			OC_Util::addScript('mimetypelist', null, true);
 			OC_Util::addScript('mimetype', null, true);
@@ -149,16 +156,30 @@ class OC_Template extends \OC\Template\Base {
 			OC_Util::addScript('files/fileinfo');
 			OC_Util::addScript('files/client');
 
+			if ($isInstalled && \OCP\Share::isEnabled()) {
+				\OC_Util::addScript('core', 'shareconfigmodel');
+				\OC_Util::addScript('core', 'shareitemmodel');
+				\OC_Util::addScript('core', 'sharedialogresharerinfoview');
+				\OC_Util::addScript('core', 'sharedialoglinkshareview');
+				\OC_Util::addScript('core', 'sharedialoglinksocialview');
+				\OC_Util::addScript('core', 'sharedialogmailview');
+				\OC_Util::addScript('core', 'sharedialogexpirationview');
+				\OC_Util::addScript('core', 'sharedialogshareelistview');
+				\OC_Util::addScript('core', 'sharedialogview');
+				\OC_Util::addScript('core', 'share');
+				\OC_Util::addStyle('core', 'share');
+			}
+
 			// Add the stuff we need always
 			// following logic will import all vendor libraries that are
 			// specified in core/js/core.json
-			$fileContent = file_get_contents(OC::$SERVERROOT . '/core/js/core.json');
-			if($fileContent !== false) {
-				$coreDependencies = json_decode($fileContent, true);
-				foreach(array_reverse($coreDependencies['vendor']) as $vendorLibrary) {
+			$fileContent = \file_get_contents(OC::$SERVERROOT . '/core/js/core.json');
+			if ($fileContent !== false) {
+				$coreDependencies = \json_decode($fileContent, true);
+				foreach (\array_reverse($coreDependencies['vendor']) as $vendorLibrary) {
 					// remove trailing ".js" as addVendorScript will append it
 					OC_Util::addVendorScript(
-							substr($vendorLibrary, 0, strlen($vendorLibrary) - 3),null,true);
+							\substr($vendorLibrary, 0, \strlen($vendorLibrary) - 3), null, true);
 				}
 			} else {
 				throw new \Exception('Cannot read core/js/core.json');
@@ -171,11 +192,24 @@ class OC_Template extends \OC\Template\Base {
 				\OCP\Util::addScript('files/iedavclient');
 			}
 
+			\OCP\Util::addScript('core', 'shareconfigmodel');
+			\OCP\Util::addScript('core', 'sharemodel');
+			\OCP\Util::addScript('core', 'sharescollection');
+			\OCP\Util::addScript('core', 'shareitemmodel');
+			\OCP\Util::addScript('core', 'sharedialogresharerinfoview');
+			\OCP\Util::addScript('core', 'sharedialoglinklistview');
+			\OCP\Util::addScript('core', 'sharedialoglinkshareview');
+			\OCP\Util::addScript('core', 'sharedialogmailview');
+			\OCP\Util::addScript('core', 'sharedialoglinksocialview');
+			\OCP\Util::addScript('core', 'sharedialogexpirationview');
+			\OCP\Util::addScript('core', 'sharedialogshareelistview');
+			\OCP\Util::addScript('core', 'sharedialogview');
+			\OCP\Util::addScript('core', 'share');
+			\OCP\Util::addStyle('core', 'share');
+
 			self::$initTemplateEngineFirstRun = false;
 		}
-
 	}
-
 
 	/**
 	 * find the template with the given name
@@ -189,13 +223,15 @@ class OC_Template extends \OC\Template\Base {
 	 */
 	protected function findTemplate($theme, $app, $name) {
 		// Check if it is a app template or not.
-		if( $app !== '' && $app !== 'core' ) {
-			$dirs = $this->getAppTemplateDirs($theme, $app, OC::$SERVERROOT, OC_App::getAppPath($app));
-		} else {
+		if ($app === '' || $app === 'core') {
 			$dirs = $this->getCoreTemplateDirs($theme, OC::$SERVERROOT);
+		} elseif ($app === 'settings') {
+			$dirs = $this->getSettingsTemplateDirs($theme, OC::$SERVERROOT);
+		} else {
+			$dirs = $this->getAppTemplateDirs($theme, $app, OC_App::getAppPath($app));
 		}
 
-		$locator = new \OC\Template\TemplateFileLocator( $dirs );
+		$locator = new \OC\Template\TemplateFileLocator($dirs);
 		$template = $locator->find($name);
 
 		return $template;
@@ -228,14 +264,14 @@ class OC_Template extends \OC\Template\Base {
 	public function fetchPage($additionalParams = null) {
 		$data = parent::fetchPage($additionalParams);
 
-		if( $this->renderAs ) {
+		if ($this->renderAs) {
 			$page = new TemplateLayout($this->renderAs, $this->app);
 
 			// Add custom headers
 			$headers = '';
-			foreach(OC_Util::$headers as $header) {
+			foreach (OC_Util::$headers as $header) {
 				$headers .= '<'.\OCP\Util::sanitizeHTML($header['tag']);
-				foreach($header['attributes'] as $name=>$value) {
+				foreach ($header['attributes'] as $name=>$value) {
 					$headers .= ' '.\OCP\Util::sanitizeHTML($name).'="'.\OCP\Util::sanitizeHTML($value).'"';
 				}
 				if ($header['text'] !== null) {
@@ -261,11 +297,14 @@ class OC_Template extends \OC\Template\Base {
 	 * @param array|null $additionalParams
 	 * @return string returns content of included template
 	 *
-	 * Includes another template. use <?php echo $this->inc('template'); ?> to
-	 * do this.
+	 * Includes another template.
+	 * use <?php print_unescaped($this->inc('template')); ?> to do this.
+	 * use <?php print_unescaped($this->inc('template', ['app'=>'appName'])); ?>
+	 * to include template from a different app.
 	 */
 	public function inc($file, $additionalParams = null) {
-		$template = $this->findTemplate($this->theme, $this->app, $file);
+		$app = (isset($additionalParams['app'])) ? $additionalParams['app'] : $this->app;
+		$template = $this->findTemplate($this->theme, $app, $file);
 		return $this->load($template, $additionalParams);
 	}
 
@@ -276,10 +315,10 @@ class OC_Template extends \OC\Template\Base {
 	 * @param array $parameters Parameters for the template
 	 * @return boolean|null
 	 */
-	public static function printUserPage( $application, $name, $parameters = []) {
-		$content = new OC_Template( $application, $name, "user" );
-		foreach( $parameters as $key => $value ) {
-			$content->assign( $key, $value );
+	public static function printUserPage($application, $name, $parameters = []) {
+		$content = new OC_Template($application, $name, "user");
+		foreach ($parameters as $key => $value) {
+			$content->assign($key, $value);
 		}
 		print $content->printPage();
 	}
@@ -291,10 +330,10 @@ class OC_Template extends \OC\Template\Base {
 	 * @param array $parameters Parameters for the template
 	 * @return bool
 	 */
-	public static function printAdminPage( $application, $name, $parameters = []) {
-		$content = new OC_Template( $application, $name, "admin" );
-		foreach( $parameters as $key => $value ) {
-			$content->assign( $key, $value );
+	public static function printAdminPage($application, $name, $parameters = []) {
+		$content = new OC_Template($application, $name, "admin");
+		foreach ($parameters as $key => $value) {
+			$content->assign($key, $value);
 		}
 		return $content->printPage();
 	}
@@ -306,10 +345,10 @@ class OC_Template extends \OC\Template\Base {
 	 * @param array|string $parameters Parameters for the template
 	 * @return bool
 	 */
-	public static function printGuestPage( $application, $name, $parameters = []) {
-		$content = new OC_Template( $application, $name, "guest" );
-		foreach( $parameters as $key => $value ) {
-			$content->assign( $key, $value );
+	public static function printGuestPage($application, $name, $parameters = []) {
+		$content = new OC_Template($application, $name, "guest");
+		foreach ($parameters as $key => $value) {
+			$content->assign($key, $value);
 		}
 		return $content->printPage();
 	}
@@ -320,18 +359,18 @@ class OC_Template extends \OC\Template\Base {
 		* @param string $hint An optional hint message - needs to be properly escaped
 		* @param int HTTP Status Code
 		*/
-	public static function printErrorPage( $error_msg, $hint = '', $httpStatusCode = null ) {
+	public static function printErrorPage($error_msg, $hint = '', $httpStatusCode = null) {
 		if ($error_msg === $hint) {
 			// If the hint is the same as the message there is no need to display it twice.
 			$hint = '';
 		}
 
 		try {
-			$content = new \OC_Template( '', 'error', 'error', false );
-			$errors = [['error' => \OCP\Util::sanitizeHTML($error_msg), 'hint' => \OCP\Util::sanitizeHTML($hint)]];
-			$content->assign( 'errors', $errors );
+			$content = new \OC_Template('', 'error', 'error', false);
+			$errors = [['error' => $error_msg, 'hint' => $hint]];
+			$content->assign('errors', $errors);
 			if ($httpStatusCode !== null) {
-				http_response_code((int)$httpStatusCode);
+				\http_response_code((int)$httpStatusCode);
 			}
 			$content->printPage();
 		} catch (\Exception $e) {
@@ -339,8 +378,8 @@ class OC_Template extends \OC\Template\Base {
 			$logger->error("$error_msg $hint", ['app' => 'core']);
 			$logger->logException($e, ['app' => 'core']);
 
-			header(self::getHttpProtocol() . ' 500 Internal Server Error');
-			header('Content-Type: text/plain; charset=utf-8');
+			\header(self::getHttpProtocol() . ' 500 Internal Server Error');
+			\header('Content-Type: text/plain; charset=utf-8');
 			print("$error_msg $hint");
 		}
 		die();
@@ -356,7 +395,7 @@ class OC_Template extends \OC\Template\Base {
 		try {
 			$request = \OC::$server->getRequest();
 			$content = new \OC_Template('', 'exception', 'error', false);
-			$content->assign('errorClass', get_class($exception));
+			$content->assign('errorClass', \get_class($exception));
 			$content->assign('errorMsg', $exception->getMessage());
 			$content->assign('errorCode', $exception->getCode());
 			$content->assign('file', $exception->getFile());
@@ -374,8 +413,8 @@ class OC_Template extends \OC\Template\Base {
 			$logger->logException($exception, ['app' => 'core']);
 			$logger->logException($e, ['app' => 'core']);
 
-			header(self::getHttpProtocol() . ' 500 Internal Server Error');
-			header('Content-Type: text/plain; charset=utf-8');
+			\header(self::getHttpProtocol() . ' 500 Internal Server Error');
+			\header('Content-Type: text/plain; charset=utf-8');
 			print("Internal Server Error\n\n");
 			print("The server encountered an internal error and was unable to complete your request.\n");
 			print("Please contact the server administrator if this error reappears multiple times, please include the technical details below in your report.\n");
@@ -394,13 +433,13 @@ class OC_Template extends \OC\Template\Base {
 	 * @internal Don't use this - use AppFramework\Http\Request->getHttpProtocol instead
 	 */
 	protected static function getHttpProtocol() {
-		$claimedProtocol = strtoupper($_SERVER['SERVER_PROTOCOL']);
+		$claimedProtocol = \strtoupper($_SERVER['SERVER_PROTOCOL']);
 		$validProtocols = [
 			'HTTP/1.0',
 			'HTTP/1.1',
 			'HTTP/2',
 		];
-		if(in_array($claimedProtocol, $validProtocols, true)) {
+		if (\in_array($claimedProtocol, $validProtocols, true)) {
 			return $claimedProtocol;
 		}
 		return 'HTTP/1.1';

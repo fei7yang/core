@@ -2,7 +2,7 @@
 /**
  * @author Piotr Mrowczynski <piotr@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -23,7 +23,6 @@ namespace OCA\DAV\Tests\unit\Connector\Sabre;
 
 use OCA\DAV\Connector\Sabre\ValidateRequestPlugin;
 use Test\TestCase;
-use OCP\IConfig;
 
 /**
  * Class ValidateRequestPluginTest
@@ -70,5 +69,4 @@ class ValidateRequestPluginTest extends TestCase {
 
 		$this->plugin->checkValidityPut();
 	}
-
 }

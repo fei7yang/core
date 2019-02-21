@@ -2,7 +2,7 @@
 /**
  * @author Olivier Paroz <owncloud@interfasys.ch>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -29,7 +29,6 @@ namespace Test\Preview;
  * @package Test\Preview
  */
 class ImageTest extends Provider {
-
 	public function setUp() {
 		parent::setUp();
 
@@ -39,5 +38,4 @@ class ImageTest extends Provider {
 		$this->height = 1050;
 		$this->provider = new \OC\Preview\JPEG();
 	}
-
 }

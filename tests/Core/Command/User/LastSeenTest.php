@@ -2,7 +2,7 @@
 /**
  * @author Joas Schilling <nickvergessen@owncloud.com>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -20,7 +20,6 @@
  */
 
 namespace Tests\Core\Command\User;
-
 
 use OC\Core\Command\User\LastSeen;
 use Test\TestCase;
@@ -52,7 +51,7 @@ class LastSeenTest extends TestCase {
 	public function validUserLastSeen() {
 		return [
 			[0, 'never logged in'],
-			[time(), 'last login'],
+			[\time(), 'last login'],
 		];
 	}
 

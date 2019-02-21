@@ -7,7 +7,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -23,7 +23,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
-
 
 namespace OCA\Files_Sharing\Tests;
 
@@ -117,9 +116,11 @@ class PermissionsTest extends TestCase {
 
 		self::loginHelper(self::TEST_FILES_SHARING_API_USER1);
 
-		$shares = $this->shareManager->getSharesBy(self::TEST_FILES_SHARING_API_USER1, \OCP\Share::SHARE_TYPE_USER);
-		foreach ($shares as $share) {
-			$this->shareManager->deleteShare($share);
+		if ($this->shareManager) {
+			$shares = $this->shareManager->getSharesBy(self::TEST_FILES_SHARING_API_USER1, \OCP\Share::SHARE_TYPE_USER);
+			foreach ($shares as $share) {
+				$this->shareManager->deleteShare($share);
+			}
 		}
 
 		$this->view->deleteAll('container');
@@ -132,7 +133,7 @@ class PermissionsTest extends TestCase {
 	/**
 	 * Test that the permissions of shared directory are returned correctly
 	 */
-	function testGetPermissions() {
+	public function testGetPermissions() {
 		$sharedDirPerms = $this->sharedStorage->getPermissions('shareddir');
 		$this->assertEquals(31, $sharedDirPerms);
 		$sharedDirPerms = $this->sharedStorage->getPermissions('shareddir/textfile.txt');
@@ -146,7 +147,7 @@ class PermissionsTest extends TestCase {
 	/**
 	 * Test that the permissions of shared directory are returned correctly
 	 */
-	function testGetDirectoryPermissions() {
+	public function testGetDirectoryPermissions() {
 		$contents = $this->secondView->getDirectoryContent('files/shareddir');
 		$this->assertEquals('subdir', $contents[0]['name']);
 		$this->assertEquals(31, $contents[0]['permissions']);

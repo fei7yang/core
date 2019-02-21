@@ -2,7 +2,7 @@
 /**
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -45,7 +45,7 @@ interface IShareable extends INode {
 	 * @param array $remove
 	 * @return void
 	 */
-	function updateShares(array $add, array $remove);
+	public function updateShares(array $add, array $remove);
 
 	/**
 	 * Returns the list of people whom this resource is shared with.
@@ -59,7 +59,7 @@ interface IShareable extends INode {
 	 *
 	 * @return array
 	 */
-	function getShares();
+	public function getShares();
 
 	/**
 	 * @return int
@@ -70,5 +70,4 @@ interface IShareable extends INode {
 	 * @return string
 	 */
 	public function getOwner();
-
 }

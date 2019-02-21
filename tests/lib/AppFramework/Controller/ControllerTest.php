@@ -4,7 +4,7 @@
  * ownCloud - App Framework
  *
  * @author Bernhard Posselt
- * @copyright 2012 Bernhard Posselt <dev@bernhard-posselt.com>
+ * @copyright Copyright (c) 2012 Bernhard Posselt <dev@bernhard-posselt.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
@@ -21,22 +21,19 @@
  *
  */
 
-
 namespace Test\AppFramework\Controller;
 
 use OC\AppFramework\DependencyInjection\DIContainer;
 use OC\AppFramework\Http\Request;
 use OCP\AppFramework\Controller;
-use OCP\AppFramework\Http\TemplateResponse;
-use OCP\AppFramework\Http\JSONResponse;
 use OCP\AppFramework\Http\DataResponse;
+use OCP\AppFramework\Http\JSONResponse;
+use OCP\AppFramework\Http\TemplateResponse;
 use OCP\IConfig;
 use OCP\Security\ISecureRandom;
 use Test\TestCase;
 
-
 class ChildController extends Controller {
-
 	public function __construct($appName, $request) {
 		parent::__construct($appName, $request);
 		$this->registerResponder('tom', function ($response) {
@@ -46,7 +43,7 @@ class ChildController extends Controller {
 
 	public function custom($in) {
 		$this->registerResponder('json', function ($response) {
-			return new JSONResponse([strlen($response)]);
+			return new JSONResponse([\strlen($response)]);
 		});
 
 		return $in;
@@ -70,7 +67,7 @@ class ControllerTest extends TestCase {
 	/** @var DIContainer */
 	private $app;
 
-	protected function setUp(){
+	protected function setUp() {
 		parent::setUp();
 
 		$request = new Request(
@@ -98,75 +95,6 @@ class ControllerTest extends TestCase {
 		$this->controller = new ChildController($this->app, $request);
 	}
 
-
-	public function testParamsGet(){
-		$this->assertEquals('Johnny Weissmüller', $this->controller->params('name', 'Tarzan'));
-	}
-
-
-	public function testParamsGetDefault(){
-		$this->assertEquals('Tarzan', $this->controller->params('Ape Man', 'Tarzan'));
-	}
-
-
-	public function testParamsFile(){
-		$this->assertEquals('filevalue', $this->controller->params('file', 'filevalue'));
-	}
-
-
-	public function testGetUploadedFile(){
-		$this->assertEquals('filevalue', $this->controller->getUploadedFile('file'));
-	}
-
-
-
-	public function testGetUploadedFileDefault(){
-		$this->assertEquals('default', $this->controller->params('files', 'default'));
-	}
-
-
-	public function testGetParams(){
-		$params = [
-				'name' => 'Johnny Weissmüller',
-				'nickname' => 'Janey',
-		];
-
-		$this->assertEquals($params, $this->controller->getParams());
-	}
-
-
-	public function testRender(){
-		$this->assertTrue($this->controller->render('') instanceof TemplateResponse);
-	}
-
-
-	public function testSetParams(){
-		$params = ['john' => 'foo'];
-		$response = $this->controller->render('home', $params);
-
-		$this->assertEquals($params, $response->getParams());
-	}
-
-
-	public function testRenderHeaders(){
-		$headers = ['one', 'two'];
-		$response = $this->controller->render('', [], '', $headers);
-
-		$this->assertTrue(in_array($headers[0], $response->getHeaders()));
-		$this->assertTrue(in_array($headers[1], $response->getHeaders()));
-	}
-
-
-	public function testGetRequestMethod(){
-		$this->assertEquals('hi', $this->controller->method());
-	}
-
-
-	public function testGetEnvVariable(){
-		$this->assertEquals('daheim', $this->controller->env('PATH'));
-	}
-
-
 	/**
 	 * @expectedException \DomainException
 	 */
@@ -174,14 +102,12 @@ class ControllerTest extends TestCase {
 		$this->controller->buildResponse(null, 'test');
 	}
 
-
 	public function testFormat() {
 		/** @var DataResponse $response */
 		$response = $this->controller->buildResponse(['hi'], 'json');
 
 		$this->assertEquals(['hi'], $response->getData());
 	}
-
 
 	public function testFormatDataResponseJSON() {
 		$expectedHeaders = [
@@ -200,7 +126,6 @@ class ControllerTest extends TestCase {
 		$this->assertEquals($expectedHeaders, $response->getHeaders());
 	}
 
-
 	public function testCustomFormatter() {
 		$response = $this->controller->custom('hi');
 		/** @var DataResponse $response */
@@ -209,13 +134,11 @@ class ControllerTest extends TestCase {
 		$this->assertEquals([2], $response->getData());
 	}
 
-
 	public function testDefaultResponderToJSON() {
 		$responder = $this->controller->getResponderByHTTPHeader('*/*');
 
 		$this->assertEquals('json', $responder);
 	}
-
 
 	public function testResponderAcceptHeaderParsed() {
 		$responder = $this->controller->getResponderByHTTPHeader(
@@ -225,7 +148,6 @@ class ControllerTest extends TestCase {
 		$this->assertEquals('tom', $responder);
 	}
 
-
 	public function testResponderAcceptHeaderParsedUpperCase() {
 		$responder = $this->controller->getResponderByHTTPHeader(
 			'*/*, apPlication/ToM, application/json'
@@ -233,6 +155,4 @@ class ControllerTest extends TestCase {
 
 		$this->assertEquals('tom', $responder);
 	}
-
-
 }

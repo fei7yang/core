@@ -10,14 +10,16 @@
 namespace Test\Memcache;
 
 class MemcachedTest extends Cache {
-	static public function setUpBeforeClass() {
+	public static function setUpBeforeClass() {
 		parent::setUpBeforeClass();
 
 		if (!\OC\Memcache\Memcached::isAvailable()) {
 			self::markTestSkipped('The memcached extension is not available.');
 		}
 		$instance = new \OC\Memcache\Memcached(self::getUniqueID());
-		if ($instance->set(self::getUniqueID(), self::getUniqueID()) === false) {
+		try {
+			$instance->set(self::getUniqueID(), self::getUniqueID());
+		} catch (\Exception $ex) {
 			self::markTestSkipped('memcached server seems to be down.');
 		}
 	}

@@ -11,7 +11,6 @@
 var oc_debug;
 var oc_webroot;
 
-var oc_current_user = document.getElementsByTagName('head')[0].getAttribute('data-user');
 var oc_requesttoken = document.getElementsByTagName('head')[0].getAttribute('data-requesttoken');
 
 window.oc_config = window.oc_config || {};
@@ -82,7 +81,7 @@ var OC = {
 	 * @type String
 	 * @deprecated use {@link OC.getCurrentUser} instead
 	 */
-	currentUser: (typeof oc_current_user !== 'undefined') ? oc_current_user : false,
+	currentUser: (typeof oc_user !== 'undefined') ? oc_user.uid : false,
 	config: window.oc_config,
 	appConfig: window.oc_appconfig || {},
 	theme: window.oc_defaults || {},
@@ -322,12 +321,13 @@ var OC = {
 	 * @since 9.0.0
 	 */
 	getCurrentUser: function () {
-		if (_.isUndefined(this._currentUserDisplayName)) {
-			this._currentUserDisplayName = document.getElementsByTagName('head')[0].getAttribute('data-user-displayname');
+		if (!_.isUndefined(window.oc_user)) {
+			return oc_user;
 		}
 		return {
-			uid: this.currentUser,
-			displayName: this._currentUserDisplayName
+			uid: null,
+			displayName: null,
+			email: null
 		};
 	},
 
@@ -425,6 +425,21 @@ var OC = {
 	 */
 	basename: function (path) {
 		return path.replace(/\\/g, '/').replace(/.*\//, '');
+	},
+
+	/**
+	 * Returns true if the email regexp matches the email address else false returned
+	 * For example if email is "abc@foo.com", it will return true.
+	 * If email address is "abc@foo.c", then false will be returned.
+	 *
+	 * @param emailAddress
+	 * @returns {boolean}
+	 *
+	 * @since 10.1.0
+	 */
+	validateEmail: function(emailAddress) {
+		var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@\.]{2,}$/;
+		return (emailRegex.exec(emailAddress) !== null);
 	},
 
 	/**
@@ -760,7 +775,7 @@ var OC = {
 	 * @return {String} locale string
 	 */
 	getLocale: function () {
-		return $('html').prop('lang');
+		return $('html').attr('lang');
 	},
 
 	/**
@@ -992,7 +1007,7 @@ OC.msg = {
 	 * is displayed as an error/success
 	 */
 	finishedAction: function (selector, response) {
-		if (response.status === "success") {
+		if (response.status === "success" || response.status === "ok") {
 			this.finishedSuccess(selector, response.data.message);
 		} else {
 			this.finishedError(selector, response.data.message);
@@ -1663,6 +1678,15 @@ function initCore() {
 	}
 }
 
+/**
+ * Disable the use of globalEval in jQuery 2.1.4.
+ * This is required for API compatibility, yet should not be available all the
+ * same.
+ *
+ * @see https://github.com/jquery/jquery/issues/2432 for further details.
+ */
+$.fn.globalEval = function(){};
+
 $(document).ready(initCore);
 
 /**
@@ -1750,7 +1774,7 @@ OC.Util = {
 	* regular expression to parse size in bytes from a humanly readable string
 	* see computerFileSize(string)
 	*/
-	_computerFileSizeRegexp: /^[\s+]?([0-9]*)(\.([0-9]+))?( +)?([kmgtp]?b?)$/i,
+	_computerFileSizeRegexp: /^([0-9]*)(\.([0-9]+))?( +)?([kmgtp]?b?)$/i,
 
 	/**
 	 * Returns a file size in bytes from a humanly readable string

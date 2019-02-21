@@ -46,6 +46,9 @@ class CorsController extends Controller {
 	/** @var IConfig */
 	private $config;
 
+	/** @var string  */
+	private $AppName;
+
 	/**
 	 * CorsController constructor.
 	 *
@@ -86,22 +89,22 @@ class CorsController extends Controller {
 	/**
 	 * Gets all White-listed domains
 	 *
+	 * @NoAdminRequired
+	 * @NoSubadminRequired
+	 *
 	 * @return JSONResponse All the White-listed domains
 	 */
 	public function getDomains() {
 		$userId = $this->userId;
-
-		if (empty($this->config->getUserValue($userId, 'core', 'domains'))) {
-			$domains = [];
-		} else {
-			$domains = json_decode($this->config->getUserValue($userId, 'core', 'domains'));
-		}
-
+		$domains = \json_decode($this->config->getUserValue($userId, 'core', 'domains', '[]'), true);
 		return new JSONResponse($domains);
 	}
 
 	/**
 	 * WhiteLists a domain for CORS
+	 *
+	 * @NoAdminRequired
+	 * @NoSubadminRequired
 	 *
 	 * @param string $domain The domain to whitelist
 	 * @return RedirectResponse Redirection to the settings page.
@@ -112,15 +115,15 @@ class CorsController extends Controller {
 		}
 
 		$userId = $this->userId;
-		$domains = json_decode($this->config->getUserValue($userId, 'core', 'domains'));
-		$domains = array_filter($domains);
-		array_push($domains, $domain);
+		$domains = \json_decode($this->config->getUserValue($userId, 'core', 'domains', '[]'), true);
+		$domains = \array_filter($domains);
+		\array_push($domains, $domain);
 
 		// In case same domain is added
-		$domains = array_unique($domains);
+		$domains = \array_unique($domains);
 
-		// Store as comma seperated string
-		$domainsString = json_encode($domains);
+		// Store as comma separated string
+		$domainsString = \json_encode($domains);
 
 		$this->config->setUserValue($userId, 'core', 'domains', $domainsString);
 		$this->logger->debug("The domain {$domain} has been white-listed.", ['app' => $this->appName]);
@@ -131,16 +134,22 @@ class CorsController extends Controller {
 	/**
 	 * Removes a WhiteListed Domain
 	 *
+	 * @NoAdminRequired
+	 * @NoSubadminRequired
+	 *
 	 * @param string $domain Domain to remove
 	 * @return RedirectResponse Redirection to the settings page.
 	 */
 	public function removeDomain($id) {
 		$userId = $this->userId;
-		$domains = json_decode($this->config->getUserValue($userId, 'core', 'domains'));
-
-		if ($id >= 0 && $id < count($domains)) {
+		$domains = \json_decode($this->config->getUserValue($userId, 'core', 'domains', '[]'), true);
+		if (isset($domains[$id])) {
 			unset($domains[$id]);
-			$this->config->setUserValue($userId, 'core', 'domains', json_encode($domains));
+			if (\count($domains)) {
+				$this->config->setUserValue($userId, 'core', 'domains', \json_encode($domains));
+			} else {
+				$this->config->deleteUserValue($userId, 'core', 'domains');
+			}
 		}
 
 		return $this->getRedirectResponse();
@@ -152,7 +161,6 @@ class CorsController extends Controller {
 	 * @return boolean      whether URL is valid
 	 */
 	private static function isValidUrl($url) {
-		return (filter_var($url, FILTER_VALIDATE_URL) !== false);
+		return (\filter_var($url, FILTER_VALIDATE_URL) !== false);
 	}
-
 }

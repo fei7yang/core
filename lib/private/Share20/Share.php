@@ -3,7 +3,7 @@
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -27,6 +27,7 @@ use OCP\Files\Node;
 use OCP\Files\NotFoundException;
 use OCP\IUserManager;
 use OCP\Share\Exceptions\IllegalIDChangeException;
+use OC\Share\Constants;
 
 class Share implements \OCP\Share\IShare {
 
@@ -66,6 +67,10 @@ class Share implements \OCP\Share\IShare {
 	private $mailSend;
 	/** @var string */
 	private $name;
+	/** @var int */
+	private $state;
+	/** @var bool */
+	private $shouldHashPassword = true;
 
 	/** @var IRootFolder */
 	private $rootFolder;
@@ -76,17 +81,18 @@ class Share implements \OCP\Share\IShare {
 	public function __construct(IRootFolder $rootFolder, IUserManager $userManager) {
 		$this->rootFolder = $rootFolder;
 		$this->userManager = $userManager;
+		$this->state = Constants::STATE_ACCEPTED;
 	}
 
 	/**
 	 * @inheritdoc
 	 */
 	public function setId($id) {
-		if (is_int($id)) {
+		if (\is_int($id)) {
 			$id = (string)$id;
 		}
 
-		if(!is_string($id)) {
+		if (!\is_string($id)) {
 			throw new \InvalidArgumentException('String expected.');
 		}
 
@@ -94,7 +100,7 @@ class Share implements \OCP\Share\IShare {
 			throw new IllegalIDChangeException('Not allowed to assign a new internal id to a share');
 		}
 
-		$this->id = trim($id);
+		$this->id = \trim($id);
 		return $this;
 	}
 
@@ -119,7 +125,7 @@ class Share implements \OCP\Share\IShare {
 	 * @inheritdoc
 	 */
 	public function setProviderId($id) {
-		if(!is_string($id)) {
+		if (!\is_string($id)) {
 			throw new \InvalidArgumentException('String expected.');
 		}
 
@@ -127,7 +133,7 @@ class Share implements \OCP\Share\IShare {
 			throw new IllegalIDChangeException('Not allowed to assign a new provider id to a share');
 		}
 
-		$this->providerId = trim($id);
+		$this->providerId = \trim($id);
 		return $this;
 	}
 
@@ -146,20 +152,19 @@ class Share implements \OCP\Share\IShare {
 	 */
 	public function getNode() {
 		if ($this->node === null) {
-
 			if ($this->shareOwner === null || $this->fileId === null) {
 				throw new NotFoundException();
 			}
 
 			// for federated shares the owner can be a remote user, in this
 			// case we use the initiator
-			if($this->userManager->userExists($this->shareOwner)) {
+			if ($this->userManager->userExists($this->shareOwner)) {
 				$userFolder = $this->rootFolder->getUserFolder($this->shareOwner);
 			} else {
 				$userFolder = $this->rootFolder->getUserFolder($this->sharedBy);
 			}
 
-			$nodes = $userFolder->getById($this->fileId);
+			$nodes = $userFolder->getById($this->fileId, true);
 			if (empty($nodes)) {
 				throw new NotFoundException();
 			}
@@ -233,7 +238,7 @@ class Share implements \OCP\Share\IShare {
 	 * @inheritdoc
 	 */
 	public function setSharedWith($sharedWith) {
-		if (!is_string($sharedWith)) {
+		if (!\is_string($sharedWith)) {
 			throw new \InvalidArgumentException();
 		}
 		$this->sharedWith = $sharedWith;
@@ -285,7 +290,7 @@ class Share implements \OCP\Share\IShare {
 	 * @inheritdoc
 	 */
 	public function setSharedBy($sharedBy) {
-		if (!is_string($sharedBy)) {
+		if (!\is_string($sharedBy)) {
 			throw new \InvalidArgumentException();
 		}
 		//TODO checks
@@ -306,7 +311,7 @@ class Share implements \OCP\Share\IShare {
 	 * @inheritdoc
 	 */
 	public function setShareOwner($shareOwner) {
-		if (!is_string($shareOwner)) {
+		if (!\is_string($shareOwner)) {
 			throw new \InvalidArgumentException();
 		}
 		//TODO checks
@@ -433,5 +438,34 @@ class Share implements \OCP\Share\IShare {
 	 */
 	public function getName() {
 		return $this->name;
+	}
+
+	/**
+	 * @inheritdoc
+	 */
+	public function setState($state) {
+		$this->state = $state;
+		return $this;
+	}
+
+	/**
+	 * @inheritdoc
+	 */
+	public function getState() {
+		return $this->state;
+	}
+
+	/**
+	 * @inheritdoc
+	 */
+	public function getShouldHashPassword() {
+		return $this->shouldHashPassword;
+	}
+
+	/**
+	 * @inheritdoc
+	 */
+	public function setShouldHashPassword($status) {
+		$this->shouldHashPassword = $status;
 	}
 }

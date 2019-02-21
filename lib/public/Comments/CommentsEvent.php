@@ -2,7 +2,7 @@
 /**
  * @author Joas Schilling <coding@schilljs.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -30,7 +30,6 @@ use Symfony\Component\EventDispatcher\Event;
  * @since 9.0.0
  */
 class CommentsEvent extends Event {
-
 	const EVENT_ADD = 'OCP\Comments\ICommentsManager::addComment';
 	const EVENT_UPDATE = 'OCP\Comments\ICommentsManager::updateComment';
 	const EVENT_DELETE = 'OCP\Comments\ICommentsManager::deleteComment';

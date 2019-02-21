@@ -8,7 +8,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -27,6 +27,7 @@
 
 namespace OC\Session;
 
+use OC\AppFramework\Http\Request;
 use OCP\Session\Exceptions\SessionNotAvailableException;
 
 /**
@@ -42,15 +43,15 @@ class Internal extends Session {
 	 * @throws \Exception
 	 */
 	public function __construct($name) {
-		session_name($name);
-		set_error_handler([$this, 'trapError']);
+		\session_name($name);
+		\set_error_handler([$this, 'trapError']);
 		try {
-			session_start();
+			$this->start();
 		} catch (\Exception $e) {
-			setcookie(session_name(), null, -1, \OC::$WEBROOT ? : '/');
+			\setcookie(\session_name(), null, -1, \OC::$WEBROOT ? : '/');
 		}
-		restore_error_handler();
-		if (!isset($_SESSION)) {
+		\restore_error_handler();
+		if ($_SESSION === null) {
 			throw new \Exception('Failed to start session');
 		}
 	}
@@ -58,6 +59,7 @@ class Internal extends Session {
 	/**
 	 * @param string $key
 	 * @param integer $value
+	 * @throws \Exception
 	 */
 	public function set($key, $value) {
 		$this->validateSession();
@@ -93,14 +95,15 @@ class Internal extends Session {
 	}
 
 	public function clear() {
-		session_unset();
+		\session_unset();
 		$this->regenerateId();
-		@session_start();
+		@\session_destroy();
+		@\session_start();
 		$_SESSION = [];
 	}
 
 	public function close() {
-		session_write_close();
+		\session_write_close();
 		parent::close();
 	}
 
@@ -111,7 +114,7 @@ class Internal extends Session {
 	 * @return void
 	 */
 	public function regenerateId($deleteOldSession = true) {
-		@session_regenerate_id($deleteOldSession);
+		@\session_regenerate_id($deleteOldSession);
 	}
 
 	/**
@@ -122,7 +125,7 @@ class Internal extends Session {
 	 * @since 9.1.0
 	 */
 	public function getId() {
-		$id = @session_id();
+		$id = @\session_id();
 		if ($id === '') {
 			throw new SessionNotAvailableException();
 		}
@@ -152,5 +155,41 @@ class Internal extends Session {
 		if ($this->sessionClosed) {
 			throw new SessionNotAvailableException('Session has been closed - no further changes to the session are allowed');
 		}
+	}
+
+	private function start(): void {
+		if (@\session_id() === '') {
+			// prevents javascript from accessing php session cookies
+			\ini_set('session.cookie_httponly', true);
+
+			// set the cookie path to the ownCloud directory
+			$cookie_path = \OC::$WEBROOT ? : '/';
+			\ini_set('session.cookie_path', $cookie_path);
+
+			if ($this->getServerProtocol() === 'https') {
+				\ini_set('session.cookie_secure', true);
+			}
+		}
+		\session_start();
+	}
+
+	private function getServerProtocol() {
+		$req = new Request(
+			[
+				'get' => $_GET,
+				'post' => $_POST,
+				'files' => $_FILES,
+				'server' => $_SERVER,
+				'env' => $_ENV,
+				'cookies' => $_COOKIE,
+				'method' => $_SERVER['REQUEST_METHOD'] ?? null,
+				'urlParams' => [],
+			],
+			null,
+			\OC::$server->getConfig(),
+			null
+		);
+
+		return $req->getServerProtocol();
 	}
 }

@@ -3,7 +3,7 @@
  * @author Joas Schilling <coding@schilljs.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,7 +21,6 @@
  */
 
 namespace OC;
-
 
 use OCP\IConfig;
 use OCP\IDateTimeZone;
@@ -86,7 +85,7 @@ class DateTimeZone implements IDateTimeZone {
 			if ($offset > 0) {
 				$timeZone = 'Etc/GMT-' . $offset;
 			} else {
-				$timeZone = 'Etc/GMT+' . abs($offset);
+				$timeZone = 'Etc/GMT+' . \abs($offset);
 			}
 
 			return new \DateTimeZone($timeZone);
@@ -117,11 +116,11 @@ class DateTimeZone implements IDateTimeZone {
 	 * Get the default timezone of the server
 	 *
 	 * Falls back to UTC if it is not yet set.
-	 * 
+	 *
 	 * @return string
 	 */
 	protected function getDefaultTimeZone() {
-		$serverTimeZone = date_default_timezone_get();
+		$serverTimeZone = \date_default_timezone_get();
 		return $serverTimeZone ?: 'UTC';
 	}
 }

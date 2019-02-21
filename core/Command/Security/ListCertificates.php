@@ -2,7 +2,7 @@
 /**
  * @author Robin Appelman <icewind@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -25,10 +25,8 @@ use OC\Core\Command\Base;
 use OCP\ICertificate;
 use OCP\ICertificateManager;
 use OCP\IL10N;
-use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class ListCertificates extends Base {
@@ -47,14 +45,14 @@ class ListCertificates extends Base {
 	protected function configure() {
 		$this
 			->setName('security:certificates')
-			->setDescription('list trusted certificates');
+			->setDescription('List trusted certificates.');
 		parent::configure();
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output) {
 		$outputType = $input->getOption('output');
 		if ($outputType === self::OUTPUT_FORMAT_JSON || $outputType === self::OUTPUT_FORMAT_JSON_PRETTY) {
-			$certificates = array_map(function (ICertificate $certificate) {
+			$certificates = \array_map(function (ICertificate $certificate) {
 				return [
 					'name' => $certificate->getName(),
 					'common_name' => $certificate->getCommonName(),
@@ -66,9 +64,9 @@ class ListCertificates extends Base {
 				];
 			}, $this->certificateManager->listCertificates());
 			if ($outputType === self::OUTPUT_FORMAT_JSON) {
-				$output->writeln(json_encode(array_values($certificates)));
+				$output->writeln(\json_encode(\array_values($certificates)));
 			} else {
-				$output->writeln(json_encode(array_values($certificates), JSON_PRETTY_PRINT));
+				$output->writeln(\json_encode(\array_values($certificates), JSON_PRETTY_PRINT));
 			}
 		} else {
 			$table = new Table($output);
@@ -80,7 +78,7 @@ class ListCertificates extends Base {
 				'Issued By'
 			]);
 
-			$rows = array_map(function (ICertificate $certificate) {
+			$rows = \array_map(function (ICertificate $certificate) {
 				return [
 					$certificate->getName(),
 					$certificate->getCommonName(),

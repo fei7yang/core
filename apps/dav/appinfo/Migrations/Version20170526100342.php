@@ -2,7 +2,7 @@
 /**
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -28,7 +28,6 @@ use OCP\Migration\ISimpleMigration;
  * Fix the calendar components of the system contact birthday calendar
  */
 class Version20170526100342 implements ISimpleMigration {
-
 	public function run(IOutput $out) {
 		$query = \OC::$server->getDatabaseConnection()->getQueryBuilder();
 		$updated = $query->update('calendars')

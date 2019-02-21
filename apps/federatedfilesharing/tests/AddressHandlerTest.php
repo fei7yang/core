@@ -4,7 +4,7 @@
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,9 +21,7 @@
  *
  */
 
-
 namespace OCA\FederatedFileSharing\Tests;
-
 
 use OCA\FederatedFileSharing\AddressHandler;
 use OCP\IL10N;
@@ -122,41 +120,6 @@ class AddressHandlerTest extends \Test\TestCase {
 	}
 
 	/**
-	 * @dataProvider dataTestCompareAddresses
-	 *
-	 * @param string $user1
-	 * @param string $server1
-	 * @param string $user2
-	 * @param string $server2
-	 * @param bool $expected
-	 */
-	public function testCompareAddresses($user1, $server1, $user2, $server2, $expected) {
-		$this->assertSame($expected,
-			$this->addressHandler->compareAddresses($user1, $server1, $user2, $server2)
-		);
-	}
-
-	public function dataTestCompareAddresses() {
-		return [
-			['user1', 'http://server1', 'user1', 'http://server1', true],
-			['user1', 'https://server1', 'user1', 'http://server1', true],
-			['user1', 'http://serVer1', 'user1', 'http://server1', true],
-			['user1', 'http://server1/',  'user1', 'http://server1', true],
-			['user1', 'server1', 'user1', 'http://server1', true],
-			['user1', 'http://server1', 'user1', 'http://server2', false],
-			['user1', 'https://server1', 'user1', 'http://server2', false],
-			['user1', 'http://serVer1', 'user1', 'http://serer2', false],
-			['user1', 'http://server1/', 'user1', 'http://server2', false],
-			['user1', 'server1', 'user1', 'http://server2', false],
-			['user1', 'http://server1', 'user2', 'http://server1', false],
-			['user1', 'https://server1', 'user2', 'http://server1', false],
-			['user1', 'http://serVer1', 'user2', 'http://server1', false],
-			['user1', 'http://server1/',  'user2', 'http://server1', false],
-			['user1', 'server1', 'user2', 'http://server1', false],
-		];
-	}
-
-	/**
 	 * @dataProvider dataTestRemoveProtocolFromUrl
 	 *
 	 * @param string $url
@@ -195,5 +158,4 @@ class AddressHandlerTest extends \Test\TestCase {
 			['http://localhost/index.php/s/AShareToken', 'http://localhost'],
 		];
 	}
-
 }

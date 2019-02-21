@@ -6,7 +6,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -31,7 +31,6 @@ use OCP\Files\Cache\IWatcher;
  * check the storage backends for updates and change the cache accordingly
  */
 class Watcher implements IWatcher {
-
 	protected $watchPolicy = self::CHECK_ONCE;
 
 	protected $checkedPaths = [];
@@ -82,7 +81,7 @@ class Watcher implements IWatcher {
 	 * @return boolean true if path was updated
 	 */
 	public function checkUpdate($path, $cachedEntry = null) {
-		if (is_null($cachedEntry)) {
+		if ($cachedEntry === null) {
 			$cachedEntry = $this->cache->get($path);
 		}
 		if ($this->needsUpdate($path, $cachedEntry)) {
@@ -121,7 +120,7 @@ class Watcher implements IWatcher {
 	 * @return bool
 	 */
 	public function needsUpdate($path, $cachedData) {
-		if ($this->watchPolicy === self::CHECK_ALWAYS or ($this->watchPolicy === self::CHECK_ONCE and array_search($path, $this->checkedPaths) === false)) {
+		if ($this->watchPolicy === self::CHECK_ALWAYS or ($this->watchPolicy === self::CHECK_ONCE and \array_search($path, $this->checkedPaths) === false)) {
 			$this->checkedPaths[] = $path;
 			return $this->storage->hasUpdated($path, $cachedData['storage_mtime']);
 		}

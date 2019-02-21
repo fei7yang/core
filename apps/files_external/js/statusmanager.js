@@ -3,7 +3,7 @@
  *
  * @author Juan Pablo Villafañez Ramos <jvillafanez@owncloud.com>
  * @author Jesus Macias Portela <jesus@owncloud.com>
- * @copyright (C) 2014 ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  *
  * This file is licensed under the Affero General Public License version 3
  * or later.
@@ -385,7 +385,7 @@ OCA.External.StatusManager = {
 		'<div>{{credentials_text}}</div>' +
 		'<form>' +
 		'<input type="text" name="username" placeholder="{{placeholder_username}}"/>' +
-		'<input type="password" name="password" placeholder="{{placeholder_password}}"/>' +
+		'<input type="password" name="password" placeholder="{{placeholder_password}}" autocomplete="off"/>' +
 		'</form>' +
 		'</div></div>',
 

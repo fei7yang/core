@@ -3,7 +3,7 @@
 /**
  * @author Ilja Neumann <ineumann@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -38,13 +38,12 @@ class ReadOnlyJail extends DirMask {
 		return parent::checkPath($path);
 	}
 
-
 	/**
 	 * @param string $path
 	 * @return bool
 	 */
 	public function isDeletable($path) {
-		if (pathinfo($path, PATHINFO_EXTENSION) === 'part') {
+		if (\pathinfo($path, PATHINFO_EXTENSION) === 'part') {
 			return true;
 		}
 
@@ -67,7 +66,6 @@ class ReadOnlyJail extends DirMask {
 		return $result;
 	}
 
-
 	/**
 	 * get a cache instance for the storage
 	 *
@@ -82,5 +80,4 @@ class ReadOnlyJail extends DirMask {
 		$sourceCache = parent::getCache($path, $storage);
 		return new ReadOnlyCachePermissionsMask($sourceCache, $this->mask);
 	}
-
 }

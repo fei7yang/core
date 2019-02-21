@@ -2,7 +2,7 @@
 /**
  * @author Christoph Wurst <christoph@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -26,9 +26,7 @@ use OCP\AppFramework\Db\Entity;
 /**
  * @method void setId(int $id)
  * @method void setUid(string $uid);
- * @method void setLoginName(string $loginName)
  * @method void setPassword(string $password)
- * @method void setName(string $name)
  * @method string getName()
  * @method void setToken(string $token)
  * @method string getToken()
@@ -93,7 +91,7 @@ class DefaultToken extends Entity implements IToken {
 	 * @return string
 	 */
 	public function getLoginName() {
-		return parent::getLoginName();
+		return $this->loginName;
 	}
 
 	/**
@@ -102,7 +100,7 @@ class DefaultToken extends Entity implements IToken {
 	 * @return string
 	 */
 	public function getPassword() {
-		return parent::getPassword();
+		return $this->password;
 	}
 
 	public function jsonSerialize() {
@@ -121,7 +119,7 @@ class DefaultToken extends Entity implements IToken {
 	 * @return int
 	 */
 	public function getLastCheck() {
-		return parent::getLastCheck();
+		return $this->lastCheck;
 	}
 
 	/**
@@ -130,7 +128,26 @@ class DefaultToken extends Entity implements IToken {
 	 * @param int $time
 	 */
 	public function setLastCheck($time) {
-		return parent::setLastCheck($time);
+		$this->setter('lastCheck', [$time]);
 	}
 
+	/**
+	 * @param string $name
+	 */
+	public function setName($name) {
+		if (\strlen($name) < 1) {
+			throw new \InvalidArgumentException();
+		}
+		$this->setter('name', [$name]);
+	}
+
+	/**
+	 * @param string $loginName
+	 */
+	public function setLoginName($loginName) {
+		if (\strlen($loginName) < 1) {
+			throw new \InvalidArgumentException();
+		}
+		$this->setter('loginName', [$loginName]);
+	}
 }

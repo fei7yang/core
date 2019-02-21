@@ -2,7 +2,7 @@
 /**
  * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,8 +21,7 @@
 
 namespace OC\Settings\Panels;
 
-class Helper  {
-
+class Helper {
 	public function getStorageInfo($path) {
 		return \OC_Helper::getStorageInfo($path);
 	}
@@ -35,12 +34,9 @@ class Helper  {
 		return \OC_App::getForms('admin');
 	}
 
-	public function isPublicLinkPasswordRequired() {
-		return \OCP\Util::isPublicLinkPasswordRequired();
-	}
-
 	public function shareWithGroupMembersOnly() {
-		return \OC\Share\Share::shareWithGroupMembersOnly();
+		$value = \OC::$server->getAppConfig()->getValue('core', 'shareapi_only_share_with_group_members', 'no');
+		return ($value === 'yes') ? true : false;
 	}
 
 	public function findBinaryPath($path) {
@@ -66,5 +62,4 @@ class Helper  {
 	public function getMountDepMessage($backends) {
 		return \OC_Mount_Config::dependencyMessage($backends);
 	}
-
 }

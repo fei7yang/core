@@ -2,7 +2,7 @@
 /**
  * @author Victor Dubiniuk <dubiniuk@owncloud.com>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,7 +21,7 @@
 
 namespace Test\IntegrityCheck\Iterator;
 
-use \OC\IntegrityCheck\Iterator\ExcludeFileByNameFilterIterator;
+use OC\IntegrityCheck\Iterator\ExcludeFileByNameFilterIterator;
 use Test\TestCase;
 
 class ExcludeFileByNameFilterIteratorTest extends TestCase {
@@ -35,29 +35,35 @@ class ExcludeFileByNameFilterIteratorTest extends TestCase {
 			->setMethods(['current'])
 			->getMock()
 		;
-
 	}
 
-	public function fileNameProvider(){
+	public function fileNameProvider() {
 		return [
-			['a file', true],
-			['Thumbs.db', false],
-			['another file', true],
-			['.directory', false],
-			['.webapp-owncloud-obee', false],
-			['wx.webapp-owncloud-obee', true],
+			['', 'a file', true],
+			['', 'Thumbs.db', false],
+			['', 'another file', true],
+			['', '.directory', false],
+			['', '.webapp-owncloud-obee', false],
+			['', 'wx.webapp-owncloud-obee', true],
+			['/core/js', 'mimetypelist.js', false],
+			['/core/css', 'mimetypelist.js', true],
+			['/core/js', 'typelist.js', true],
+			['/hardcore/js', 'mimetypelist.js', true],
+			['/js', 'mimetypelist.js', true],
+			
 		];
 	}
 
 	/**
 	 * @dataProvider fileNameProvider
+	 * @param string $path
 	 * @param string $fileName
 	 * @param bool $expectedResult
 	 */
-	public function testAcceptForFiles($fileName, $expectedResult){
+	public function testAcceptForFiles($path, $fileName, $expectedResult) {
 		$iteratorMock = $this->getMockBuilder(\RecursiveDirectoryIterator::class)
 			->disableOriginalConstructor()
-			->setMethods(['getFilename', 'isDir'])
+			->setMethods(['getPathname', 'getFilename', 'isDir'])
 			->getMock()
 		;
 		$iteratorMock->method('getFilename')
@@ -66,6 +72,9 @@ class ExcludeFileByNameFilterIteratorTest extends TestCase {
 		$iteratorMock->method('isDir')
 			->will($this->returnValue(false));
 
+		$iteratorMock->method('getPathname')
+			->will($this->returnValue("$path/$fileName"));
+
 		$this->filter->method('current')
 			->will($this->returnValue($iteratorMock))
 		;
@@ -73,13 +82,13 @@ class ExcludeFileByNameFilterIteratorTest extends TestCase {
 		$actualResult = $this->filter->accept();
 		$this->assertEquals($expectedResult, $actualResult);
 	}
-
+	
 	/**
 	 * @dataProvider fileNameProvider
 	 * @param string $fileName
 	 * @param bool $fakeExpectedResult
 	 */
-	public function testAcceptForDirs($fileName, $fakeExpectedResult){
+	public function testAcceptForDirs($fileName, $fakeExpectedResult) {
 		$iteratorMock = $this->getMockBuilder(\RecursiveDirectoryIterator::class)
 			->disableOriginalConstructor()
 			->setMethods(['getFilename', 'isDir'])

@@ -2,7 +2,7 @@
 /**
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  *
- * @copyright Copyright (c) 2016, ownCloud GmbH.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -22,7 +22,6 @@
 namespace Test\Files\External\Auth;
 
 class AuthMechanismTest extends \Test\TestCase {
-
 	public function testJsonSerialization() {
 		$mechanism = $this->getMockBuilder('\OCP\Files\External\Auth\AuthMechanism')
 			->setMethods(['jsonSerializeDefinition'])
@@ -76,5 +75,4 @@ class AuthMechanismTest extends \Test\TestCase {
 
 		$this->assertEquals($expectedSuccess, $mechanism->validateStorage($storageConfig));
 	}
-
 }

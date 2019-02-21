@@ -4,7 +4,7 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -27,10 +27,10 @@ $urlGenerator = \OC::$server->getURLGenerator();
 $token = isset($_GET['t']) ? $_GET['t'] : '';
 $route = isset($_GET['download']) ? 'files_sharing.sharecontroller.downloadShare' : 'files_sharing.sharecontroller.showShare';
 
-if($token !== '') {
+if ($token !== '') {
 	OC_Response::redirect($urlGenerator->linkToRoute($route, ['token' => $token]));
 } else {
-	header('HTTP/1.0 404 Not Found');
+	\header('HTTP/1.0 404 Not Found');
 	$tmpl = new OCP\Template('', '404', 'guest');
 	print_unescaped($tmpl->fetchPage());
 }

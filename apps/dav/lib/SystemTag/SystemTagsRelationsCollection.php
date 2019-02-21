@@ -4,7 +4,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -23,13 +23,13 @@
 
 namespace OCA\DAV\SystemTag;
 
+use OCP\Files\IRootFolder;
+use OCP\IGroupManager;
+use OCP\IUserSession;
 use OCP\SystemTag\ISystemTagManager;
 use OCP\SystemTag\ISystemTagObjectMapper;
 use Sabre\DAV\Exception\Forbidden;
 use Sabre\DAV\SimpleCollection;
-use OCP\IUserSession;
-use OCP\IGroupManager;
-use OCP\Files\IRootFolder;
 
 class SystemTagsRelationsCollection extends SimpleCollection {
 
@@ -63,12 +63,11 @@ class SystemTagsRelationsCollection extends SimpleCollection {
 		parent::__construct('root', $children);
 	}
 
-	function getName() {
+	public function getName() {
 		return 'systemtags-relations';
 	}
 
-	function setName($name) {
+	public function setName($name) {
 		throw new Forbidden('Permission denied to rename this collection');
 	}
-
 }

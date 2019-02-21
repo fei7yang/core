@@ -5,7 +5,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -74,8 +74,8 @@ class RootCollectionTest extends \Test\TestCase {
 			->method('getUser')
 			->will($this->returnValue($this->user));
 
-		$this->dispatcher->addListener(CommentsEntityEvent::EVENT_ENTITY, function(CommentsEntityEvent $event) {
-			$event->addEntityCollection('files', function() {
+		$this->dispatcher->addListener(CommentsEntityEvent::EVENT_ENTITY, function (CommentsEntityEvent $event) {
+			$event->addEntityCollection('files', function () {
 				return true;
 			});
 		});
@@ -98,7 +98,7 @@ class RootCollectionTest extends \Test\TestCase {
 	public function testGetChild() {
 		$this->prepareForInitCollections();
 		$etc = $this->collection->getChild('files');
-		$this->assertTrue($etc instanceof EntityTypeCollectionImplementation);
+		$this->assertInstanceOf(EntityTypeCollectionImplementation::class, $etc);
 	}
 
 	/**
@@ -119,9 +119,9 @@ class RootCollectionTest extends \Test\TestCase {
 	public function testGetChildren() {
 		$this->prepareForInitCollections();
 		$children = $this->collection->getChildren();
-		$this->assertFalse(empty($children));
-		foreach($children as $child) {
-			$this->assertTrue($child instanceof EntityTypeCollectionImplementation);
+		$this->assertNotEmpty($children);
+		foreach ($children as $child) {
+			$this->assertInstanceOf(EntityTypeCollectionImplementation::class, $child);
 		}
 	}
 
@@ -168,6 +168,6 @@ class RootCollectionTest extends \Test\TestCase {
 	}
 
 	public function testGetLastModified() {
-		$this->assertSame(null, $this->collection->getLastModified());
+		$this->assertNull($this->collection->getLastModified());
 	}
 }

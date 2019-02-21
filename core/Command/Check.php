@@ -4,7 +4,7 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -42,14 +42,14 @@ class Check extends Base {
 
 		$this
 			->setName('check')
-			->setDescription('check dependencies of the server environment')
+			->setDescription('Check the server environment\'s dependencies.')
 		;
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output) {
 		$errors = \OC_Util::checkServer($this->config);
 		if (!empty($errors)) {
-			$errors = array_map(function($item) {
+			$errors = \array_map(function ($item) {
 				return (string) $item['error'];
 			}, $errors);
 

@@ -2,7 +2,7 @@
 /**
  * @author Joas Schilling <coding@schilljs.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -48,14 +48,15 @@ class Enable extends Command {
 	protected function configure() {
 		$this
 			->setName('encryption:enable')
-			->setDescription('Enable encryption')
+			->setDescription('Enable encryption.')
 		;
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output) {
-		if ($this->config->getAppValue('core', 'encryption_enabled', 'no') === 'yes') {
+		if ($this->encryptionManager->isEnabled()) {
 			$output->writeln('Encryption is already enabled');
 		} else {
+			// TODO add and use api to enable encryption
 			$this->config->setAppValue('core', 'encryption_enabled', 'yes');
 			$output->writeln('<info>Encryption enabled</info>');
 		}
@@ -65,10 +66,10 @@ class Enable extends Command {
 		if (empty($modules)) {
 			$output->writeln('<error>No encryption module is loaded</error>');
 		} else {
-			$defaultModule = $this->config->getAppValue('core', 'default_encryption_module', null);
-			if ($defaultModule === null) {
+			$defaultModule = $this->encryptionManager->getDefaultEncryptionModuleId();
+			if ($defaultModule === '') {
 				$output->writeln('<error>No default module is set</error>');
-			} else if (!isset($modules[$defaultModule])) {
+			} elseif (!isset($modules[$defaultModule])) {
 				$output->writeln('<error>The current default module does not exist: ' . $defaultModule . '</error>');
 			} else {
 				$output->writeln('Default module: ' . $defaultModule);

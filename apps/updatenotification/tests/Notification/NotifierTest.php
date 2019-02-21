@@ -3,7 +3,7 @@
  * @author Joas Schilling <coding@schilljs.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,7 +21,6 @@
  */
 
 namespace OCA\UpdateNotification\Tests\Notification;
-
 
 use OCA\UpdateNotification\Notification\Notifier;
 use OCP\L10N\IFactory;
@@ -52,7 +51,8 @@ class NotifierTest extends TestCase {
 				$this->notificationManager,
 				$this->l10nFactory
 			);
-		} {
+		}
+		{
 			return $this->getMockBuilder('OCA\UpdateNotification\Notification\Notifier')
 				->setConstructorArgs([
 					$this->notificationManager,

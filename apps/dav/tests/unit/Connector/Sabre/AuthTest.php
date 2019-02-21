@@ -8,7 +8,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -27,8 +27,12 @@
 
 namespace OCA\DAV\Tests\unit\Connector\Sabre;
 
+use OC\Authentication\Exceptions\PasswordLoginForbiddenException;
 use OC\Authentication\TwoFactorAuth\Manager;
+use OC\Authentication\AccountModule\Manager as AccountModuleManager;
+use OC\User\LoginException;
 use OC\User\Session;
+use OCA\DAV\Connector\Sabre\Auth;
 use OCP\IRequest;
 use OCP\ISession;
 use OCP\IUser;
@@ -43,33 +47,32 @@ use Test\TestCase;
  * @group DB
  */
 class AuthTest extends TestCase {
-	/** @var ISession */
+	/** @var ISession | \PHPUnit_Framework_MockObject_MockObject */
 	private $session;
-	/** @var \OCA\DAV\Connector\Sabre\Auth */
+	/** @var Auth */
 	private $auth;
-	/** @var Session */
+	/** @var Session | \PHPUnit_Framework_MockObject_MockObject */
 	private $userSession;
-	/** @var IRequest */
+	/** @var IRequest | \PHPUnit_Framework_MockObject_MockObject */
 	private $request;
-	/** @var Manager */
+	/** @var Manager | \PHPUnit_Framework_MockObject_MockObject */
 	private $twoFactorManager;
+	/** @var AccountModuleManager | \PHPUnit_Framework_MockObject_MockObject */
+	private $accountModuleManager;
 
 	public function setUp() {
 		parent::setUp();
-		$this->session = $this->getMockBuilder('\OCP\ISession')
-			->disableOriginalConstructor()->getMock();
-		$this->userSession = $this->getMockBuilder('\OC\User\Session')
-			->disableOriginalConstructor()->getMock();
-		$this->request = $this->getMockBuilder('\OCP\IRequest')
-			->disableOriginalConstructor()->getMock();
-		$this->twoFactorManager = $this->getMockBuilder('\OC\Authentication\TwoFactorAuth\Manager')
-			->disableOriginalConstructor()
-			->getMock();
-		$this->auth = new \OCA\DAV\Connector\Sabre\Auth(
+		$this->session = $this->createMock(ISession::class);
+		$this->userSession = $this->createMock(Session::class);
+		$this->request = $this->createMock(IRequest::class);
+		$this->twoFactorManager = $this->createMock(Manager::class);
+		$this->accountModuleManager = $this->createMock(AccountModuleManager::class);
+		$this->auth = new Auth(
 			$this->session,
 			$this->userSession,
 			$this->request,
-			$this->twoFactorManager
+			$this->twoFactorManager,
+			$this->accountModuleManager
 		);
 	}
 
@@ -115,6 +118,10 @@ class AuthTest extends TestCase {
 			->method('isLoggedIn')
 			->will($this->returnValue(true));
 		$this->userSession
+			->expects($this->once())
+			->method('verifyAuthHeaders')
+			->will($this->returnValue(true));
+		$this->userSession
 			->expects($this->exactly(2))
 			->method('getUser')
 			->will($this->returnValue($user));
@@ -143,6 +150,10 @@ class AuthTest extends TestCase {
 			->will($this->returnValue(true));
 		$this->userSession
 			->expects($this->once())
+			->method('verifyAuthHeaders')
+			->will($this->returnValue(true));
+		$this->userSession
+			->expects($this->once())
 			->method('getUser')
 			->will($this->returnValue($user));
 		$this->session
@@ -167,6 +178,10 @@ class AuthTest extends TestCase {
 		$this->userSession
 			->expects($this->once())
 			->method('isLoggedIn')
+			->will($this->returnValue(true));
+		$this->userSession
+			->expects($this->once())
+			->method('verifyAuthHeaders')
 			->will($this->returnValue(true));
 		$this->userSession
 			->expects($this->exactly(3))
@@ -222,7 +237,7 @@ class AuthTest extends TestCase {
 			->expects($this->once())
 			->method('logClientIn')
 			->with('MyTestUser', 'MyTestPassword')
-			->will($this->throwException(new \OC\Authentication\Exceptions\PasswordLoginForbiddenException()));
+			->will($this->throwException(new PasswordLoginForbiddenException()));
 		$this->session
 			->expects($this->once())
 			->method('close');
@@ -231,9 +246,11 @@ class AuthTest extends TestCase {
 	}
 
 	public function testAuthenticateAlreadyLoggedInWithoutCsrfTokenForNonGet() {
+		/** @var RequestInterface | \PHPUnit_Framework_MockObject_MockObject $request */
 		$request = $this->getMockBuilder(RequestInterface::class)
 				->disableOriginalConstructor()
 				->getMock();
+		/** @var ResponseInterface | \PHPUnit_Framework_MockObject_MockObject $response */
 		$response = $this->getMockBuilder(ResponseInterface::class)
 				->disableOriginalConstructor()
 				->getMock();
@@ -274,9 +291,11 @@ class AuthTest extends TestCase {
 	}
 
 	public function testAuthenticateAlreadyLoggedInWithoutCsrfTokenAndCorrectlyDavAuthenticated() {
+		/** @var RequestInterface | \PHPUnit_Framework_MockObject_MockObject $request */
 		$request = $this->getMockBuilder(RequestInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
+		/** @var ResponseInterface | \PHPUnit_Framework_MockObject_MockObject $response */
 		$response = $this->getMockBuilder(ResponseInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
@@ -287,7 +306,7 @@ class AuthTest extends TestCase {
 		$this->request
 			->expects($this->any())
 			->method('getMethod')
-			->willReturn('PROPFIND');
+			->willReturn('POST');
 		$this->request
 			->expects($this->any())
 			->method('isUserAgent')
@@ -324,9 +343,11 @@ class AuthTest extends TestCase {
 	 * @expectedExceptionMessage 2FA challenge not passed.
 	 */
 	public function testAuthenticateAlreadyLoggedInWithoutTwoFactorChallengePassed() {
+		/** @var RequestInterface | \PHPUnit_Framework_MockObject_MockObject $request */
 		$request = $this->getMockBuilder(RequestInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
+		/** @var ResponseInterface | \PHPUnit_Framework_MockObject_MockObject $response */
 		$response = $this->getMockBuilder(ResponseInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
@@ -337,7 +358,7 @@ class AuthTest extends TestCase {
 		$this->request
 			->expects($this->any())
 			->method('getMethod')
-			->willReturn('PROPFIND');
+			->willReturn('POST');
 		$this->request
 			->expects($this->any())
 			->method('isUserAgent')
@@ -372,60 +393,12 @@ class AuthTest extends TestCase {
 		$this->auth->check($request, $response);
 	}
 
-	/**
-	 * @expectedException \Sabre\DAV\Exception\NotAuthenticated
-	 * @expectedExceptionMessage CSRF check not passed.
-	 */
-	public function testAuthenticateAlreadyLoggedInWithoutCsrfTokenAndIncorrectlyDavAuthenticated() {
-		$request = $this->getMockBuilder(RequestInterface::class)
-			->disableOriginalConstructor()
-			->getMock();
-		$response = $this->getMockBuilder(ResponseInterface::class)
-			->disableOriginalConstructor()
-			->getMock();
-		$this->userSession
-			->expects($this->any())
-			->method('isLoggedIn')
-			->willReturn(true);
-		$this->request
-			->expects($this->any())
-			->method('getMethod')
-			->willReturn('PROPFIND');
-		$this->request
-			->expects($this->any())
-			->method('isUserAgent')
-			->with([
-				'/^Mozilla\/5\.0 \([A-Za-z ]+\) (mirall|csyncoC)\/.*$/',
-				'/^Mozilla\/5\.0 \(Android\) ownCloud\-android.*$/',
-				'/^Mozilla\/5\.0 \(iOS\) ownCloud\-iOS.*$/',
-			])
-			->willReturn(false);
-		$this->session
-			->expects($this->any())
-			->method('get')
-			->with('AUTHENTICATED_TO_DAV_BACKEND')
-			->will($this->returnValue('AnotherUser'));
-		$user = $this->getMockBuilder('\OCP\IUser')
-			->disableOriginalConstructor()
-			->getMock();
-		$user->expects($this->any())
-			->method('getUID')
-			->will($this->returnValue('LoggedInUser'));
-		$this->userSession
-			->expects($this->any())
-			->method('getUser')
-			->will($this->returnValue($user));
-		$this->request
-			->expects($this->once())
-			->method('passesCSRFCheck')
-			->willReturn(false);
-		$this->auth->check($request, $response);
-	}
-
 	public function testAuthenticateAlreadyLoggedInWithoutCsrfTokenForNonGetAndDesktopClient() {
+		/** @var RequestInterface | \PHPUnit_Framework_MockObject_MockObject $request */
 		$request = $this->getMockBuilder(RequestInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
+		/** @var ResponseInterface | \PHPUnit_Framework_MockObject_MockObject $response */
 		$response = $this->getMockBuilder(ResponseInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
@@ -470,9 +443,11 @@ class AuthTest extends TestCase {
 	}
 
 	public function testAuthenticateAlreadyLoggedInWithoutCsrfTokenForGet() {
+		/** @var RequestInterface | \PHPUnit_Framework_MockObject_MockObject $request */
 		$request = $this->getMockBuilder(RequestInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
+		/** @var ResponseInterface | \PHPUnit_Framework_MockObject_MockObject $response */
 		$response = $this->getMockBuilder(ResponseInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
@@ -505,9 +480,11 @@ class AuthTest extends TestCase {
 	}
 
 	public function testAuthenticateAlreadyLoggedInWithCsrfTokenForGet() {
+		/** @var RequestInterface | \PHPUnit_Framework_MockObject_MockObject $request */
 		$request = $this->getMockBuilder(RequestInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
+		/** @var ResponseInterface | \PHPUnit_Framework_MockObject_MockObject $response */
 		$response = $this->getMockBuilder(ResponseInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
@@ -539,6 +516,25 @@ class AuthTest extends TestCase {
 		$this->assertEquals([true, 'principals/users/MyWrongDavUser'], $response);
 	}
 
+	/**
+	 * @expectedException Sabre\DAV\Exception\NotAuthenticated
+	 */
+	public function testAutenticateWithLoggedInUserButLoginExceptionThrown() {
+		/** @var RequestInterface | \PHPUnit_Framework_MockObject_MockObject $request */
+		$request = $this->getMockBuilder(RequestInterface::class)
+			->disableOriginalConstructor()
+			->getMock();
+		/** @var ResponseInterface | \PHPUnit_Framework_MockObject_MockObject $response */
+		$response = $this->getMockBuilder(ResponseInterface::class)
+			->disableOriginalConstructor()
+			->getMock();
+		$this->userSession
+			->expects($this->any())
+			->method('isLoggedIn')
+			->willThrowException(new LoginException());
+		$response = $this->auth->check($request, $response);
+	}
+
 	public function testAuthenticateNoBasicAuthenticateHeadersProvided() {
 		$server = $this->getMockBuilder('\Sabre\DAV\Server')
 			->disableOriginalConstructor()
@@ -558,11 +554,11 @@ class AuthTest extends TestCase {
 	 * @expectedExceptionMessage Cannot authenticate over ajax calls
 	 */
 	public function testAuthenticateNoBasicAuthenticateHeadersProvidedWithAjax() {
-		/** @var \Sabre\HTTP\RequestInterface $httpRequest */
+		/** @var RequestInterface | \PHPUnit_Framework_MockObject_MockObject $httpRequest */
 		$httpRequest = $this->getMockBuilder(RequestInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
-		/** @var \Sabre\HTTP\ResponseInterface $httpResponse */
+		/** @var ResponseInterface $httpResponse */
 		$httpResponse = $this->getMockBuilder(ResponseInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
@@ -579,11 +575,11 @@ class AuthTest extends TestCase {
 	}
 
 	public function testAuthenticateNoBasicAuthenticateHeadersProvidedWithAjaxButUserIsStillLoggedIn() {
-		/** @var \Sabre\HTTP\RequestInterface $httpRequest */
+		/** @var RequestInterface | \PHPUnit_Framework_MockObject_MockObject $httpRequest */
 		$httpRequest = $this->getMockBuilder(RequestInterface::class)
 			->disableOriginalConstructor()
 			->getMock();
-		/** @var \Sabre\HTTP\ResponseInterface $httpResponse */
+		/** @var ResponseInterface $httpResponse */
 		$httpResponse = $this->getMockBuilder(ResponseInterface::class)
 			->disableOriginalConstructor()
 			->getMock();

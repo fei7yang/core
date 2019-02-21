@@ -2,7 +2,7 @@
 /**
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -56,7 +56,6 @@ class ChunkLocationProviderTest extends TestCase {
 	}
 
 	public function testProviderIfConfigured() {
-
 		$root = vfsStream::setup('chunk-dir-root');
 
 		$this->config->expects($this->once())
@@ -69,7 +68,7 @@ class ChunkLocationProviderTest extends TestCase {
 
 		$mounts = $this->provider->getMountsForUser($this->user, $this->factory);
 		$this->assertTrue($root->hasChild('user'));
-		$this->assertEquals(1, count($mounts));
+		$this->assertCount(1, $mounts);
 		$mount = $mounts[0];
 		$this->assertInstanceOf(MountPoint::class, $mount);
 		$this->assertEquals(Local::class, $this->invokePrivate($mount, 'class'));

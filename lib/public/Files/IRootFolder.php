@@ -3,7 +3,7 @@
  * @author Bernhard Posselt <dev@bernhard-posselt.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -19,7 +19,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
-
 
 namespace OCP\Files;
 
@@ -42,4 +41,3 @@ interface IRootFolder extends Folder, Emitter {
 	 */
 	public function getUserFolder($userId);
 }
-

@@ -3,7 +3,7 @@
  * @author Christoph Wurst <christoph@owncloud.com>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -23,11 +23,10 @@
 namespace OCA\DAV\Connector\Sabre\Exception;
 
 use DOMElement;
-use Sabre\DAV\Server;
 use Sabre\DAV\Exception\NotAuthenticated;
+use Sabre\DAV\Server;
 
 class PasswordLoginForbidden extends NotAuthenticated {
-
 	const NS_OWNCLOUD = 'http://owncloud.org/ns';
 
 	public function getHTTPCode() {
@@ -50,5 +49,4 @@ class PasswordLoginForbidden extends NotAuthenticated {
 		$error = $errorNode->ownerDocument->createElementNS('o:', 'o:hint', 'password login forbidden');
 		$errorNode->appendChild($error);
 	}
-
 }

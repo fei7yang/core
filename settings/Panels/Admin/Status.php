@@ -2,7 +2,7 @@
 /**
  * @author Martin Mattel <martin.mattel@diemattels.at>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -25,7 +25,6 @@ use OCP\Settings\ISettings;
 use OCP\Template;
 
 class Status implements ISettings {
-
 	public function getPriority() {
 		return 0;
 	}
@@ -40,5 +39,4 @@ class Status implements ISettings {
 	public function getSectionID() {
 		return 'general';
 	}
-
 }

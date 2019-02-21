@@ -9,8 +9,23 @@
  */
 
 (function() {
+
+	function getPreviewUrl(model) {
+		var mime = model.get('mimetype');
+
+		var enabledPreviewProviders = OC.appConfig.core.enabledPreviewProviders || [];
+		if (enabledPreviewProviders.length > 0) {
+			var allMimesPattern = new RegExp(enabledPreviewProviders.join('|'));
+			if (OC.appConfig.core.previewsEnabled && allMimesPattern.test(mime)) {
+				return model.getPreviewUrl();
+			}
+		}
+
+		return OC.MimeType.getIconUrl(mime);
+	}
+
 	var TEMPLATE_ITEM =
-		'<li data-revision="{{timestamp}}">' +
+		'<li data-revision="{{versionId}}">' +
 		'<div>' +
 		'<div class="preview-container">' +
 		'<img class="preview" src="{{previewUrl}}"/>' +
@@ -37,8 +52,6 @@
 		'<ul class="versions"></ul>' +
 		'<div class="clear-float"></div>' +
 		'<div class="empty hidden">{{emptyResultLabel}}</div>' +
-		'<input type="button" class="showMoreVersions hidden" value="{{moreVersionsLabel}}"' +
-		' name="show-more-versions" id="show-more-versions" />' +
 		'<div class="loading hidden" style="height: 50px"></div>';
 
 	/**
@@ -54,8 +67,7 @@
 		$versionsContainer: null,
 
 		events: {
-			'click .revertVersion': '_onClickRevertVersion',
-			'click .showMoreVersions': '_onClickShowMoreVersions'
+			'click .revertVersion': '_onClickRevertVersion'
 		},
 
 		initialize: function() {
@@ -73,19 +85,14 @@
 		},
 
 		nextPage: function() {
-			if (this._loading || !this.collection.hasMoreResults()) {
+			if (this._loading) {
 				return;
 			}
 
 			if (this.collection.getFileInfo() && this.collection.getFileInfo().isDirectory()) {
 				return;
 			}
-			this.collection.fetchNext();
-		},
-
-		_onClickShowMoreVersions: function(ev) {
-			ev.preventDefault();
-			this.nextPage();
+			this.collection.fetch();
 		},
 
 		_onClickRevertVersion: function(ev) {
@@ -100,8 +107,6 @@
 			ev.preventDefault();
 			revision = $target.attr('data-revision');
 
-			this.$el.find('.versions, .showMoreVersions').addClass('hidden');
-
 			var versionModel = this.collection.get(revision);
 			versionModel.revert({
 				success: function() {
@@ -109,7 +114,7 @@
 					self.$versionsContainer.empty();
 					self.collection.setFileInfo(fileInfoModel);
 					self.collection.reset([], {silent: true});
-					self.collection.fetchNext();
+					self.collection.fetch();
 
 					self.$el.find('.versions').removeClass('hidden');
 
@@ -151,13 +156,11 @@
 
 		_onRequest: function() {
 			this._toggleLoading(true);
-			this.$el.find('.showMoreVersions').addClass('hidden');
 		},
 
 		_onEndRequest: function() {
 			this._toggleLoading(false);
 			this.$el.find('.empty').toggleClass('hidden', !!this.collection.length);
-			this.$el.find('.showMoreVersions').toggleClass('hidden', !this.collection.hasMoreResults());
 		},
 
 		_onAddModel: function(model) {
@@ -197,7 +200,9 @@
 		_formatItem: function(version) {
 			var timestamp = version.get('timestamp') * 1000;
 			var size = version.has('size') ? version.get('size') : 0;
+
 			return _.extend({
+				versionId: version.get('id'),
 				formattedTimestamp: OC.Util.formatDate(timestamp),
 				relativeTimestamp: OC.Util.relativeModifiedDate(timestamp),
 				humanReadableSize: OC.Util.humanFileSize(size, true),
@@ -206,7 +211,7 @@
 				downloadUrl: version.getDownloadUrl(),
 				downloadIconUrl: OC.imagePath('core', 'actions/download'),
 				revertIconUrl: OC.imagePath('core', 'actions/history'),
-				previewUrl: version.getPreviewUrl(),
+				previewUrl: getPreviewUrl(version),
 				revertLabel: t('files_versions', 'Restore'),
 				canRevert: (this.collection.getFileInfo().get('permissions') & OC.PERMISSION_UPDATE) !== 0
 			}, version.attributes);
@@ -218,7 +223,6 @@
 		render: function() {
 			this.$el.html(this.template({
 				emptyResultLabel: t('files_versions', 'No other versions available'),
-				moreVersionsLabel: t('files_versions', 'More versions...')
 			}));
 			this.$el.find('.has-tooltip').tooltip();
 			this.$versionsContainer = this.$el.find('ul.versions');

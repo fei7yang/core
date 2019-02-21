@@ -2,7 +2,7 @@
 /**
  * @author Joas Schilling <coding@schilljs.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -23,7 +23,7 @@ namespace OC\DB\QueryBuilder;
 
 use OCP\DB\QueryBuilder\ILiteral;
 
-class Literal implements ILiteral{
+class Literal implements ILiteral {
 	/** @var mixed */
 	protected $literal;
 

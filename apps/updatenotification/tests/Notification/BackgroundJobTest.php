@@ -3,7 +3,7 @@
  * @author Joas Schilling <coding@schilljs.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,7 +21,6 @@
  */
 
 namespace OCA\UpdateNotification\Tests\Notification;
-
 
 use OCA\UpdateNotification\Notification\BackgroundJob;
 use OCP\App\IAppManager;
@@ -73,7 +72,8 @@ class BackgroundJobTest extends TestCase {
 				$this->client,
 				$this->urlGenerator
 			);
-		} {
+		}
+		{
 			return $this->getMockBuilder('OCA\UpdateNotification\Notification\BackgroundJob')
 				->setConstructorArgs([
 					$this->config,
@@ -248,12 +248,12 @@ class BackgroundJobTest extends TestCase {
 				->willReturnSelf();
 
 			if ($userNotifications !== null) {
-				$mockedMethod = $notification->expects($this->exactly(sizeof($userNotifications)))
+				$mockedMethod = $notification->expects($this->exactly(\sizeof($userNotifications)))
 					->method('setUser')
 					->willReturnSelf();
-				call_user_func_array([$mockedMethod, 'withConsecutive'], $userNotifications);
+				\call_user_func_array([$mockedMethod, 'withConsecutive'], $userNotifications);
 
-				$this->notificationManager->expects($this->exactly(sizeof($userNotifications)))
+				$this->notificationManager->expects($this->exactly(\sizeof($userNotifications)))
 					->method('notify')
 					->willReturn($notification);
 			}
@@ -288,7 +288,7 @@ class BackgroundJobTest extends TestCase {
 		$this->config->expects($this->once())
 			->method('getAppValue')
 			->with('updatenotification', 'notify_groups', '["admin"]')
-			->willReturn(json_encode($groups));
+			->willReturn(\json_encode($groups));
 
 		$groupMap = [];
 		foreach ($groupUsers as $gid => $uids) {
@@ -302,7 +302,7 @@ class BackgroundJobTest extends TestCase {
 			}
 			$groupMap[] = [$gid, $group];
 		}
-		$this->groupManager->expects($this->exactly(sizeof($groups)))
+		$this->groupManager->expects($this->exactly(\sizeof($groups)))
 			->method('get')
 			->willReturnMap($groupMap);
 

@@ -4,7 +4,7 @@
  * @author Roeland Jago Douma <rullzer@users.noreply.github.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -23,17 +23,13 @@
 
 namespace OCA\Federation\AppInfo;
 
-use OCA\Federation\API\OCSAuthAPI;
 use OCA\Federation\Controller\SettingsController;
 use OCA\Federation\DAV\FedAuth;
 use OCA\Federation\DbHandler;
 use OCA\Federation\Hooks;
 use OCA\Federation\Middleware\AddServerMiddleware;
 use OCA\Federation\SyncFederationAddressBooks;
-use OCA\Federation\SyncJob;
 use OCA\Federation\TrustedServers;
-use OCP\API;
-use OCP\App;
 use OCP\AppFramework\IAppContainer;
 use OCP\SabrePluginEvent;
 use OCP\Util;
@@ -53,7 +49,7 @@ class Application extends \OCP\AppFramework\App {
 	private function registerService() {
 		$container = $this->getContainer();
 
-		$container->registerService('addServerMiddleware', function(IAppContainer $c) {
+		$container->registerService('addServerMiddleware', function (IAppContainer $c) {
 			return new AddServerMiddleware(
 				$c->getAppName(),
 				\OC::$server->getL10N($c->getAppName()),
@@ -61,14 +57,14 @@ class Application extends \OCP\AppFramework\App {
 			);
 		});
 
-		$container->registerService('DbHandler', function(IAppContainer $c) {
+		$container->registerService('DbHandler', function (IAppContainer $c) {
 			return new DbHandler(
 				\OC::$server->getDatabaseConnection(),
 				\OC::$server->getL10N($c->getAppName())
 			);
 		});
 
-		$container->registerService('TrustedServers', function(IAppContainer $c) {
+		$container->registerService('TrustedServers', function (IAppContainer $c) {
 			$server = $c->getServer();
 			return new TrustedServers(
 				$c->query('DbHandler'),
@@ -90,7 +86,6 @@ class Application extends \OCP\AppFramework\App {
 				$c->query('TrustedServers')
 			);
 		});
-
 	}
 
 	private function registerMiddleware() {
@@ -103,7 +98,6 @@ class Application extends \OCP\AppFramework\App {
 	 * list of trusted servers.
 	 */
 	public function registerHooks() {
-
 		$container = $this->getContainer();
 		$hooksManager = new Hooks($container->query('TrustedServers'));
 
@@ -115,7 +109,7 @@ class Application extends \OCP\AppFramework\App {
 		);
 
 		$dispatcher = $this->getContainer()->getServer()->getEventDispatcher();
-		$dispatcher->addListener('OCA\DAV\Connector\Sabre::authInit', function($event) use($container) {
+		$dispatcher->addListener('OCA\DAV\Connector\Sabre::authInit', function ($event) use ($container) {
 			if ($event instanceof SabrePluginEvent) {
 				$authPlugin = $event->getServer()->getPlugin('auth');
 				if ($authPlugin instanceof Plugin) {
@@ -126,6 +120,16 @@ class Application extends \OCP\AppFramework\App {
 				}
 			}
 		});
+
+		$dispatcher->addListener(
+			'remoteshare.received',
+			function ($event) use ($container) {
+				$remote = $event->getArgument('remote');
+				$trustedServers = $container->query('TrustedServers');
+				$event->setArgument('autoAddServers', $trustedServers->getAutoAddServers());
+				$event->setArgument('isRemoteTrusted', $trustedServers->isTrustedServer($remote));
+			}
+		);
 	}
 
 	/**
@@ -136,5 +140,4 @@ class Application extends \OCP\AppFramework\App {
 		$dbHandler = $this->getContainer()->query('DbHandler');
 		return new SyncFederationAddressBooks($dbHandler, $syncService);
 	}
-
 }

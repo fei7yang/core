@@ -3,7 +3,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -53,7 +53,6 @@ class ObjectHomeMountProvider implements IHomeMountProvider {
 	 * @return \OCP\Files\Mount\IMountPoint[]
 	 */
 	public function getHomeMountForUser(IUser $user, IStorageFactory $loader) {
-
 		$config = $this->getMultiBucketObjectStoreConfig($user);
 		if ($config === null) {
 			$config = $this->getSingleBucketObjectStoreConfig($user);
@@ -72,7 +71,7 @@ class ObjectHomeMountProvider implements IHomeMountProvider {
 	 */
 	private function getSingleBucketObjectStoreConfig(IUser $user) {
 		$config = $this->config->getSystemValue('objectstore');
-		if (!is_array($config)) {
+		if (!\is_array($config)) {
 			return null;
 		}
 
@@ -96,7 +95,7 @@ class ObjectHomeMountProvider implements IHomeMountProvider {
 	 */
 	private function getMultiBucketObjectStoreConfig(IUser $user) {
 		$config = $this->config->getSystemValue('objectstore_multibucket');
-		if (!is_array($config)) {
+		if (!\is_array($config)) {
 			return null;
 		}
 
@@ -119,7 +118,12 @@ class ObjectHomeMountProvider implements IHomeMountProvider {
 			if (!isset($config['arguments']['bucket'])) {
 				$config['arguments']['bucket'] = '';
 			}
-			$mapper = new \OC\Files\ObjectStore\Mapper($user);
+			if (isset($config['arguments']['mapper-class'])) {
+				$mapperClass = $config['arguments']['mapper-class'];
+				$mapper = new $mapperClass($user);
+			} else {
+				$mapper = new \OC\Files\ObjectStore\Mapper($user);
+			}
 			$config['arguments']['bucket'] .= $mapper->getBucket();
 
 			$this->config->setUserValue($user->getUID(), 'homeobjectstore', 'bucket', $config['arguments']['bucket']);

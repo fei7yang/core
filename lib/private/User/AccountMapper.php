@@ -4,7 +4,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -23,10 +23,11 @@
 
 namespace OC\User;
 
-
 use OC\DB\QueryBuilder\Literal;
+use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Db\Entity;
 use OCP\AppFramework\Db\Mapper;
+use OCP\AppFramework\Db\MultipleObjectsReturnedException;
 use OCP\IConfig;
 use OCP\IDBConnection;
 
@@ -104,26 +105,30 @@ class AccountMapper extends Mapper {
 	 * @return Account[]
 	 */
 	public function getByEmail($email) {
-		if ($email === null || trim($email) === '') {
+		if ($email === null || \trim($email) === '') {
 			throw new \InvalidArgumentException('$email must be defined');
 		}
 		$qb = $this->db->getQueryBuilder();
+		// RFC 5321 says that only domain name is case insensitive, but in practice
+		// it's the whole email
 		$qb->select('*')
 			->from($this->getTableName())
-			->where($qb->expr()->eq('email', $qb->createNamedParameter($email)));
+			->where($qb->expr()->eq($qb->createFunction('LOWER(`email`)'), $qb->createFunction('LOWER(' . $qb->createNamedParameter($email) . ')')));
 
 		return $this->findEntities($qb->getSQL(), $qb->getParameters());
 	}
 
 	/**
 	 * @param string $uid
+	 * @throws DoesNotExistException if the account does not exist
+	 * @throws MultipleObjectsReturnedException if more than one account exists
 	 * @return Account
 	 */
 	public function getByUid($uid) {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')
 			->from($this->getTableName())
-			->where($qb->expr()->eq('lower_user_id', $qb->createNamedParameter(strtolower($uid))));
+			->where($qb->expr()->eq('lower_user_id', $qb->createNamedParameter(\strtolower($uid))));
 
 		return $this->findEntity($qb->getSQL(), $qb->getParameters());
 	}
@@ -152,14 +157,13 @@ class AccountMapper extends Mapper {
 	 * @return Account[]
 	 */
 	public function find($pattern, $limit = null, $offset = null) {
-
 		$allowMedialSearches = $this->config->getSystemValue('accounts.enable_medial_search', true);
 		if ($allowMedialSearches) {
 			$parameter = '%' . $this->db->escapeLikeParameter($pattern) . '%';
-			$loweredParameter = '%' . $this->db->escapeLikeParameter(strtolower($pattern)) . '%';
+			$loweredParameter = '%' . $this->db->escapeLikeParameter(\strtolower($pattern)) . '%';
 		} else {
 			$parameter = $this->db->escapeLikeParameter($pattern) . '%';
-			$loweredParameter = $this->db->escapeLikeParameter(strtolower($pattern)) . '%';
+			$loweredParameter = $this->db->escapeLikeParameter(\strtolower($pattern)) . '%';
 		}
 
 		$qb = $this->db->getQueryBuilder();
@@ -168,10 +172,10 @@ class AccountMapper extends Mapper {
 			->from($this->getTableName(), 'a')
 			->leftJoin('a', 'account_terms', 't', $qb->expr()->eq('a.id', 't.account_id'))
 			->orderBy('display_name')
-			->where($qb->expr()->like('lower_user_id', $qb->createNamedParameter($loweredParameter)))
-			->orWhere($qb->expr()->iLike('display_name', $qb->createNamedParameter($parameter)))
-			->orWhere($qb->expr()->iLike('email', $qb->createNamedParameter($parameter)))
-			->orWhere($qb->expr()->like('t.term', $qb->createNamedParameter($loweredParameter)));
+			->where($qb->expr()->like('lower_user_id', $qb->createPositionalParameter($loweredParameter)))
+			->orWhere($qb->expr()->iLike('display_name', $qb->createPositionalParameter($parameter)))
+			->orWhere($qb->expr()->iLike('email', $qb->createPositionalParameter($parameter)))
+			->orWhere($qb->expr()->like('t.term', $qb->createPositionalParameter($loweredParameter)));
 
 		return $this->findEntities($qb->getSQL(), $qb->getParameters(), $limit, $offset);
 	}
@@ -228,7 +232,7 @@ class AccountMapper extends Mapper {
 		}
 		$stmt = $qb->execute();
 		while ($row = $stmt->fetch()) {
-			$return =$callback($this->mapRowToEntity($row));
+			$return = $callback($this->mapRowToEntity($row));
 			if ($return === false) {
 				break;
 			}
@@ -237,4 +241,37 @@ class AccountMapper extends Mapper {
 		$stmt->closeCursor();
 	}
 
+	/**
+	 * @param string $backend
+	 * @param bool $hasLoggedIn
+	 * @param integer $limit
+	 * @param integer $offset
+	 * @return string[]
+	 */
+	public function findUserIds($backend = null, $hasLoggedIn = null, $limit = null, $offset = null) {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('user_id')
+			->from($this->getTableName())
+			->orderBy('user_id'); // needed for predictable limit & offset
+
+		if ($backend !== null) {
+			$qb->andWhere($qb->expr()->eq('backend', $qb->createNamedParameter($backend)));
+		}
+		if ($hasLoggedIn === true) {
+			$qb->andWhere($qb->expr()->gt('last_login', new Literal(0)));
+		} elseif ($hasLoggedIn === false) {
+			$qb->andWhere($qb->expr()->eq('last_login', new Literal(0)));
+		}
+		if ($limit !== null) {
+			$qb->setMaxResults($limit);
+		}
+		if ($offset !== null) {
+			$qb->setFirstResult($offset);
+		}
+
+		$stmt = $qb->execute();
+		$rows = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+		$stmt->closeCursor();
+		return $rows;
+	}
 }

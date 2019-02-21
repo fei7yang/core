@@ -33,16 +33,16 @@ class PropagatorTest extends TestCase {
 	 * @return ICacheEntry[]
 	 */
 	private function getFileInfos($paths) {
-		$values = array_map(function ($path) {
+		$values = \array_map(function ($path) {
 			return $this->storage->getCache()->get($path);
 		}, $paths);
-		return array_combine($paths, $values);
+		return \array_combine($paths, $values);
 	}
 
 	public function testEtagPropagation() {
 		$paths = ['', 'foo', 'foo/bar'];
 		$oldInfos = $this->getFileInfos($paths);
-		$this->storage->getPropagator()->propagateChange('foo/bar/file.txt', time());
+		$this->storage->getPropagator()->propagateChange('foo/bar/file.txt', \time());
 		$newInfos = $this->getFileInfos($paths);
 
 		foreach ($oldInfos as $i => $oldInfo) {
@@ -52,9 +52,9 @@ class PropagatorTest extends TestCase {
 
 	public function testTimePropagation() {
 		$paths = ['', 'foo', 'foo/bar'];
-		$oldTime = time() - 200;
-		$targetTime = time() - 100;
-		$now = time();
+		$oldTime = \time() - 200;
+		$targetTime = \time() - 100;
+		$now = \time();
 		$cache = $this->storage->getCache();
 		$cache->put('', ['mtime' => $now]);
 		$cache->put('foo', ['mtime' => $now]);
@@ -73,12 +73,31 @@ class PropagatorTest extends TestCase {
 	public function testSizePropagation() {
 		$paths = ['', 'foo', 'foo/bar'];
 		$oldInfos = $this->getFileInfos($paths);
-		$this->storage->getPropagator()->propagateChange('foo/bar/file.txt', time(), 10);
+		$this->storage->getPropagator()->propagateChange('foo/bar/file.txt', \time(), 10);
 		$newInfos = $this->getFileInfos($paths);
 
 		foreach ($oldInfos as $i => $oldInfo) {
 			$this->assertEquals($oldInfo->getSize() + 10, $newInfos[$i]->getSize());
 		}
+	}
+
+	public function getParentsProvider() {
+		return [
+			['', []],
+			['foo', ['']],
+			['foo/bar', ['', 'foo']],
+			['foo/bar/baz.txt', ['', 'foo', 'foo/bar']]
+		];
+	}
+
+	/**
+	 * @dataProvider getParentsProvider
+	 * @param $path
+	 * @throws \OCP\Files\StorageNotAvailableException
+	 */
+	public function testGetParents($path, $expected) {
+		$propagator = $this->storage->getPropagator();
+		self::assertSame($expected, self::invokePrivate($propagator, 'getParents', [$path]));
 	}
 
 	public function testBatchedPropagation() {
@@ -93,9 +112,20 @@ class PropagatorTest extends TestCase {
 		$oldInfos = $this->getFileInfos($paths);
 		$propagator = $this->storage->getPropagator();
 
+		// start at a later time because the above scanned elements have a recent mtime,
+		// we want to be sure that the propagated values are in the future
+		$time = \time() + 3600;
+		$time1 = $time - 100;
+		$time2 = $time - 200;
+
 		$propagator->beginBatch();
-		$propagator->propagateChange('asd/file.txt', time(), 10);
-		$propagator->propagateChange('foo/bar/file.txt', time(), 2);
+		$propagator->propagateChange('asd/file.txt', $time1 - 500, 6);
+		$propagator->propagateChange('foo/bar/file.txt', $time2, 2);
+
+		// add again to simulate another change,
+		// the mtime will be the one from the last change
+		// and the size will be 10 because 4 is the delta, so 6 + 4 = 10
+		$propagator->propagateChange('asd/file.txt', $time1, 4);
 
 		$newInfos = $this->getFileInfos($paths);
 
@@ -118,8 +148,13 @@ class PropagatorTest extends TestCase {
 
 		$this->assertEquals($oldInfos['']->getSize() + 12, $newInfos['']->getSize());
 		$this->assertEquals($oldInfos['asd']->getSize() + 10, $newInfos['asd']->getSize());
+		$this->assertEquals($time1, $newInfos['asd']->getMtime());
 		$this->assertEquals($oldInfos['foo']->getSize() + 2, $newInfos['foo']->getSize());
+		$this->assertEquals($time2, $newInfos['foo']->getMtime());
 		$this->assertEquals($oldInfos['foo/bar']->getSize() + 2, $newInfos['foo/bar']->getSize());
+		$this->assertEquals($time2, $newInfos['foo/bar']->getMtime());
 		$this->assertEquals($oldInfos['foo/baz']->getSize(), $newInfos['foo/baz']->getSize());
+		$this->assertNotEquals($time2, $newInfos['foo/baz']->getMtime());
+		$this->assertEquals($oldInfos['foo/baz']->getMtime(), $newInfos['foo/baz']->getMtime());
 	}
 }

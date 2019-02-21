@@ -2,7 +2,7 @@
 /**
  * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -107,6 +107,29 @@ class SettingsPageController extends Controller {
 	}
 
 	/**
+	 * Gets the icon for the settings panel. The idea is
+	 * to get either URL or the icon name ( for backward
+	 * compatibility ). The icons returned will be svg
+	 * format and no other formats are supported.
+	 *
+	 * @param \OCP\Settings\ISection $section
+	 * @return string
+	 */
+
+	protected function getIconForSettingsPanel($section) {
+		$icon = $section->getIconName() . '.svg';
+		$appPath = \OC_App::getAppPath($section->getID());
+
+		if (\file_exists($appPath . '/img/' . $icon)) {
+			$icon = $this->urlGenerator->imagePath($section->getID(), $icon);
+		} else {
+			$icon = $section->getIconName();
+		}
+
+		return $icon;
+	}
+
+	/**
 	 * Gets an array used to generate the navigation in the UI
 	 * @param array $sections array of ISections
 	 * @param string $currentSectionID
@@ -116,16 +139,18 @@ class SettingsPageController extends Controller {
 	protected function getNavigation($sections, $currentSectionID, $type) {
 		$nav = [];
 		// Iterate through sections and get id, name and see if currently active
-		foreach($sections as $section) {
+		foreach ($sections as $section) {
+			$icon = $this->getIconForSettingsPanel($section);
+
 			$nav[] = [
 				'id' => $section->getID(),
 				'link' => $this->urlGenerator->linkToRoute(
-					'settings.SettingsPage.get'.ucwords($type),
+					'settings.SettingsPage.get'.\ucwords($type),
 					['sectionid' => $section->getID()]
 				),
-				'name' => ucfirst($section->getName()),
+				'name' => \ucfirst($section->getName()),
 				'active' => $section->getID() === $currentSectionID,
-				'icon' => $section->getIconName()
+				'icon' => $icon
 			];
 		}
 		return $nav;
@@ -138,16 +163,15 @@ class SettingsPageController extends Controller {
 	 */
 	protected function getPanelsData($panels) {
 		$data = [];
-		foreach($panels as $panel) {
+		foreach ($panels as $panel) {
 			$template = $panel->getPanel();
-			if($template instanceof Template || $template instanceof TemplateResponse) {
+			if ($template instanceof Template || $template instanceof TemplateResponse) {
 				$data[] = [
-					'id' => get_class($panel),
+					'id' => \get_class($panel),
 					'content' => ($template instanceof Template) ? $template->fetchPage() : $template->render()
 				];
 			}
 		}
 		return $data;
 	}
-
 }

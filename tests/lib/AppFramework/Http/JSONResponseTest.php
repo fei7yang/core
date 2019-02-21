@@ -5,8 +5,8 @@
  *
  * @author Bernhard Posselt
  * @author Morris Jobke
- * @copyright 2012 Bernhard Posselt <dev@bernhard-posselt.com>
- * @copyright 2013 Morris Jobke <morris.jobke@gmail.com>
+ * @copyright Copyright (c) 2012 Bernhard Posselt <dev@bernhard-posselt.com>
+ * @copyright Copyright (c) 2013 Morris Jobke <morris.jobke@gmail.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
@@ -23,12 +23,10 @@
  *
  */
 
-
 namespace Test\AppFramework\Http;
 
-
-use OCP\AppFramework\Http\JSONResponse;
 use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\JSONResponse;
 
 class JSONResponseTest extends \Test\TestCase {
 
@@ -42,12 +40,10 @@ class JSONResponseTest extends \Test\TestCase {
 		$this->json = new JSONResponse();
 	}
 
-
 	public function testHeader() {
 		$headers = $this->json->getHeaders();
 		$this->assertEquals('application/json; charset=utf-8', $headers['Content-Type']);
 	}
-
 
 	public function testSetData() {
 		$params = ['hi', 'yo'];
@@ -55,7 +51,6 @@ class JSONResponseTest extends \Test\TestCase {
 
 		$this->assertEquals(['hi', 'yo'], $this->json->getData());
 	}
-
 
 	public function testSetRender() {
 		$params = ['test' => 'hi'];
@@ -96,7 +91,7 @@ class JSONResponseTest extends \Test\TestCase {
 	 * @requires PHP 5.5
 	 */
 	public function testRenderWithNonUtf8Encoding() {
-		$params = ['test' => hex2bin('e9')];
+		$params = ['test' => \hex2bin('e9')];
 		$this->json->setData($params);
 		$this->json->render();
 	}
@@ -119,5 +114,4 @@ class JSONResponseTest extends \Test\TestCase {
 		$this->assertEquals(Http::STATUS_NOT_FOUND, $this->json->getStatus());
 		$this->assertEquals(['hi', 'yo'], $this->json->getData());
 	}
-
 }

@@ -2,7 +2,7 @@
 /**
  * @author Noveen Sachdeva <noveen.sachdeva@research.iiit.ac.in>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -23,14 +23,14 @@ namespace Tests\Settings\Controller;
 
 use OC\Settings\Controller\CorsController;
 use OCP\AppFramework\Http\JSONResponse;
-use Test\TestCase;
-use OCP\IRequest;
+use OCP\AppFramework\Http\RedirectResponse;
 use OCP\IConfig;
 use OCP\ILogger;
+use OCP\IRequest;
+use OCP\IURLGenerator;
 use OCP\IUser;
 use OCP\IUserSession;
-use OCP\IURLGenerator;
-use OCP\AppFramework\Http\RedirectResponse;
+use Test\TestCase;
 
 /**
  * Class CorsControllerTest
@@ -72,6 +72,7 @@ class CorsControllerTest extends TestCase {
 		$this->config = $this->createMock(IConfig::class);
 		$this->config->method('getUserValue')->willReturn('["http:\/\/www.test.com"]');
 		$this->config->method('setUserValue')->willReturn(true);
+		$this->config->method('deleteUserValue')->willReturn(true);
 
 		$this->corsController = new CorsController(
 			'core',
@@ -155,7 +156,7 @@ class CorsControllerTest extends TestCase {
 		// the error message that invalid domain ID passed, would never be triggered
 		$this->config
 			->expects($this->once())
-			->method("setUserValue");
+			->method("deleteUserValue");
 
 		// The argument for removing domain is the ID of the white-listed domain
 		// and not the domain itself

@@ -2,7 +2,7 @@
 * ownCloud
 *
 * @author Vincent Petry
-* @copyright 2015 Vincent Petry <pvince81@owncloud.com>
+* @copyright Copyright (c) 2015 Vincent Petry <pvince81@owncloud.com>
 *
 * This library is free software; you can redistribute it and/or
 * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
@@ -228,7 +228,7 @@ describe('OC.Files.Client tests', function() {
 			expect(requestStub.calledOnce).toEqual(true);
 			expect(requestStub.lastCall.args[0]).toEqual('PROPFIND');
 			expect(requestStub.lastCall.args[1]).toEqual(baseUrl + 'path/to%20sp%40ce/%E6%96%87%E4%BB%B6%E5%A4%B9');
-			expect(requestStub.lastCall.args[2].Depth).toEqual(1);
+			expect(requestStub.lastCall.args[2].Depth).toEqual('1');
 
 			var props = getRequestedProperties(requestStub.lastCall.args[3]);
 			expect(props).toContain('{DAV:}getlastmodified');
@@ -269,7 +269,7 @@ describe('OC.Files.Client tests', function() {
 				// file entry
 				var info = response[0];
 				expect(info instanceof OC.Files.FileInfo).toEqual(true);
-				expect(info.id).toEqual(51);
+				expect(info.id).toEqual('51');
 				expect(info.path).toEqual('/path/to sp@ce/文件夹');
 				expect(info.name).toEqual('One.txt');
 				expect(info.permissions).toEqual(27);
@@ -281,7 +281,7 @@ describe('OC.Files.Client tests', function() {
 				// sub entry
 				info = response[1];
 				expect(info instanceof OC.Files.FileInfo).toEqual(true);
-				expect(info.id).toEqual(15);
+				expect(info.id).toEqual('15');
 				expect(info.path).toEqual('/path/to sp@ce/文件夹');
 				expect(info.name).toEqual('sub');
 				expect(info.permissions).toEqual(31);
@@ -310,7 +310,7 @@ describe('OC.Files.Client tests', function() {
 				// root entry
 				var info = response[0];
 				expect(info instanceof OC.Files.FileInfo).toEqual(true);
-				expect(info.id).toEqual(11);
+				expect(info.id).toEqual('11');
 				expect(info.path).toEqual('/path/to sp@ce');
 				expect(info.name).toEqual('文件夹');
 				expect(info.permissions).toEqual(31);
@@ -320,8 +320,8 @@ describe('OC.Files.Client tests', function() {
 				expect(info.etag).toEqual('56cfcabd79abb');
 
 				// the two other entries follow
-				expect(response[1].id).toEqual(51);
-				expect(response[2].id).toEqual(15);
+				expect(response[1].id).toEqual('51');
+				expect(response[2].id).toEqual('15');
 			});
 		});
 		it('rejects promise when an error occurred', function() {
@@ -460,17 +460,17 @@ describe('OC.Files.Client tests', function() {
 				// file entry
 				var info = response[0];
 				expect(info instanceof OC.Files.FileInfo).toEqual(true);
-				expect(info.id).toEqual(11);
+				expect(info.id).toEqual('11');
 
 				// file entry
 				var info = response[1];
 				expect(info instanceof OC.Files.FileInfo).toEqual(true);
-				expect(info.id).toEqual(51);
+				expect(info.id).toEqual('51');
 
 				// sub entry
 				info = response[2];
 				expect(info instanceof OC.Files.FileInfo).toEqual(true);
-				expect(info.id).toEqual(15);
+				expect(info.id).toEqual('15');
 			});
 		});
 		it('throws exception if arguments are missing', function() {
@@ -514,7 +514,7 @@ describe('OC.Files.Client tests', function() {
 			expect(requestStub.calledOnce).toEqual(true);
 			expect(requestStub.lastCall.args[0]).toEqual('PROPFIND');
 			expect(requestStub.lastCall.args[1]).toEqual(baseUrl + 'path/to%20sp%40ce/%E6%96%87%E4%BB%B6%E5%A4%B9');
-			expect(requestStub.lastCall.args[2].Depth).toEqual(0);
+			expect(requestStub.lastCall.args[2].Depth).toEqual('0');
 
 			var props = getRequestedProperties(requestStub.lastCall.args[3]);
 			expect(props).toContain('{DAV:}getlastmodified');
@@ -542,7 +542,7 @@ describe('OC.Files.Client tests', function() {
 
 				var info = response;
 				expect(info instanceof OC.Files.FileInfo).toEqual(true);
-				expect(info.id).toEqual(11);
+				expect(info.id).toEqual('11');
 				expect(info.path).toEqual('/path/to sp@ce');
 				expect(info.name).toEqual('文件夹');
 				expect(info.permissions).toEqual(31);
@@ -590,7 +590,7 @@ describe('OC.Files.Client tests', function() {
 
 				var info = response;
 				expect(info instanceof OC.Files.FileInfo).toEqual(true);
-				expect(info.id).toEqual(11);
+				expect(info.id).toEqual('11');
 				expect(info.path).toEqual('/');
 				expect(info.name).toEqual('in root');
 				expect(info.permissions).toEqual(31);
@@ -867,6 +867,21 @@ describe('OC.Files.Client tests', function() {
 		});
 		it('throws exception if arguments are missing', function() {
 			// TODO
+		});
+	});
+
+	describe('getRelativePath', function() {
+		it('returns relative path when given path applies', function() {
+			expect(client.getRelativePath('/owncloud/remote.php/webdav/abc/def'))
+				.toEqual('/abc/def');
+		});
+		it('returns empty string when given path is equal to the root', function() {
+			expect(client.getRelativePath('/owncloud/remote.php/webdav/'))
+				.toEqual('');
+		});
+		it('returns null if given path is not relative to root', function() {
+			expect(client.getRelativePath('/other/remote.php/webdav/abc/def'))
+				.toEqual(null);
 		});
 	});
 

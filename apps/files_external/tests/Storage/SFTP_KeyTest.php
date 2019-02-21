@@ -6,7 +6,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Viktor Szépe <viktor@szepe.net>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -25,7 +25,7 @@
 
 namespace OCA\Files_External\Tests\Storage;
 
-use \OCA\Files_External\Lib\Storage\SFTP_Key;
+use OCA\Files_External\Lib\Storage\SFTP_Key;
 
 /**
  * Class SFTP_KeyTest
@@ -42,7 +42,7 @@ class SFTP_KeyTest extends \Test\Files\Storage\Storage {
 
 		$id = $this->getUniqueID();
 		$this->config = include('files_external/tests/config.php');
-		if ( ! is_array($this->config) or ! isset($this->config['sftp_key']) or ! $this->config['sftp_key']['run']) {
+		if (! \is_array($this->config) or ! isset($this->config['sftp_key']) or ! $this->config['sftp_key']['run']) {
 			$this->markTestSkipped('SFTP with key backend not configured');
 		}
 		// Make sure we have an new empty folder to work in
@@ -88,7 +88,7 @@ class SFTP_KeyTest extends \Test\Files\Storage\Storage {
 	/**
 	 * @expectedException InvalidArgumentException
 	 */
-	public function testHighPortNumberShouldThrowException() { 
+	public function testHighPortNumberShouldThrowException() {
 		$this->instance->assertPortNumberValid('65536');
 	}
 

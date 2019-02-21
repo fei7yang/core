@@ -39,6 +39,7 @@
 	"dot": ["application/msword"],
 	"dotx": ["application/vnd.openxmlformats-officedocument.wordprocessingml.template"],
 	"dv": ["video/dv"],
+	"eml": ["message/rfc822"],
 	"eot": ["application/vnd.ms-fontobject"],
 	"epub": ["application/epub+zip"],
 	"eps": ["application/postscript"],
@@ -50,6 +51,8 @@
 	"gz": ["application/x-gzip"],
 	"gzip": ["application/x-gzip"],
 	"h": ["text/x-h"],
+	"heic": ["image/heic"],
+	"heif": ["image/heif"],
 	"hh": ["text/x-h"],
 	"hpp": ["text/x-h"],
 	"html": ["text/html", "text/plain"],
@@ -176,5 +179,8 @@
 	"xrf": ["image/x-dcraw"],
 	"yaml": ["application/yaml", "text/plain"],
 	"yml": ["application/yaml", "text/plain"],
-	"zip": ["application/zip"]
+	"zip": ["application/zip"],
+	"so": ["application/x-sharedlib"],
+	"dll": ["application/x-msdos-program"],
+	"dylib": ["application/x-sharedlib"]
 }

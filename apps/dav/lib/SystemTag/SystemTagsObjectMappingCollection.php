@@ -2,7 +2,7 @@
 /**
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,17 +21,16 @@
 
 namespace OCA\DAV\SystemTag;
 
-use Sabre\DAV\Exception\Forbidden;
-use Sabre\DAV\Exception\NotFound;
-use Sabre\DAV\Exception\BadRequest;
-use Sabre\DAV\Exception\PreconditionFailed;
-use Sabre\DAV\ICollection;
-
+use OCP\IUser;
+use OCP\SystemTag\ISystemTag;
 use OCP\SystemTag\ISystemTagManager;
 use OCP\SystemTag\ISystemTagObjectMapper;
-use OCP\SystemTag\ISystemTag;
 use OCP\SystemTag\TagNotFoundException;
-use OCP\IUser;
+use Sabre\DAV\Exception\BadRequest;
+use Sabre\DAV\Exception\Forbidden;
+use Sabre\DAV\Exception\NotFound;
+use Sabre\DAV\Exception\PreconditionFailed;
+use Sabre\DAV\ICollection;
 
 /**
  * Collection containing tags by object id
@@ -65,7 +64,6 @@ class SystemTagsObjectMappingCollection implements ICollection {
 	 */
 	private $user;
 
-
 	/**
 	 * Constructor
 	 *
@@ -89,14 +87,22 @@ class SystemTagsObjectMappingCollection implements ICollection {
 		$this->user = $user;
 	}
 
-	function createFile($tagId, $data = null) {
+	public function createFile($tagId, $data = null) {
 		try {
 			$tags = $this->tagManager->getTagsByIds([$tagId]);
-			$tag = current($tags);
+			$tag = \current($tags);
 			if (!$this->tagManager->canUserSeeTag($tag, $this->user)) {
 				throw new PreconditionFailed('Tag with id ' . $tagId . ' does not exist, cannot assign');
 			}
 			if (!$this->tagManager->canUserAssignTag($tag, $this->user)) {
+				throw new Forbidden('No permission to assign tag ' . $tagId);
+			}
+			/**
+			 * regular user who do not belong to whitelisted groups of static tags
+			 * can not assign static tags
+			 */
+			if ((!$tag->isUserEditable() && $tag->isUserAssignable())
+				&& !$this->tagManager->canUserUseStaticTagInGroup($tag, $this->user)) {
 				throw new Forbidden('No permission to assign tag ' . $tagId);
 			}
 
@@ -106,15 +112,15 @@ class SystemTagsObjectMappingCollection implements ICollection {
 		}
 	}
 
-	function createDirectory($name) {
+	public function createDirectory($name) {
 		throw new Forbidden('Permission denied to create collections');
 	}
 
-	function getChild($tagId) {
+	public function getChild($tagId) {
 		try {
 			if ($this->tagMapper->haveTag([$this->objectId], $this->objectType, $tagId, true)) {
 				$tag = $this->tagManager->getTagsByIds([$tagId]);
-				$tag = current($tag);
+				$tag = \current($tag);
 				if ($this->tagManager->canUserSeeTag($tag, $this->user)) {
 					return $this->makeNode($tag);
 				}
@@ -127,30 +133,30 @@ class SystemTagsObjectMappingCollection implements ICollection {
 		}
 	}
 
-	function getChildren() {
-		$tagIds = current($this->tagMapper->getTagIdsForObjects([$this->objectId], $this->objectType));
+	public function getChildren() {
+		$tagIds = \current($this->tagMapper->getTagIdsForObjects([$this->objectId], $this->objectType));
 		if (empty($tagIds)) {
 			return [];
 		}
 		$tags = $this->tagManager->getTagsByIds($tagIds);
 
 		// filter out non-visible tags
-		$tags = array_filter($tags, function($tag) {
+		$tags = \array_filter($tags, function ($tag) {
 			return $this->tagManager->canUserSeeTag($tag, $this->user);
 		});
 
-		return array_values(array_map(function($tag) {
+		return \array_values(\array_map(function ($tag) {
 			return $this->makeNode($tag);
 		}, $tags));
 	}
 
-	function childExists($tagId) {
+	public function childExists($tagId) {
 		try {
 			$result = ($this->tagMapper->haveTag([$this->objectId], $this->objectType, $tagId, true));
 
 			if ($result) {
 				$tags = $this->tagManager->getTagsByIds([$tagId]);
-				$tag = current($tags);
+				$tag = \current($tags);
 				if (!$this->tagManager->canUserSeeTag($tag, $this->user)) {
 					return false;
 				}
@@ -164,15 +170,15 @@ class SystemTagsObjectMappingCollection implements ICollection {
 		}
 	}
 
-	function delete() {
+	public function delete() {
 		throw new Forbidden('Permission denied to delete this collection');
 	}
 
-	function getName() {
+	public function getName() {
 		return $this->objectId;
 	}
 
-	function setName($name) {
+	public function setName($name) {
 		throw new Forbidden('Permission denied to rename this collection');
 	}
 
@@ -181,12 +187,12 @@ class SystemTagsObjectMappingCollection implements ICollection {
 	 *
 	 * @return int
 	 */
-	function getLastModified() {
+	public function getLastModified() {
 		return null;
 	}
 
 	/**
-	 * Create a sabre node for the mapping of the 
+	 * Create a sabre node for the mapping of the
 	 * given system tag to the collection's object
 	 *
 	 * @param ISystemTag $tag

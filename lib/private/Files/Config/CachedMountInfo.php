@@ -3,7 +3,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Semih Serhat Karakaya <karakayasemi@itu.edu.tr>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -91,12 +91,8 @@ class CachedMountInfo implements ICachedMountInfo {
 		// TODO injection etc
 		Filesystem::initMountPoints($this->getUser()->getUID());
 		$userNode = \OC::$server->getUserFolder($this->getUser()->getUID());
-		$nodes = $userNode->getParent()->getById($this->getRootId());
-		if (count($nodes) > 0) {
-			return $nodes[0];
-		} else {
-			return null;
-		}
+		$nodes = $userNode->getParent()->getById($this->getRootId(), true);
+		return $nodes[0] ?? null;
 	}
 
 	/**

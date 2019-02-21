@@ -2,7 +2,7 @@
 /**
  * @author Morris Jobke <hey@morrisjobke.de>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,40 +21,45 @@
 
 namespace Test\App\CodeChecker;
 
+use OCP\App\AppNotFoundException;
+use OCP\App\IAppManager;
 use OC\App\CodeChecker\InfoChecker;
 use OC\App\InfoParser;
 use Test\TestCase;
 
 class InfoCheckerTest extends TestCase {
-	/** @var InfoChecker */
-	protected $infoChecker;
 
-	public static function setUpBeforeClass() {
-		\OC::$APPSROOTS[] = [
-			'path' => \OC::$SERVERROOT . '/tests/apps',
-			'url' => '/apps-test',
-			'writable' => false,
-		];
-	}
-
-	public static function tearDownAfterClass() {
-		// remove last element
-		array_pop(\OC::$APPSROOTS);
-	}
+	/** @var IAppManager | \PHPUnit_Framework_MockObject_MockObject */
+	protected $appManager;
 
 	protected function setUp() {
 		parent::setUp();
-		$this->infoChecker = new InfoChecker(new InfoParser());
+
+		$this->appManager = $this->getMockBuilder(IAppManager::class)
+			->disableOriginalConstructor()
+			->getMock();
+
+		$this->appManager->expects($this->any())
+			->method('getAppPath')
+			->will(
+				$this->returnCallback(
+					function ($appId) {
+						return \OC::$SERVERROOT . '/tests/apps/' . $appId;
+					}
+				)
+			);
 	}
 
 	public function appInfoData() {
 		return [
 			['testapp-infoxml', []],
-			['testapp-version', []],
+			['testapp-version', [['type' => 'mandatoryFieldMissing', 'field' => 'version']]],
 			['testapp-infoxml-version', []],
 			['testapp-infoxml-version-different', [['type' => 'differentVersions', 'message' => 'appinfo/version: 1.2.4 - appinfo/info.xml: 1.2.3']]],
-			['testapp-version-missing', []],
+			['testapp-version-missing', [['type' => 'mandatoryFieldMissing', 'field' => 'version']]],
 			['testapp-name-missing', [['type' => 'mandatoryFieldMissing', 'field' => 'name']]],
+			['testapp-nomin', [['type' => 'missingRequirement', 'message' => 'No minimum ownCloud version is defined in appinfo/info.xml']]],
+			['testapp-nomax', [['type' => 'missingRequirement', 'message' => 'No maximum ownCloud version is defined in appinfo/info.xml']]],
 		];
 	}
 
@@ -65,8 +70,27 @@ class InfoCheckerTest extends TestCase {
 	 * @param $expectedErrors
 	 */
 	public function testApps($appId, $expectedErrors) {
-		$errors = $this->infoChecker->analyse($appId);
+		$infoChecker = $this->getInfoChecker(new InfoParser());
+		$errors = $infoChecker->analyse($appId);
 
 		$this->assertEquals($expectedErrors, $errors);
+	}
+
+	public function testInvalidAppInfo() {
+		$infoParser = $this->getMockBuilder(InfoParser::class)
+			->getMock();
+		$infoParser->expects($this->any())
+			->method('parse')
+			->will($this->throwException(new AppNotFoundException()));
+
+		$infoChecker = $this->getInfoChecker($infoParser);
+		$errors = $infoChecker->analyse('testapp-infoxml');
+
+		$this->assertArrayHasKey('type', $errors[0]);
+		$this->assertEquals('invalidAppInfo', $errors[0]['type']);
+	}
+
+	private function getInfoChecker($infoParser) {
+		return new InfoChecker($infoParser, $this->appManager);
 	}
 }

@@ -5,7 +5,7 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Pierre Ozoux <pierre@ozoux.net>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -45,25 +45,25 @@ class LastSeen extends Command {
 	protected function configure() {
 		$this
 			->setName('user:lastseen')
-			->setDescription('shows when the user was logged in last time')
+			->setDescription('Shows when the user was last logged in.')
 			->addArgument(
 				'uid',
 				InputArgument::REQUIRED,
-				'the username'
+				'The username.'
 			);
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output) {
 		$user = $this->userManager->get($input->getArgument('uid'));
-		if(is_null($user)) {
+		if ($user === null) {
 			$output->writeln('<error>User does not exist</error>');
 			return;
 		}
 
 		$lastLogin = $user->getLastLogin();
-		if($lastLogin === 0) {
+		if ($lastLogin === 0) {
 			$output->writeln('User ' . $user->getUID() .
-				' has never logged in, yet.');
+				' has never logged in.');
 		} else {
 			$date = new \DateTime();
 			$date->setTimestamp($lastLogin);

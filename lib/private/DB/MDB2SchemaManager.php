@@ -9,7 +9,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -81,14 +81,14 @@ class MDB2SchemaManager {
 		$dispatcher = \OC::$server->getEventDispatcher();
 		if ($platform instanceof SqlitePlatform) {
 			return new SQLiteMigrator($this->conn, $random, $config, $dispatcher);
-		} else if ($platform instanceof OraclePlatform) {
+		} elseif ($platform instanceof OraclePlatform) {
 			return new OracleMigrator($this->conn, $random, $config, $dispatcher);
-		} else if ($platform instanceof MySqlPlatform) {
+		} elseif ($platform instanceof MySqlPlatform) {
 			return new MySQLMigrator($this->conn, $random, $config, $dispatcher);
-		} else if ($platform instanceof PostgreSqlPlatform) {
+		} elseif ($platform instanceof PostgreSqlPlatform) {
 			return new PostgreSqlMigrator($this->conn, $random, $config, $dispatcher);
 		} else {
-			return new NoCheckMigrator($this->conn, $random, $config, $dispatcher);
+			return new Migrator($this->conn, $random, $config, $dispatcher);
 		}
 	}
 

@@ -4,7 +4,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -29,6 +29,8 @@ use Sabre\DAV\Exception\Forbidden;
 use Sabre\DAV\ICollection;
 
 class UploadHome implements ICollection {
+	private $principalInfo;
+
 	/**
 	 * UploadHome constructor.
 	 *
@@ -38,41 +40,41 @@ class UploadHome implements ICollection {
 		$this->principalInfo = $principalInfo;
 	}
 
-	function createFile($name, $data = null) {
+	public function createFile($name, $data = null) {
 		throw new Forbidden('Permission denied to create file (filename ' . $name . ')');
 	}
 
-	function createDirectory($name) {
+	public function createDirectory($name) {
 		$this->impl()->createDirectory($name);
 	}
 
-	function getChild($name) {
+	public function getChild($name) {
 		return new UploadFolder($this->impl()->getChild($name));
 	}
 
-	function getChildren() {
-		return array_map(function($node) {
+	public function getChildren() {
+		return \array_map(function ($node) {
 			return new UploadFolder($node);
 		}, $this->impl()->getChildren());
 	}
 
-	function childExists($name) {
-		return !is_null($this->getChild($name));
+	public function childExists($name) {
+		return $this->getChild($name) !== null;
 	}
 
-	function delete() {
+	public function delete() {
 		$this->impl()->delete();
 	}
 
-	function getName() {
+	public function getName() {
 		return 'uploads';
 	}
 
-	function setName($name) {
+	public function setName($name) {
 		throw new Forbidden('Permission denied to rename this folder');
 	}
 
-	function getLastModified() {
+	public function getLastModified() {
 		return $this->impl()->getLastModified();
 	}
 
@@ -81,7 +83,11 @@ class UploadHome implements ICollection {
 	 */
 	private function impl() {
 		$rootView = new View();
-		$user = \OC::$server->getUserSession()->getUser();
+		if (isset($this->principalInfo['user'])) {
+			$user = $this->principalInfo['user'];
+		} else {
+			$user = \OC::$server->getUserSession()->getUser();
+		}
 		Filesystem::initMountPoints($user->getUID());
 		if (!$rootView->file_exists('/' . $user->getUID() . '/uploads')) {
 			$rootView->mkdir('/' . $user->getUID() . '/uploads');

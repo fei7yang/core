@@ -9,17 +9,22 @@
 
 namespace Test\User;
 
+use OC\Group\Manager;
 use OC\Hooks\PublicEmitter;
+use OC\SubAdmin;
 use OC\User\Account;
 use OC\User\AccountMapper;
 use OC\User\Backend;
 use OC\User\Database;
+use OC\User\Session;
 use OC\User\User;
 use OCP\IConfig;
 use OCP\IURLGenerator;
 use OCP\User\IChangePasswordBackend;
 use Symfony\Component\EventDispatcher\EventDispatcher;
+use Symfony\Component\EventDispatcher\GenericEvent;
 use Test\TestCase;
+use Test\Traits\PasswordTrait;
 
 /**
  * Class UserTest
@@ -29,7 +34,6 @@ use Test\TestCase;
  * @package Test\User
  */
 class UserTest extends TestCase {
-
 	/** @var AccountMapper | \PHPUnit_Framework_MockObject_MockObject */
 	private $accountMapper;
 	/** @var Account */
@@ -44,6 +48,12 @@ class UserTest extends TestCase {
 	private $eventDispatcher;
 	/** @var IURLGenerator | \PHPUnit_Framework_MockObject_MockObject */
 	private $urlGenerator;
+	/** @var  Manager | \PHPUnit_Framework_MockObject_MockObject */
+	private $groupManager;
+	/** @var  SubAdmin | \PHPUnit_Framework_MockObject_MockObject */
+	private $subAdmin;
+	/** @var  Session | \PHPUnit_Framework_MockObject_MockObject */
+	private $sessionUser;
 
 	public function setUp() {
 		parent::setUp();
@@ -57,6 +67,9 @@ class UserTest extends TestCase {
 			->setMethods(['getAbsoluteURL'])
 			->disableOriginalConstructor()
 			->getMock();
+		$this->groupManager = $this->createMock('\OC\Group\Manager');
+		$this->subAdmin = $this->createMock('\OC\SubAdmin');
+		$this->sessionUser = $this->createMock(Session::class);
 
 		$this->user = new User($this->account, $this->accountMapper, $this->emitter, $this->config, $this->urlGenerator, $this->eventDispatcher);
 	}
@@ -73,11 +86,61 @@ class UserTest extends TestCase {
 		$this->assertEquals('foo', $this->user->getDisplayName());
 	}
 
+	public function testGetUserName() {
+		$this->config->expects($this->once())
+			->method('getUserValue')
+			->with('foo', 'core', 'username')
+			->willReturn('fooName');
+		$this->assertEquals('fooName', $this->user->getUserName());
+	}
+
+	public function testGetUserNameFallback() {
+		$this->config->expects($this->once())
+			->method('getUserValue')
+			->with('foo', 'core', 'username')
+			->willReturn('foo');
+		$this->assertEquals('foo', $this->user->getUserName());
+	}
+
+	public function testSetUserName() {
+		$this->config->expects($this->at(0))
+			->method('getUserValue')
+			->with('foo', 'core', 'username', 'foo')
+			->willReturn('foo');
+		$this->config->expects($this->at(1))
+			->method('setUserValue')
+			->with('foo', 'core', 'username', 'fooName');
+		$this->user->setUserName('fooName');
+	}
+
+	public function testSetUserNameSame() {
+		$this->config->expects($this->once())
+			->method('getUserValue')
+			->with('foo', 'core', 'username', 'foo')
+			->willReturn('foo');
+		$this->config->expects($this->never())
+			->method('setUserValue');
+		$this->user->setUserName('foo');
+	}
+
 	public function testSetPassword() {
 		$this->config->expects($this->once())
 			->method('deleteUserValue')
 			->with('foo', 'owncloud', 'lostpassword');
 
+		/**
+		 * @var GenericEvent[] $calledEvents
+		 */
+		$calledEvents = [];
+		\OC::$server->getEventDispatcher()->addListener('user.beforesetpassword', function ($event) use (&$calledEvents) {
+			$calledEvents['user.beforesetpassword'] = $event;
+		});
+		\OC::$server->getEventDispatcher()->addListener('OCP\User::validatePassword', function ($event) use (&$calledEvents) {
+			$calledEvents['OCP\User::validatePassword'] = $event;
+		});
+		\OC::$server->getEventDispatcher()->addListener('user.aftersetpassword', function ($event) use (&$calledEvents) {
+			$calledEvents['user.aftersetpassword'] = $event;
+		});
 		$backend = $this->createMock(IChangePasswordBackend::class);
 		/** @var Account | \PHPUnit_Framework_MockObject_MockObject $account */
 		$account = $this->createMock(Account::class);
@@ -85,11 +148,44 @@ class UserTest extends TestCase {
 		$account->expects($this->any())->method('__call')->with('getUserId')->willReturn('foo');
 		$backend->expects($this->once())->method('setPassword')->with('foo', 'bar')->willReturn(true);
 
-		$this->user = new User($account, $this->accountMapper, null, $this->config);
-		$this->assertTrue($this->user->setPassword('bar',''));
+		$ocHook = new \OC_Hook();
+
+		$this->user = new User($account, $this->accountMapper, $ocHook, $this->config, null, \OC::$server->getEventDispatcher());
+		$this->assertTrue($this->user->setPassword('bar', ''));
 		$this->assertTrue($this->user->canChangePassword());
 
+		$this->assertArrayHasKey('user.beforesetpassword', $calledEvents);
+		$this->assertArrayHasKey('OCP\User::validatePassword', $calledEvents);
+		$this->assertArrayHasKey('user.aftersetpassword', $calledEvents);
+
+		$this->assertInstanceOf(GenericEvent::class, $calledEvents['user.beforesetpassword']);
+		$this->assertInstanceOf(GenericEvent::class, $calledEvents['OCP\User::validatePassword']);
+		$this->assertInstanceOf(GenericEvent::class, $calledEvents['user.aftersetpassword']);
+
+		$this->assertInstanceOf(User::class, $calledEvents['user.beforesetpassword']->getArgument('user'));
+		$this->assertEquals('bar', $calledEvents['user.beforesetpassword']->getArgument('password'));
+		$this->assertEquals('', $calledEvents['user.beforesetpassword']->getArgument('recoveryPassword'));
+		$this->assertEquals('foo', $calledEvents['OCP\User::validatePassword']->getArgument('uid'));
+		$this->assertEquals('bar', $calledEvents['OCP\User::validatePassword']->getArgument('password'));
+		$this->assertInstanceOf(User::class, $calledEvents['user.aftersetpassword']->getArgument('user'));
+		$this->assertEquals('bar', $calledEvents['user.aftersetpassword']->getArgument('password'));
+		$this->assertEquals('', $calledEvents['user.aftersetpassword']->getArgument('recoveryPassword'));
 	}
+
+	/**
+	 * @param string $password
+	 * @dataProvider getEmptyValues
+	 * @expectedException \InvalidArgumentException
+	 * @expectedExceptionMessage Password cannot be empty
+	 * @throws \InvalidArgumentException
+	 */
+	public function testSetEmptyPasswordNotPermitted($password) {
+		(new User(
+			$this->createMock(Account::class),
+			$this->accountMapper
+		))->setPassword($password, 'bar');
+	}
+
 	public function testSetPasswordNotSupported() {
 		$this->config->expects($this->never())
 			->method('deleteUserValue')
@@ -103,12 +199,12 @@ class UserTest extends TestCase {
 		$backend->expects($this->once())->method('setPassword')->with('foo', 'bar')->willReturn(false);
 
 		$this->user = new User($account, $this->accountMapper, null, $this->config);
-		$this->assertFalse($this->user->setPassword('bar',''));
+		$this->assertFalse($this->user->setPassword('bar', ''));
 		$this->assertTrue($this->user->canChangePassword());
 	}
 
 	public function testSetPasswordNoBackend() {
-		$this->assertFalse($this->user->setPassword('bar',''));
+		$this->assertFalse($this->user->setPassword('bar', ''));
 		$this->assertFalse($this->user->canChangePassword());
 	}
 
@@ -170,6 +266,66 @@ class UserTest extends TestCase {
 			[false, false]
 		];
 	}
+
+	public function providesAdminOrSubAdmin() {
+		return [
+			[false, false, false, false],
+			[true, false, true, true],
+			[true, true, true, true],
+			[true, true, true, true]
+		];
+	}
+
+	/**
+	 * @dataProvider providesAdminOrSubAdmin
+	 * @param $isAdmin
+	 * @param $isSubaDmin
+	 * @param $expected
+	 * @param $implements
+	 */
+	public function testAdminSubadminCanChangeDisplayName($isAdmin, $isSubaDmin, $expected, $implements) {
+		$this->config->method('getSystemValue')
+			->with('allow_user_to_change_display_name')
+			->willReturn(false);
+
+		$user = $this->createMock('\OCP\IUser');
+		$user->method('getUID')->willReturn('admin');
+
+		$subAdmin = $this->createMock(SubAdmin::class);
+		$subAdmin->method('isSubAdmin')->willReturn($isSubaDmin);
+
+		$this->sessionUser->method('getUser')
+			->willReturn($user);
+
+		$this->groupManager->method('isAdmin')->willReturn($isAdmin);
+		$this->groupManager->method('getSubAdmin')->willReturn($subAdmin);
+
+		$backend = $this->getMockBuilder(Database::class)
+			->setMethods(['implementsActions'])
+			->getMock();
+
+		/** @var Account | \PHPUnit_Framework_MockObject_MockObject $account */
+		$account = $this->getMockBuilder(Account::class)
+			->setMethods(['getBackendInstance', 'getDisplayName', 'setDisplayName'])
+			->getMock();
+		$account->expects($this->any())->method('getBackendInstance')->willReturn($backend);
+		$account->expects($this->any())->method('getDisplayName')->willReturn('admin');
+		$account->expects($this->any())->method('setDisplayName')->willReturn($implements);
+
+		$backend->expects($this->any())
+			->method('implementsActions')
+			->will($this->returnCallback(function ($actions) use ($implements) {
+				if ($actions === Backend::SET_DISPLAYNAME) {
+					return $implements;
+				} else {
+					return false;
+				}
+			}));
+
+		$user = new User($account, $this->accountMapper, null, $this->config, null, null, $this->groupManager, $this->sessionUser);
+
+		$this->assertEquals($expected, $user->canChangeDisplayName());
+	}
 	/**
 	 * @dataProvider providesChangeDisplayName
 	 */
@@ -207,6 +363,45 @@ class UserTest extends TestCase {
 		$this->assertEquals($expected, $user->setDisplayName('Foo'));
 	}
 
+	public function provideNullorFalseData() {
+		return [
+			[null, null, false],
+			[null, true, false],
+			[null, true, true]
+		];
+	}
+
+	/**
+	 * @dataProvider provideNullorFalseData
+	 * @param $user
+	 * @param $backendinstance
+	 * @param $setDisplayName
+	 */
+	public function testCanChangeDisplayNameWhenNullSession($getUser, $backendinstance, $setDisplayName) {
+		$this->sessionUser->method('getUser')
+			->willReturn($getUser);
+		$backend = $this->getMockBuilder(Database::class)
+			->setMethods(['implementsActions'])
+			->getMock();
+
+		/** @var Account | \PHPUnit_Framework_MockObject_MockObject $account */
+		$account = $this->getMockBuilder(Account::class)
+			->setMethods(['getBackendInstance', 'getDisplayName', 'setDisplayName'])
+			->getMock();
+		if ($backendinstance !== null) {
+			$backendinstance = $backend;
+		}
+		$account->expects($this->any())->method('getBackendInstance')->willReturn($backendinstance);
+		$account->expects($this->any())->method('getDisplayName')->willReturn('admin');
+		$account->expects($this->any())->method('setDisplayName')->willReturn($setDisplayName);
+		$user = new User($account, $this->accountMapper, null, $this->config, null, null, $this->groupManager, null);
+		if ($setDisplayName !== true) {
+			$this->assertEquals($setDisplayName, $user->canChangeDisplayName());
+		} else {
+			$this->assertEquals(null, $user->canChangeDisplayName());
+		}
+	}
+
 	/**
 	 * don't allow display names containing whitespaces only
 	 */
@@ -234,7 +429,7 @@ class UserTest extends TestCase {
 
 		$user = new User($account, $this->accountMapper, null, $this->config);
 		$this->assertFalse($user->setDisplayName('Foo'));
-		$this->assertEquals('foo',$user->getDisplayName());
+		$this->assertEquals('foo', $user->getDisplayName());
 	}
 
 	public function testSetPasswordHooks() {
@@ -262,10 +457,19 @@ class UserTest extends TestCase {
 		$account->expects($this->any())->method('__call')->with('getUserId')->willReturn('foo');
 		$backend->expects($this->once())->method('setPassword')->with('foo', 'bar')->willReturn(true);
 
-		$this->user = new User($account, $this->accountMapper, $emitter, $this->config);
+		$this->user = new User($account, $this->accountMapper, $emitter, $this->config, null, \OC::$server->getEventDispatcher());
 
-		$this->user->setPassword('bar','');
+		$calledEvent = [];
+		\OC::$server->getEventDispatcher()->addListener('user.aftersetpassword', function ($event) use (&$calledEvent) {
+			$calledEvent[] = 'user.aftersetpassword';
+			$calledEvent[] = $event;
+		});
+
+		$this->user->setPassword('bar', '');
 		$this->assertEquals(2, $hooksCalled);
+		$this->assertArrayHasKey('user', $calledEvent[1]);
+		$this->assertInstanceOf(GenericEvent::class, $calledEvent[1]);
+		$this->assertEquals('user.aftersetpassword', $calledEvent[0]);
 	}
 
 	public function testDeleteHooks() {
@@ -287,13 +491,13 @@ class UserTest extends TestCase {
 		$this->assertEquals(2, $hooksCalled);
 	}
 
-	public function testSetEnabledHook(){
+	public function testSetEnabledHook() {
 		$this->eventDispatcher->expects($this->exactly(2))
 			->method('dispatch')
 			->with(
 				$this->callback(
-					function($eventName){
-						if ($eventName === User::class . '::postSetEnabled' ){
+					function ($eventName) {
+						if ($eventName === User::class . '::postSetEnabled') {
 							return true;
 						}
 						return false;
@@ -337,8 +541,7 @@ class UserTest extends TestCase {
 	public function setTermsData() {
 		return [
 			'normal terms' => [['term1'], ['term1']],
-			'too long terms' => [['term1', str_repeat(".", 192)], ['term1', str_repeat(".", 191)]]
+			'too long terms' => [['term1', \str_repeat(".", 192)], ['term1', \str_repeat(".", 191)]]
 		];
 	}
-
 }

@@ -8,7 +8,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Thomas Tanghus <thomas@tanghus.net>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -26,20 +26,18 @@
  */
 namespace OC\Preview;
 
-abstract class Image extends Provider {
+use OCP\Files\File;
+use OCP\Files\FileInfo;
+use OCP\Preview\IProvider2;
+
+abstract class Image implements IProvider2 {
 
 	/**
 	 * {@inheritDoc}
 	 */
-	public function getThumbnail($path, $maxX, $maxY, $scalingup, $fileview) {
-		//get fileinfo
-		$fileInfo = $fileview->getFileInfo($path);
-		if (!$fileInfo) {
-			return false;
-		}
-
+	public function getThumbnail(File $file, $maxX, $maxY, $scalingUp) {
 		$maxSizeForImages = \OC::$server->getConfig()->getSystemValue('preview_max_filesize_image', 50);
-		$size = $fileInfo->getSize();
+		$size = $file->getSize();
 
 		if ($maxSizeForImages !== -1 && $size > ($maxSizeForImages * 1024 * 1024)) {
 			return false;
@@ -47,17 +45,11 @@ abstract class Image extends Provider {
 
 		$image = new \OC_Image();
 
-		$useTempFile = $fileInfo->isEncrypted() || !$fileInfo->getStorage()->isLocal();
-		if ($useTempFile) {
-			$fileName = $fileview->toTmpFile($path);
-		} else {
-			$fileName = $fileview->getLocalFile($path);
-		}
-		$image->loadFromFile($fileName);
+		$internalPath = $file->getInternalPath();
+		$localPath = $file->getStorage()->getLocalFile($internalPath);
+		$image->loadFromFile($localPath);
 		$image->fixOrientation();
-		if ($useTempFile) {
-			unlink($fileName);
-		}
+
 		if ($image->valid()) {
 			$image->scaleDownToFit($maxX, $maxY);
 
@@ -66,4 +58,10 @@ abstract class Image extends Provider {
 		return false;
 	}
 
+	/**
+	 * @inheritdoc
+	 */
+	public function isAvailable(FileInfo $file) {
+		return true;
+	}
 }

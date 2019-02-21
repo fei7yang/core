@@ -2,7 +2,7 @@
 * ownCloud
 *
 * @author Vincent Petry
-* @copyright 2014 Vincent Petry <pvince81@owncloud.com>
+* @copyright Copyright (c) 2014 Vincent Petry <pvince81@owncloud.com>
 *
 * This library is free software; you can redistribute it and/or
 * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
@@ -24,6 +24,8 @@ describe('OC.Upload tests', function() {
 	var testFile;
 	var uploader;
 	var failStub;
+	var currentUserStub;
+	var getFolderContentsStub;
 
 	beforeEach(function() {
 		testFile = {
@@ -37,6 +39,7 @@ describe('OC.Upload tests', function() {
 			'<input type="file" id="file_upload_start" name="files[]" multiple="multiple">' +
 			'<input type="hidden" id="free_space" name="free_space" value="50000000">' + // 50 MB
 			// TODO: handlebars!
+			'<div id="uploadprogressbar"></div>' +
 			'<div id="new">' +
 			'<a>New</a>' +
 			'<ul>' +
@@ -48,10 +51,17 @@ describe('OC.Upload tests', function() {
 		uploader = new OC.Uploader($dummyUploader);
 		failStub = sinon.stub();
 		uploader.on('fail', failStub);
+
+		currentUserStub = sinon.stub(OC, 'getCurrentUser').returns({uid: 'current@user'});
+		getFolderContentsStub = sinon.stub(OC.Files.Client.prototype, 'getFolderContents');
 	});
 	afterEach(function() {
 		$dummyUploader = undefined;
 		failStub = undefined;
+		currentUserStub.restore();
+		getFolderContentsStub.restore();
+		uploader.clear();
+		uploader = null;
 	});
 
 	/**
@@ -66,8 +76,9 @@ describe('OC.Upload tests', function() {
 				originalFiles: files,
 				files: [file],
 				jqXHR: jqXHR,
-				response: sinon.stub.returns(jqXHR),
-				submit: sinon.stub()
+				response: sinon.stub().returns(jqXHR),
+				submit: sinon.stub(),
+				abort: sinon.stub()
 			};
 			if (uploader.fileUploadParam.add.call(
 					$dummyUploader[0],
@@ -118,6 +129,16 @@ describe('OC.Upload tests', function() {
 			var upload = handler.getCall(0).args[0];
 			expect(upload).toBeDefined();
 			expect(upload.getFileName()).toEqual('test.txt');
+		});
+		it('clear leaves pending uploads', function() {
+			uploader._uploads = {
+				'abc': {name: 'a job well done.txt', isDone: true},
+				'def': {name: 'whatevs.txt'}
+			};
+
+			uploader.clear();
+
+			expect(uploader._uploads).toEqual({'def': {name: 'whatevs.txt'}});
 		});
 	});
 	describe('Upload conflicts', function() {
@@ -261,6 +282,185 @@ describe('OC.Upload tests', function() {
 			upload.submit();
 
 			expect(upload.data.headers['OC-Autorename']).toEqual('1');
+		});
+	});
+	describe('Chunked upload', function() {
+		it('rewires data url when uploading chunks', function () {
+			var result = addFiles(uploader, [testFile]);
+			var upload = uploader.getUpload(result[0]);
+			expect(result[0]).not.toEqual(null);
+			expect(result[0].submit.calledOnce).toEqual(true);
+
+			result[0].contentRange = 'bytes 100-250/150';
+			result[0].headers['Content-Range'] = 'bytes 100-250/150';
+			result[0].retries = 3;
+
+			$dummyUploader.trigger('fileuploadchunksend', result[0]);
+
+			expect(result[0].contentRange).not.toBeDefined();
+			expect(result[0].headers['Content-Range']).not.toBeDefined();
+			expect(result[0].url)
+				.toEqual(OC.getRootPath() + '/remote.php/dav/uploads/current%40user/' + upload.getId() + '/100');
+			expect(result[0].retries).toEqual(0);
+		});
+
+		it('retries stalled chunk on failure', function () {
+			var clock = sinon.useFakeTimers();
+
+			uploader = new OC.Uploader($dummyUploader, {
+				maxChunkSize: 150
+			});
+			uploader.on('fail', failStub);
+
+			var result = addFiles(uploader, [testFile]);
+			var upload = uploader.getUpload(result[0]);
+
+			// chunk upload doesn't call "submit" initially
+			expect(result[0].submit.notCalled).toEqual(true);
+
+			upload.data.stalled = true;
+
+			result[0].headers['If-None-Match'] = '*';
+
+			result[0].uploadedBytes = 300; // less than expected
+
+			uploader.fileUploadParam.fail.call($dummyUploader[0], {}, result[0]);
+
+			expect(upload.data.retries).toEqual(1);
+			expect(failStub.notCalled).toEqual(true);
+
+			expect(getFolderContentsStub.notCalled).toEqual(true);
+
+			var deferred = $.Deferred();
+			getFolderContentsStub.returns(deferred.promise());
+
+			// trigger retry
+			clock.tick(10000);
+
+			expect(getFolderContentsStub.calledOnce).toEqual(true);
+			expect(getFolderContentsStub.getCall(0).args[0]).toEqual('uploads/current@user/' + upload.getId());
+
+			deferred.resolve(207, [
+				{
+					name: '0',
+					size: 150
+				},
+				{
+					name: '150',
+					size: 150
+				},
+				// this chunk is smaller and needs to be retried
+				{
+					name: '300',
+					size: 100
+				},
+				// ignored
+				{
+					name: '.file',
+					size: 10000
+				}
+			]);
+
+			// uploaded bytes was set to the sum of all chunk sizes
+			expect(result[0].uploadedBytes).toEqual(300);
+			expect(result[0].data).toBeFalsy();
+			expect(upload.data.stalled).toEqual(false);
+
+			// header was cleared for overwriting
+			expect(result[0].headers['If-None-Match']).not.toBeDefined();
+
+			expect(result[0].submit.calledOnce).toEqual(true);
+
+			clock.restore();
+		});
+
+		it('stalled progress will set stalled flag after a while', function () {
+			var clock = sinon.useFakeTimers();
+
+			uploader = new OC.Uploader($dummyUploader, {
+				uploadStallTimeout: 10
+			});
+
+			var result = addFiles(uploader, [testFile]);
+			var upload = uploader.getUpload(result[0]);
+
+			$dummyUploader.trigger('fileuploadstart', result[0]);
+
+			result[0].uploadedBytes = 300;
+
+			expect(upload.data.stalled).toBeFalsy();
+
+			$dummyUploader.trigger('fileuploadprogressall', {
+				loaded: 300,
+				total: 5000
+			});
+			clock.tick(5000);
+
+			expect(upload.data.stalled).toBeFalsy();
+
+			result[0].uploadedBytes = 400; // some progress, no stall
+
+			$dummyUploader.trigger('fileuploadprogressall', {
+				loaded: 400,
+				total: 5000
+			});
+			clock.tick(10000);
+
+			expect(upload.data.stalled).toBeFalsy();
+
+			expect(result[0].abort.notCalled).toEqual(true);
+
+			// no progress, stalled
+			$dummyUploader.trigger('fileuploadprogressall', {
+				loaded: 400,
+				total: 5000
+			});
+
+			clock.tick(10000);
+
+			expect(upload.data.stalled).toEqual(true);
+
+			expect(result[0].abort.calledOnce).toEqual(true);
+
+			clock.restore();
+		});
+	});
+
+	describe('submitting uploads', function() {
+		describe('headers', function() {
+			function testHeaders(fileData) {
+				var uploadData = addFiles(uploader, [
+					fileData
+				]);
+
+				return uploadData[0].headers;
+			}
+			it('sets request token', function() {
+				var oldToken = OC.requestToken;
+				OC.requestToken = 'abcd';
+				var headers = testHeaders({
+					name: 'headerstest.txt'
+				});
+
+				expect(headers['requesttoken']).toEqual('abcd');
+				OC.requestToken = oldToken;
+			});
+			it('sets the mtime header when lastModifiedDate is set', function() {
+				var headers = testHeaders({
+					name: 'mtimetest.txt',
+					lastModifiedDate: new Date(Date.UTC(2018, 7, 26, 14, 55, 22, 500))
+				});
+
+				expect(headers['X-OC-Mtime']).toEqual('1535295322.5');
+			});
+			it('sets the mtime header when lastModified is set', function() {
+				var headers = testHeaders({
+					name: 'mtimetest.txt',
+					lastModified: 1535295322500
+				});
+
+				expect(headers['X-OC-Mtime']).toEqual('1535295322.5');
+			});
 		});
 	});
 });

@@ -3,7 +3,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -22,15 +22,14 @@
 
 namespace OCA\DAV\SystemTag;
 
-use Sabre\DAV\Exception\NotFound;
-use Sabre\DAV\Exception\Forbidden;
-use Sabre\DAV\Exception\MethodNotAllowed;
-
+use OCP\IUser;
 use OCP\SystemTag\ISystemTag;
 use OCP\SystemTag\ISystemTagManager;
 use OCP\SystemTag\ISystemTagObjectMapper;
 use OCP\SystemTag\TagNotFoundException;
-use OCP\IUser;
+use Sabre\DAV\Exception\Forbidden;
+use Sabre\DAV\Exception\MethodNotAllowed;
+use Sabre\DAV\Exception\NotFound;
 
 /**
  * Mapping node for system tag to object id
@@ -158,6 +157,14 @@ class SystemTagMappingNode implements \Sabre\DAV\INode {
 				throw new NotFound('Tag with id ' . $this->tag->getId() . ' not found');
 			}
 			if (!$this->tagManager->canUserAssignTag($this->tag, $this->user)) {
+				throw new Forbidden('No permission to unassign tag ' . $this->tag->getId());
+			}
+			/**
+			 * static tags cannot be unassigned by users who are not part of the group
+			 * whitelisted in the static tags.
+			 */
+			if ((!$this->tag->isUserEditable() && $this->tag->isUserAssignable())
+				&& !$this->tagManager->canUserUseStaticTagInGroup($this->tag, $this->user)) {
 				throw new Forbidden('No permission to unassign tag ' . $this->tag->getId());
 			}
 			$this->tagMapper->unassignTags($this->objectId, $this->objectType, $this->tag->getId());

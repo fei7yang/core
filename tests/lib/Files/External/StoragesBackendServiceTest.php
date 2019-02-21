@@ -2,7 +2,7 @@
 /**
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  *
- * @copyright Copyright (c) 2016, ownCloud GmbH.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -20,8 +20,8 @@
  */
 namespace Test\Files\External;
 
-use OCP\Files\External\IStoragesBackendService;
 use OC\Files\External\StoragesBackendService;
+use OCP\Files\External\IStoragesBackendService;
 
 class StoragesBackendServiceTest extends \Test\TestCase {
 
@@ -203,6 +203,4 @@ class StoragesBackendServiceTest extends \Test\TestCase {
 		$this->assertArrayHasKey('identifier:\Backend\Available', $availableBackends);
 		$this->assertArrayNotHasKey('identifier:\Backend\NotAvailable', $availableBackends);
 	}
-
 }
-

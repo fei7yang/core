@@ -4,7 +4,7 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -23,7 +23,6 @@
 
 namespace OC\App;
 
-use OC_Util;
 use OCP\IConfig;
 
 /**
@@ -34,40 +33,42 @@ use OCP\IConfig;
  * @package OC\App
  */
 class Platform {
+	/** @var IConfig */
+	private $config;
 
 	/**
 	 * @param IConfig $config
 	 */
-	function __construct(IConfig $config) {
+	public function __construct(IConfig $config) {
 		$this->config = $config;
 	}
 
 	/**
 	 * @return string
 	 */
-	public function getPhpVersion() {
-		return phpversion();
+	public function getPhpVersion(): string {
+		return \phpversion();
 	}
 
 	/**
 	 * @return int
 	 */
-	public function getIntSize() {
+	public function getIntSize(): int {
 		return PHP_INT_SIZE;
 	}
 
 	/**
 	 * @return string
 	 */
-	public function getOcVersion() {
+	public function getOcVersion(): string {
 		$v = \OCP\Util::getVersion();
-		return join('.', $v);
+		return \implode('.', $v);
 	}
 
 	/**
 	 * @return string
 	 */
-	public function getDatabase() {
+	public function getDatabase(): string {
 		$dbType = $this->config->getSystemValue('dbtype', 'sqlite');
 		if ($dbType === 'sqlite3') {
 			$dbType = 'sqlite';
@@ -79,22 +80,25 @@ class Platform {
 	/**
 	 * @return string
 	 */
-	public function getOS() {
-		return php_uname('s');
+	public function getOS(): string {
+		return \php_uname('s');
 	}
 
 	/**
 	 * @param $command
 	 * @return bool
 	 */
-	public function isCommandKnown($command) {
+	public function isCommandKnown($command): bool {
 		$path = \OC_Helper::findBinaryPath($command);
 		return ($path !== null);
 	}
 
-	public function getLibraryVersion($name) {
+	public function getLibraryVersion($name): ?string {
 		$repo = new PlatformRepository();
-		$lib = $repo->findLibrary($name);
-		return $lib;
+		return $repo->findLibrary($name);
+	}
+
+	public function getOcChannel(): string {
+		return \OCP\Util::getChannel();
 	}
 }

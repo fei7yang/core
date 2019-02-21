@@ -3,7 +3,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -22,8 +22,8 @@
 
 namespace OCA\DAV\Connector\Sabre;
 
-use \Sabre\HTTP\RequestInterface;
-use \Sabre\HTTP\ResponseInterface;
+use Sabre\HTTP\RequestInterface;
+use Sabre\HTTP\ResponseInterface;
 
 /**
  * Copies the "Etag" header to "OC-Etag" after any request.
@@ -44,7 +44,7 @@ class CopyEtagHeaderPlugin extends \Sabre\DAV\ServerPlugin {
 	public function initialize(\Sabre\DAV\Server $server) {
 		$this->server = $server;
 
-		$server->on('afterMethod', [$this, 'afterMethod']);
+		$server->on('afterMethod:*', [$this, 'afterMethod']);
 		$server->on('afterMove', [$this, 'afterMove']);
 	}
 
@@ -70,7 +70,7 @@ class CopyEtagHeaderPlugin extends \Sabre\DAV\ServerPlugin {
 	 * @param string $destination
 	 * @return void
 	 */
-	function afterMove($source, $destination) {
+	public function afterMove($source, $destination) {
 		$node = $this->server->tree->getNodeForPath($destination);
 		if ($node instanceof File) {
 			$eTag = $node->getETag();

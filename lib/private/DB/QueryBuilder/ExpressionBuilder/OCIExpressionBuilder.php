@@ -4,7 +4,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -23,7 +23,6 @@
 
 namespace OC\DB\QueryBuilder\ExpressionBuilder;
 
-
 use OC\DB\QueryBuilder\QueryFunction;
 use OCP\DB\QueryBuilder\ILiteral;
 use OCP\DB\QueryBuilder\IParameter;
@@ -38,7 +37,7 @@ class OCIExpressionBuilder extends ExpressionBuilder {
 	 * @return array|IQueryFunction|string
 	 */
 	protected function prepareColumn($column, $type) {
-		if ($type === IQueryBuilder::PARAM_STR && !is_array($column) && !($column instanceof IParameter) && !($column instanceof ILiteral)) {
+		if ($type === IQueryBuilder::PARAM_STR && !\is_array($column) && !($column instanceof IParameter) && !($column instanceof ILiteral)) {
 			$column = $this->castColumn($column, $type);
 		} else {
 			$column = $this->helper->quoteColumnNames($column);
@@ -158,7 +157,7 @@ class OCIExpressionBuilder extends ExpressionBuilder {
 	public function iLike($x, $y, $type = null) {
 		$x = $this->helper->quoteColumnName($x);
 		$y = $this->helper->quoteColumnName($y);
-		return new QueryFunction('REGEXP_LIKE('.$x.', \'^\' || REPLACE('.$y.', \'%\', \'.*\') || \'$\', \'i\')');
+		return new QueryFunction("LOWER($x) LIKE LOWER($y) ESCAPE '\\' -- \\'' \n"); // FIXME workaround for singletick matching with regexes in SQLParserUtils::getUnquotedStatementFragments
 	}
 
 	/**

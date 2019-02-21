@@ -7,7 +7,7 @@
  * @author Scrutinizer Auto-Fixer <auto-fixer@scrutinizer-ci.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -44,7 +44,7 @@ abstract class Backend extends \Test\TestCase {
 	 * @return string
 	 */
 	public function getGroupName($name = null) {
-		if (is_null($name)) {
+		if ($name === null) {
 			return $this->getUniqueID('test_');
 		} else {
 			return $name;
@@ -63,26 +63,26 @@ abstract class Backend extends \Test\TestCase {
 
 	public function testAddRemove() {
 		//get the number of groups we start with, in case there are exising groups
-		$startCount = count($this->backend->getGroups());
+		$startCount = \count($this->backend->getGroups());
 
 		$name1 = $this->getGroupName();
 		$name2 = $this->getGroupName();
 		$this->backend->createGroup($name1);
-		$count = count($this->backend->getGroups()) - $startCount;
+		$count = \count($this->backend->getGroups()) - $startCount;
 		$this->assertEquals(1, $count);
-		$this->assertTrue((array_search($name1, $this->backend->getGroups()) !== false));
-		$this->assertFalse((array_search($name2, $this->backend->getGroups()) !== false));
+		$this->assertContains($name1, $this->backend->getGroups());
+		$this->assertNotContains($name2, $this->backend->getGroups());
 		$this->backend->createGroup($name2);
-		$count = count($this->backend->getGroups()) - $startCount;
+		$count = \count($this->backend->getGroups()) - $startCount;
 		$this->assertEquals(2, $count);
-		$this->assertTrue((array_search($name1, $this->backend->getGroups()) !== false));
-		$this->assertTrue((array_search($name2, $this->backend->getGroups()) !== false));
+		$this->assertContains($name1, $this->backend->getGroups());
+		$this->assertContains($name2, $this->backend->getGroups());
 
 		$this->backend->deleteGroup($name2);
-		$count = count($this->backend->getGroups()) - $startCount;
+		$count = \count($this->backend->getGroups()) - $startCount;
 		$this->assertEquals(1, $count);
-		$this->assertTrue((array_search($name1, $this->backend->getGroups()) !== false));
-		$this->assertFalse((array_search($name2, $this->backend->getGroups()) !== false));
+		$this->assertContains($name1, $this->backend->getGroups());
+		$this->assertNotContains($name2, $this->backend->getGroups());
 	}
 
 	public function testUser() {
@@ -130,7 +130,7 @@ abstract class Backend extends \Test\TestCase {
 		$this->backend->createGroup($name3);
 
 		$result = $this->backend->getGroups('bar');
-		$this->assertSame(2, count($result));
+		$this->assertCount(2, $result);
 	}
 
 	public function testSearchUsers() {
@@ -146,7 +146,7 @@ abstract class Backend extends \Test\TestCase {
 		$this->backend->addToGroup($name3, $group);
 
 		$result = $this->backend->usersInGroup($group, 'bar');
-		$this->assertSame(2, count($result));
+		$this->assertCount(2, $result);
 
 		$result = $this->backend->countUsersInGroup($group, 'bar');
 		$this->assertSame(2, $result);

@@ -3,7 +3,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,15 +21,13 @@
  */
 namespace OCA\DAV\Files;
 
-use OCA\DAV\Connector\Sabre\Directory;
+use OCA\DAV\Connector\Sabre\ObjectTree;
 use Sabre\DAV\Exception\Forbidden;
-use Sabre\HTTP\URLUtil;
+use Sabre\DAV\ICollection;
 
-class FilesHome extends Directory {
+class FilesHome extends ObjectTree implements ICollection {
 
-	/**
-	 * @var array
-	 */
+	/** @var array */
 	private $principalInfo;
 
 	/**
@@ -38,22 +36,58 @@ class FilesHome extends Directory {
 	 * @param array $principalInfo
 	 */
 	public function __construct($principalInfo) {
+		parent::__construct();
 		$this->principalInfo = $principalInfo;
-		$view = \OC\Files\Filesystem::getView();
-		$rootInfo = $view->getFileInfo('');
-		parent::__construct($view, $rootInfo);
 	}
 
-	function delete() {
-		throw new Forbidden('Permission denied to delete home folder');
+	public function createFile($name, $data = null) {
+		return $this->rootNode->createFile($name, $data);
 	}
 
-	function getName() {
-		list(,$name) = URLUtil::splitPath($this->principalInfo['uri']);
+	public function createDirectory($name) {
+		$this->rootNode->createDirectory($name);
+	}
+
+	public function getChild($name) {
+		return $this->rootNode->getChild($name);
+	}
+
+	public function getChildren($path = null) {
+		if ($path === null) {
+			return $this->rootNode->getChildren();
+		}
+		return parent::getChildren($path);
+	}
+
+	public function childExists($name) {
+		return $this->rootNode->childExists($name);
+	}
+
+	public function getLastModified() {
+		return $this->rootNode->getLastModified();
+	}
+
+	/**
+	 * @param string $path
+	 * @throws Forbidden
+	 */
+	public function delete($path = null) {
+		if ($path === null) {
+			throw new Forbidden('Permission denied to delete home folder');
+		}
+		parent::delete($path);
+	}
+
+	public function getName() {
+		list(, $name) = \Sabre\Uri\split($this->principalInfo['uri']);
 		return $name;
 	}
 
-	function setName($name) {
+	/**
+	 * @param string $name
+	 * @throws Forbidden
+	 */
+	public function setName($name) {
 		throw new Forbidden('Permission denied to rename this folder');
 	}
 }

@@ -4,7 +4,7 @@
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Victor Dubiniuk <dubiniuk@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -23,14 +23,13 @@
 
 namespace OCA\Files_Versions\BackgroundJob;
 
+use OCA\Files_Versions\AppInfo\Application;
+use OCA\Files_Versions\Expiration;
+use OCA\Files_Versions\Storage;
 use OCP\IUser;
 use OCP\IUserManager;
-use OCA\Files_Versions\AppInfo\Application;
-use OCA\Files_Versions\Storage;
-use OCA\Files_Versions\Expiration;
 
 class ExpireVersions extends \OC\BackgroundJob\TimedJob {
-
 	const ITEMS_PER_SESSION = 1000;
 
 	/**
@@ -47,7 +46,7 @@ class ExpireVersions extends \OC\BackgroundJob\TimedJob {
 		// Run once per 30 minutes
 		$this->setInterval(60 * 30);
 
-		if (is_null($expiration) || is_null($userManager)) {
+		if ($expiration === null || $userManager === null) {
 			$this->fixDIForJobs();
 		} else {
 			$this->expiration = $expiration;
@@ -67,7 +66,7 @@ class ExpireVersions extends \OC\BackgroundJob\TimedJob {
 			return;
 		}
 
-		$this->userManager->callForSeenUsers(function(IUser $user) {
+		$this->userManager->callForSeenUsers(function (IUser $user) {
 			$uid = $user->getUID();
 			if (!$this->setupFS($uid)) {
 				return;

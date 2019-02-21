@@ -8,11 +8,11 @@
 
 namespace Test\L10N;
 
-
 use DateTime;
 use OC\L10N\Factory;
 use OC\L10N\L10N;
 use OCP\IUserSession;
+use OCP\Theme\IThemeService;
 use Test\TestCase;
 
 /**
@@ -29,9 +29,13 @@ class L10nTest extends TestCase {
 		$config = $this->createMock('OCP\IConfig');
 		/** @var \OCP\IRequest $request */
 		$request = $this->createMock('OCP\IRequest');
+		/** @var IThemeService $themeService */
+		$themeService = $this->getMockBuilder(IThemeService::class)
+			->disableOriginalConstructor()
+			->getMock();
 		/** @var IUserSession $userSession */
 		$userSession = $this->createMock('OCP\IUserSession');
-		return new Factory($config, $request, $userSession, \OC::$SERVERROOT);
+		return new Factory($config, $request, $themeService, $userSession, \OC::$SERVERROOT);
 	}
 
 	public function testGermanPluralTranslations() {
@@ -78,20 +82,20 @@ class L10nTest extends TestCase {
 	public function localizationData() {
 		return [
 			// timestamp as string
-			['February 13, 2009 at 11:31:30 PM GMT+0', 'en', 'datetime', '1234567890'],
-			['13. Februar 2009 um 23:31:30 GMT+0', 'de', 'datetime', '1234567890'],
+			['February 13, 2009 at 11:31:30 PM UTC', 'en', 'datetime', '1234567890'],
+			['13. Februar 2009 um 23:31:30 UTC', 'de', 'datetime', '1234567890'],
 			['February 13, 2009', 'en', 'date', '1234567890'],
 			['13. Februar 2009', 'de', 'date', '1234567890'],
-			['11:31:30 PM GMT+0', 'en', 'time', '1234567890'],
-			['23:31:30 GMT+0', 'de', 'time', '1234567890'],
+			['11:31:30 PM UTC', 'en', 'time', '1234567890'],
+			['23:31:30 UTC', 'de', 'time', '1234567890'],
 
 			// timestamp as int
-			['February 13, 2009 at 11:31:30 PM GMT+0', 'en', 'datetime', 1234567890],
-			['13. Februar 2009 um 23:31:30 GMT+0', 'de', 'datetime', 1234567890],
+			['February 13, 2009 at 11:31:30 PM UTC', 'en', 'datetime', 1234567890],
+			['13. Februar 2009 um 23:31:30 UTC', 'de', 'datetime', 1234567890],
 			['February 13, 2009', 'en', 'date', 1234567890],
 			['13. Februar 2009', 'de', 'date', 1234567890],
-			['11:31:30 PM GMT+0', 'en', 'time', 1234567890],
-			['23:31:30 GMT+0', 'de', 'time', 1234567890],
+			['11:31:30 PM UTC', 'en', 'time', 1234567890],
+			['23:31:30 UTC', 'de', 'time', 1234567890],
 
 			// DateTime object
 			['February 13, 2009 at 11:31:30 PM GMT+0', 'en', 'datetime', new DateTime('@1234567890')],

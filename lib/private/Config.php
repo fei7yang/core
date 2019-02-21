@@ -16,7 +16,7 @@
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -34,13 +34,14 @@
  */
 
 namespace OC;
+use OCP\Events\EventEmitterTrait;
 
 /**
  * This class is responsible for reading and writing config.php, the very basic
  * configuration file of ownCloud.
  */
 class Config {
-
+	use EventEmitterTrait;
 	const ENV_PREFIX = 'OC_';
 
 	/** @var array Associative array ($key => $value) */
@@ -71,7 +72,7 @@ class Config {
 	 * @return array an array of key names
 	 */
 	public function getKeys() {
-		return array_keys($this->cache);
+		return \array_keys($this->cache);
 	}
 
 	/**
@@ -86,7 +87,7 @@ class Config {
 	 * @return mixed the value or $default
 	 */
 	public function getValue($key, $default = null) {
-		$envValue = getenv(self::ENV_PREFIX . $key);
+		$envValue = \getenv(self::ENV_PREFIX . $key);
 		if ($envValue) {
 			return $envValue;
 		}
@@ -130,13 +131,31 @@ class Config {
 	 * @param mixed $value value
 	 */
 	public function setValue($key, $value) {
+		/**
+		 * update and oldvalue help the after event listeners to know
+		 * if its an update or not. If update then get the old value.
+		 */
+		$update = false;
+		$oldValue = null;
 		if ($this->isReadOnly()) {
 			throw new \Exception('Config file is read only.');
 		}
-		if ($this->set($key, $value)) {
-			// Write changes
-			$this->writeData();
+
+		if (isset($this->cache[$key])) {
+			$update = true;
+			$oldValue = $this->cache[$key];
 		}
+
+		$this->emittingCall(function () use (&$key, &$value) {
+			if ($this->set($key, $value)) {
+				// Write changes
+				$this->writeData();
+			}
+			return true;
+		}, [
+			'before' => ['key' => $key, 'value' => $value],
+			'after' => ['key' => $key, 'value' => $value, 'update' => $update, 'oldvalue' => $oldValue]
+		], 'config', 'setvalue');
 	}
 
 	/**
@@ -147,13 +166,22 @@ class Config {
 	 * @return bool True if the file needs to be updated, false otherwise
 	 */
 	protected function set($key, $value) {
-		if (!isset($this->cache[$key]) || $this->cache[$key] !== $value) {
-			// Add change
-			$this->cache[$key] = $value;
-			return true;
-		}
+		return $this->emittingCall(function (&$afterArray) use (&$key, &$value) {
+			if (!isset($this->cache[$key]) || $this->cache[$key] !== $value) {
+				if (isset($this->cache[$key])) {
+					$afterArray['update'] = true;
+					$afterArray['oldvalue'] = $this->cache[$key];
+				}
+				// Add change
+				$this->cache[$key] = $value;
+				return true;
+			}
 
-		return false;
+			return false;
+		}, [
+			'before' => ['key' => $key, 'value' => $value],
+			'after' => ['key' => $key, 'value' => $value, 'update' => false, 'oldvalue' => null]
+		], 'config', 'setvalue');
 	}
 
 	/**
@@ -164,10 +192,19 @@ class Config {
 		if ($this->isReadOnly()) {
 			throw new \Exception('Config file is read only.');
 		}
-		if ($this->delete($key)) {
-			// Write changes
-			$this->writeData();
-		}
+		$this->emittingCall(function (&$afterArray) use (&$key) {
+			if (isset($this->cache[$key])) {
+				$afterArray['value'] = $this->cache[$key];
+			}
+			if ($this->delete($key)) {
+				// Write changes
+				$this->writeData();
+			}
+			return true;
+		}, [
+			'before' => ['key' => $key, 'value' => null],
+			'after' => ['key' => $key, 'value' => null]
+		], 'config', 'deletevalue');
 	}
 
 	/**
@@ -177,12 +214,18 @@ class Config {
 	 * @return bool True if the file needs to be updated, false otherwise
 	 */
 	protected function delete($key) {
-		if (isset($this->cache[$key])) {
-			// Delete key from cache
-			unset($this->cache[$key]);
-			return true;
-		}
-		return false;
+		return $this->emittingCall(function (&$afterArray) use (&$key) {
+			if (isset($this->cache[$key])) {
+				$afterArray['value'] = $this->cache[$key];
+				// Delete key from cache
+				unset($this->cache[$key]);
+				return true;
+			}
+			return false;
+		}, [
+			'before' => ['key' => $key, 'value' => null],
+			'after' => ['key' => $key, 'value' => null]
+		], 'config', 'deletevalue');
 	}
 
 	/**
@@ -197,37 +240,37 @@ class Config {
 		$configFiles = [$this->configFilePath];
 
 		// Add all files in the config dir ending with the same file name
-		$extra = glob($this->configDir.'*.'.$this->configFileName);
-		if (is_array($extra)) {
-			natsort($extra);
-			$configFiles = array_merge($configFiles, $extra);
+		$extra = \glob($this->configDir.'*.'.$this->configFileName);
+		if (\is_array($extra)) {
+			\natsort($extra);
+			$configFiles = \array_merge($configFiles, $extra);
 		}
 
 		// Include file and merge config
 		foreach ($configFiles as $file) {
-			$filePointer = file_exists($file) ? fopen($file, 'r') : false;
-			if($file === $this->configFilePath &&
+			$filePointer = \file_exists($file) ? \fopen($file, 'r') : false;
+			if ($file === $this->configFilePath &&
 				$filePointer === false &&
-				@!file_exists($this->configFilePath)) {
+				@!\file_exists($this->configFilePath)) {
 				// Opening the main config might not be possible, e.g. if the wrong
 				// permissions are set (likely on a new installation)
 				continue;
 			}
 
 			// Try to acquire a file lock
-			if(!flock($filePointer, LOCK_SH)) {
-				throw new \Exception(sprintf('Could not acquire a shared lock on the config file %s', $file));
+			if (!\flock($filePointer, LOCK_SH)) {
+				throw new \Exception(\sprintf('Could not acquire a shared lock on the config file %s', $file));
 			}
 
 			unset($CONFIG);
 			include $file;
-			if(isset($CONFIG) && is_array($CONFIG)) {
-				$this->cache = array_merge($this->cache, $CONFIG);
+			if (isset($CONFIG) && \is_array($CONFIG)) {
+				$this->cache = \array_merge($this->cache, $CONFIG);
 			}
 
 			// Close the file pointer and release the lock
-			flock($filePointer, LOCK_UN);
-			fclose($filePointer);
+			\flock($filePointer, LOCK_UN);
+			\fclose($filePointer);
 		}
 	}
 
@@ -243,17 +286,17 @@ class Config {
 		// Create a php file ...
 		$content = "<?php\n";
 		$content .= '$CONFIG = ';
-		$content .= var_export($this->cache, true);
+		$content .= \var_export($this->cache, true);
 		$content .= ";\n";
 
-		touch ($this->configFilePath);
-		$filePointer = fopen($this->configFilePath, 'r+');
+		\touch($this->configFilePath);
+		$filePointer = \fopen($this->configFilePath, 'r+');
 
 		// Prevent others not to read the config
-		chmod($this->configFilePath, 0640);
+		\chmod($this->configFilePath, 0640);
 
 		// File does not exist, this can happen when doing a fresh install
-		if(!is_resource ($filePointer)) {
+		if (!\is_resource($filePointer)) {
 			// TODO fix this via DI once it is very clear that this doesn't cause side effects due to initialization order
 			// currently this breaks app routes but also could have other side effects especially during setup and exception handling
 			$url = \OC::$server->getURLGenerator()->linkToDocs('admin-dir_permissions');
@@ -264,16 +307,16 @@ class Config {
 		}
 
 		// Try to acquire a file lock
-		if(!flock($filePointer, LOCK_EX)) {
-			throw new \Exception(sprintf('Could not acquire an exclusive lock on the config file %s', $this->configFilePath));
+		if (!\flock($filePointer, LOCK_EX)) {
+			throw new \Exception(\sprintf('Could not acquire an exclusive lock on the config file %s', $this->configFilePath));
 		}
 
 		// Write the config and release the lock
-		ftruncate ($filePointer, 0);
-		fwrite($filePointer, $content);
-		fflush($filePointer);
-		flock($filePointer, LOCK_UN);
-		fclose($filePointer);
+		\ftruncate($filePointer, 0);
+		\fwrite($filePointer, $content);
+		\fflush($filePointer);
+		\flock($filePointer, LOCK_UN);
+		\fclose($filePointer);
 
 		// Try invalidating the opcache just for the file we wrote...
 		if (!\OC_Util::deleteFromOpcodeCache($this->configFilePath)) {
@@ -286,7 +329,10 @@ class Config {
 		if (!$this->getValue('installed', false)) {
 			return false;
 		}
+		if ($this->getValue('operation.mode', 'single-instance') !== 'single-instance') {
+			return false;
+		}
+
 		return $this->getValue('config_is_read_only', false);
 	}
 }
-

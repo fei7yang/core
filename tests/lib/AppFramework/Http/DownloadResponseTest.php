@@ -4,7 +4,7 @@
  * ownCloud - App Framework
  *
  * @author Bernhard Posselt
- * @copyright 2012 Bernhard Posselt <dev@bernhard-posselt.com>
+ * @copyright Copyright (c) 2012 Bernhard Posselt <dev@bernhard-posselt.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
@@ -21,16 +21,12 @@
  *
  */
 
-
 namespace Test\AppFramework\Http;
-
 
 use OCP\AppFramework\Http\DownloadResponse;
 
 class ChildDownloadResponse extends DownloadResponse {
-
 };
-
 
 class DownloadResponseTest extends \Test\TestCase {
 
@@ -39,11 +35,10 @@ class DownloadResponseTest extends \Test\TestCase {
 	 */
 	protected $response;
 
-	protected function setUp(){
+	protected function setUp() {
 		parent::setUp();
 		$this->response = new ChildDownloadResponse('file', 'content');
 	}
-
 
 	public function testHeaders() {
 		$headers = $this->response->getHeaders();
@@ -51,6 +46,4 @@ class DownloadResponseTest extends \Test\TestCase {
 		$this->assertContains('attachment; filename="file"', $headers['Content-Disposition']);
 		$this->assertContains('content', $headers['Content-Type']);
 	}
-
-
 }

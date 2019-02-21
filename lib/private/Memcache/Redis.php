@@ -6,7 +6,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Stefan Weil <sw@weilnetz.de>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -33,7 +33,7 @@ class Redis extends Cache implements IMemcacheTTL {
 
 	public function __construct($prefix = '') {
 		parent::__construct($prefix);
-		if (is_null(self::$cache)) {
+		if (self::$cache === null) {
 			self::$cache = \OC::$server->getGetRedisFactory()->getInstance();
 		}
 	}
@@ -50,15 +50,15 @@ class Redis extends Cache implements IMemcacheTTL {
 		if ($result === false && !self::$cache->exists($this->getNameSpace() . $key)) {
 			return null;
 		} else {
-			return json_decode($result, true);
+			return \json_decode($result, true);
 		}
 	}
 
 	public function set($key, $value, $ttl = 0) {
 		if ($ttl > 0) {
-			return self::$cache->setex($this->getNameSpace() . $key, $ttl, json_encode($value));
+			return self::$cache->setex($this->getNameSpace() . $key, $ttl, \json_encode($value));
 		} else {
-			return self::$cache->set($this->getNameSpace() . $key, json_encode($value));
+			return self::$cache->set($this->getNameSpace() . $key, \json_encode($value));
 		}
 	}
 
@@ -94,8 +94,8 @@ class Redis extends Cache implements IMemcacheTTL {
 	 */
 	public function add($key, $value, $ttl = 0) {
 		// don't encode ints for inc/dec
-		if (!is_int($value)) {
-			$value = json_encode($value);
+		if (!\is_int($value)) {
+			$value = \json_encode($value);
 		}
 		return self::$cache->setnx($this->getPrefix() . $key, $value);
 	}
@@ -134,11 +134,12 @@ class Redis extends Cache implements IMemcacheTTL {
 	 * @return bool
 	 */
 	public function cas($key, $old, $new) {
-		if (!is_int($new)) {
-			$new = json_encode($new);
+		if (!\is_int($new)) {
+			$new = \json_encode($new);
 		}
 		self::$cache->watch($this->getNameSpace() . $key);
 		if ($this->get($key) === $old) {
+			/** @phan-suppress-next-line PhanNonClassMethodCall */
 			$result = self::$cache->multi()
 				->set($this->getNameSpace() . $key, $new)
 				->exec();
@@ -158,6 +159,7 @@ class Redis extends Cache implements IMemcacheTTL {
 	public function cad($key, $old) {
 		self::$cache->watch($this->getNameSpace() . $key);
 		if ($this->get($key) === $old) {
+			/** @phan-suppress-next-line PhanNonClassMethodCall */
 			$result = self::$cache->multi()
 				->del($this->getNameSpace() . $key)
 				->exec();
@@ -171,8 +173,7 @@ class Redis extends Cache implements IMemcacheTTL {
 		self::$cache->expire($this->getNameSpace() . $key, $ttl);
 	}
 
-	static public function isAvailable() {
+	public static function isAvailable() {
 		return \OC::$server->getGetRedisFactory()->isAvailable();
 	}
 }
-

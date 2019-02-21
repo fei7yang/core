@@ -7,7 +7,7 @@
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -26,7 +26,7 @@
 
 namespace OCA\Files_External\Tests\Storage;
 
-use \OCA\Files_External\Lib\Storage\Swift;
+use OCA\Files_External\Lib\Storage\Swift;
 
 /**
  * Class SwiftTest
@@ -36,14 +36,13 @@ use \OCA\Files_External\Lib\Storage\Swift;
  * @package OCA\Files_External\Tests\Storage
  */
 class SwiftTest extends \Test\Files\Storage\Storage {
-
 	private $config;
 
 	protected function setUp() {
 		parent::setUp();
 
 		$this->config = include('files_external/tests/config.swift.php');
-		if (!is_array($this->config) or !$this->config['run']) {
+		if (!\is_array($this->config) or !$this->config['run']) {
 			$this->markTestSkipped('OpenStack Object Storage backend not configured');
 		}
 		$this->instance = new Swift($this->config);
@@ -56,8 +55,8 @@ class SwiftTest extends \Test\Files\Storage\Storage {
 				$container = $connection->getContainer($this->config['bucket']);
 
 				$objects = $container->objectList();
-				while($object = $objects->next()) {
-					$object->setName(str_replace('#','%23',$object->getName()));
+				while ($object = $objects->next()) {
+					$object->setName(\str_replace('#', '%23', $object->getName()));
 					$object->delete();
 				}
 

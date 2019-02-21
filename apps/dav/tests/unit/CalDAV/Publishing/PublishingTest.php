@@ -2,7 +2,7 @@
 /**
  * @author Thomas Citharel <tcit@tcit.fr>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -22,9 +22,9 @@ namespace OCA\DAV\Tests\unit\CalDAV\Publishing;
 
 use OCA\DAV\CalDAV\Calendar;
 use OCA\DAV\CalDAV\Publishing\PublishPlugin;
+use OCP\IConfig;
 use OCP\IRequest;
 use OCP\IURLGenerator;
-use OCP\IConfig;
 use Sabre\DAV\Server;
 use Sabre\DAV\SimpleCollection;
 use Sabre\HTTP\Request;
@@ -73,11 +73,10 @@ class PluginTest extends TestCase {
 	}
 
 	public function testPublishing() {
-
 		$this->book->expects($this->once())->method('setPublishStatus')->with(true);
 
 		// setup request
-		$request = new Request();
+		$request = new Request('POST', '');
 		$request->addHeader('Content-Type', 'application/xml');
 		$request->setUrl('cal1');
 		$request->setBody('<o:publish-calendar xmlns:o="http://calendarserver.org/ns/"/>');
@@ -86,11 +85,10 @@ class PluginTest extends TestCase {
 	}
 
 	public function testUnPublishing() {
-
 		$this->book->expects($this->once())->method('setPublishStatus')->with(false);
 
 		// setup request
-		$request = new Request();
+		$request = new Request('POST', '');
 		$request->addHeader('Content-Type', 'application/xml');
 		$request->setUrl('cal1');
 		$request->setBody('<o:unpublish-calendar xmlns:o="http://calendarserver.org/ns/"/>');

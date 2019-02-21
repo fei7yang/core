@@ -2,7 +2,7 @@
 /**
  * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -62,8 +62,8 @@ class PersonalPanel implements ISettings {
 
 	public function getPanel() {
 		$isIE8 = false;
-		preg_match('/MSIE (.*?);/', $this->request->getHeader('User-Agent'), $matches);
-		if (count($matches) > 0 && $matches[1] <= 9) {
+		\preg_match('/MSIE (.*?);/', $this->request->getHeader('User-Agent'), $matches);
+		if (\count($matches) > 0 && $matches[1] <= 9) {
 			$isIE8 = true;
 		}
 		$cloudID = $this->userSession->getUser()->getCloudId();
@@ -80,5 +80,4 @@ class PersonalPanel implements ISettings {
 		$tmpl->assign('urlGenerator', $this->urlGenerator);
 		return $tmpl;
 	}
-
 }

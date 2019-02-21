@@ -3,7 +3,7 @@
  * @author Bart Visscher <bartv@thisnet.nl>
  * @author Morris Jobke <hey@morrisjobke.de>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -20,7 +20,6 @@
  *
  */
 
-
 namespace OC\DB;
 
 class AdapterPgSql extends Adapter {
@@ -30,8 +29,8 @@ class AdapterPgSql extends Adapter {
 
 	const UNIX_TIMESTAMP_REPLACEMENT = 'cast(extract(epoch from current_timestamp) as integer)';
 	public function fixupStatement($statement) {
-		$statement = str_replace( '`', '"', $statement );
-		$statement = str_ireplace( 'UNIX_TIMESTAMP()', self::UNIX_TIMESTAMP_REPLACEMENT, $statement );
+		$statement = \str_replace('`', '"', $statement);
+		$statement = \str_ireplace('UNIX_TIMESTAMP()', self::UNIX_TIMESTAMP_REPLACEMENT, $statement);
 		return $statement;
 	}
 }

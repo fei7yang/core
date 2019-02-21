@@ -6,7 +6,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -25,14 +25,13 @@
 
 namespace OCA\Files_External\Controller;
 
-
+use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\DataResponse;
+use OCP\Files\External\NotFoundException;
+use OCP\Files\External\Service\IGlobalStoragesService;
+use OCP\IL10N;
 use OCP\ILogger;
 use OCP\IRequest;
-use OCP\IL10N;
-use OCP\AppFramework\Http\DataResponse;
-use OCP\AppFramework\Http;
-use OCP\Files\External\Service\IGlobalStoragesService;
-use OCP\Files\External\NotFoundException;
 
 /**
  * Global storages controller
@@ -191,6 +190,4 @@ class GlobalStoragesController extends StoragesController {
 			Http::STATUS_OK
 		);
 	}
-
-
 }

@@ -4,7 +4,7 @@
  * ownCloud - App Framework
  *
  * @author Bernhard Posselt
- * @copyright 2012 Bernhard Posselt <dev@bernhard-posselt.com>
+ * @copyright Copyright (c) 2012 Bernhard Posselt <dev@bernhard-posselt.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
@@ -21,15 +21,14 @@
  *
  */
 
-
 namespace Test\AppFramework\Middleware;
 
 use OC\AppFramework\Http\Request;
-use OCP\AppFramework\Middleware;
 use OCP\AppFramework\Http\Response;
+use OCP\AppFramework\Middleware;
 
-class ChildMiddleware extends Middleware {};
-
+class ChildMiddleware extends Middleware {
+};
 
 class MiddlewareTest extends \Test\TestCase {
 
@@ -43,7 +42,7 @@ class MiddlewareTest extends \Test\TestCase {
 	/** @var Response */
 	private $response;
 
-	protected function setUp(){
+	protected function setUp() {
 		parent::setUp();
 
 		$this->middleware = new ChildMiddleware();
@@ -69,18 +68,15 @@ class MiddlewareTest extends \Test\TestCase {
 		$this->response = $this->createMock('OCP\AppFramework\Http\Response');
 	}
 
-
 	public function testBeforeController() {
 		$this->middleware->beforeController($this->controller, null);
 		$this->assertNull(null);
 	}
 
-
 	public function testAfterExceptionRaiseAgainWhenUnhandled() {
 		$this->setExpectedException('Exception');
 		$afterEx = $this->middleware->afterException($this->controller, null, $this->exception);
 	}
-
 
 	public function testAfterControllerReturnResponseWhenUnhandled() {
 		$response = $this->middleware->afterController($this->controller, null, $this->response);
@@ -88,12 +84,9 @@ class MiddlewareTest extends \Test\TestCase {
 		$this->assertEquals($this->response, $response);
 	}
 
-
 	public function testBeforeOutputReturnOutputhenUnhandled() {
 		$output = $this->middleware->beforeOutput($this->controller, null, 'test');
 
 		$this->assertEquals('test', $output);
 	}
-
-
 }

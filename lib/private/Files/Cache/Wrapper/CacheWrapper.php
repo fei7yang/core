@@ -9,7 +9,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -90,7 +90,7 @@ class CacheWrapper extends Cache {
 	 */
 	public function getFolderContentsById($fileId) {
 		$results = $this->cache->getFolderContentsById($fileId);
-		return array_map([$this, 'formatCacheEntry'], $results);
+		return \array_map([$this, 'formatCacheEntry'], $results);
 	}
 
 	/**
@@ -211,7 +211,7 @@ class CacheWrapper extends Cache {
 	 */
 	public function search($pattern) {
 		$results = $this->cache->search($pattern);
-		return array_map([$this, 'formatCacheEntry'], $results);
+		return \array_map([$this, 'formatCacheEntry'], $results);
 	}
 
 	/**
@@ -222,7 +222,7 @@ class CacheWrapper extends Cache {
 	 */
 	public function searchByMime($mimetype) {
 		$results = $this->cache->searchByMime($mimetype);
-		return array_map([$this, 'formatCacheEntry'], $results);
+		return \array_map([$this, 'formatCacheEntry'], $results);
 	}
 
 	/**
@@ -234,7 +234,7 @@ class CacheWrapper extends Cache {
 	 */
 	public function searchByTag($tag, $userId) {
 		$results = $this->cache->searchByTag($tag, $userId);
-		return array_map([$this, 'formatCacheEntry'], $results);
+		return \array_map([$this, 'formatCacheEntry'], $results);
 	}
 
 	/**
@@ -303,17 +303,5 @@ class CacheWrapper extends Cache {
 	 */
 	public function getNumericStorageId() {
 		return $this->cache->getNumericStorageId();
-	}
-
-	/**
-	 * get the storage id of the storage for a file and the internal path of the file
-	 * unlike getPathById this does not limit the search to files on this storage and
-	 * instead does a global search in the cache table
-	 *
-	 * @param int $id
-	 * @return array first element holding the storage id, second the path
-	 */
-	static public function getById($id) {
-		return parent::getById($id);
 	}
 }

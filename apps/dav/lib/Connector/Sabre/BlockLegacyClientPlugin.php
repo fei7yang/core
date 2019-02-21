@@ -3,7 +3,7 @@
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -23,9 +23,8 @@
 namespace OCA\DAV\Connector\Sabre;
 
 use OCP\IConfig;
-use Sabre\HTTP\RequestInterface;
 use Sabre\DAV\ServerPlugin;
-use Sabre\DAV\Exception;
+use Sabre\HTTP\RequestInterface;
 
 /**
  * Class BlockLegacyClientPlugin is used to detect old legacy sync clients and
@@ -52,7 +51,7 @@ class BlockLegacyClientPlugin extends ServerPlugin {
 	 */
 	public function initialize(\Sabre\DAV\Server $server) {
 		$this->server = $server;
-		$this->server->on('beforeMethod', [$this, 'beforeHandler'], 200);
+		$this->server->on('beforeMethod:*', [$this, 'beforeHandler'], 200);
 	}
 
 	/**
@@ -63,17 +62,17 @@ class BlockLegacyClientPlugin extends ServerPlugin {
 	 */
 	public function beforeHandler(RequestInterface $request) {
 		$userAgent = $request->getHeader('User-Agent');
-		if($userAgent === null) {
+		if ($userAgent === null) {
 			return;
 		}
 
-		$minimumSupportedDesktopVersion = $this->config->getSystemValue('minimum.supported.desktop.version', '2.2.4');
+		$minimumSupportedDesktopVersion = $this->config->getSystemValue('minimum.supported.desktop.version', '2.3.3');
 
 		// Match on the mirall version which is in scheme "Mozilla/5.0 (%1) mirall/%2" or
 		// "mirall/%1" for older releases
-		preg_match("/(?:mirall\\/)([\d.]+)/i", $userAgent, $versionMatches);
-		if(isset($versionMatches[1]) &&
-			version_compare($versionMatches[1], $minimumSupportedDesktopVersion) === -1) {
+		\preg_match("/(?:mirall\\/)([\d.]+)/i", $userAgent, $versionMatches);
+		if (isset($versionMatches[1]) &&
+			\version_compare($versionMatches[1], $minimumSupportedDesktopVersion) === -1) {
 			throw new \Sabre\DAV\Exception\Forbidden('Unsupported client version.');
 		}
 	}

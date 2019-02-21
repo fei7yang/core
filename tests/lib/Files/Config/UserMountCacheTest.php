@@ -15,6 +15,7 @@ use OC\Log;
 use OC\User\Account;
 use OC\User\AccountMapper;
 use OC\User\Manager;
+use OC\User\SyncService;
 use OCP\Files\Config\ICachedMountInfo;
 use OCP\IConfig;
 use OCP\IDBConnection;
@@ -40,11 +41,23 @@ class UserMountCacheTest extends TestCase {
 	 */
 	private $cache;
 
+	/**
+	 * @var \OCP\Util\UserSearch
+	 */
+	protected $userSearch;
+
 	private $fileIds = [];
 
 	public function setUp() {
 		$this->fileIds = [];
 		$this->connection = \OC::$server->getDatabaseConnection();
+		$this->userSearch = $this->getMockBuilder(\OCP\Util\UserSearch::class)
+			->disableOriginalConstructor()
+			->getMock();
+		$this->userSearch->expects($this->any())
+			->method('isSearchable')
+			->willReturn(true);
+
 		/** @var IConfig $config */
 		$config = $this->createMock(IConfig::class);
 		/** @var AccountMapper | \PHPUnit_Framework_MockObject_MockObject $accountMapper */
@@ -67,7 +80,9 @@ class UserMountCacheTest extends TestCase {
 
 		/** @var Log $log */
 		$log = $this->createMock(Log::class);
-		$this->userManager = new Manager($config, $log, $accountMapper);
+		/** @var SyncService $syncService */
+		$syncService = $this->createMock(SyncService::class);
+		$this->userManager = new Manager($config, $log, $accountMapper, $syncService, $this->userSearch);
 		$this->cache = new UserMountCache($this->connection, $this->userManager, $log);
 
 		// hookup listener
@@ -294,8 +309,8 @@ class UserMountCacheTest extends TestCase {
 	}
 
 	private function sortMounts(&$mounts) {
-		usort($mounts, function (ICachedMountInfo $a, ICachedMountInfo $b) {
-			return strcmp($a->getUser()->getUID(), $b->getUser()->getUID());
+		\usort($mounts, function (ICachedMountInfo $a, ICachedMountInfo $b) {
+			return \strcmp($a->getUser()->getUID(), $b->getUser()->getUID());
 		});
 	}
 
@@ -303,9 +318,9 @@ class UserMountCacheTest extends TestCase {
 		$this->connection->insertIfNotExist('*PREFIX*filecache', [
 			'storage' => $storageId,
 			'path' => $internalPath,
-			'path_hash' => md5($internalPath),
+			'path_hash' => \md5($internalPath),
 			'parent' => -1,
-			'name' => basename($internalPath),
+			'name' => \basename($internalPath),
 			'mimetype' => 0,
 			'mimepart' => 0,
 			'size' => 0,

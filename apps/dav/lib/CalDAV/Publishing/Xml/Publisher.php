@@ -2,7 +2,7 @@
 /**
  * @author Thomas Citharel <tcit@tcit.fr>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -20,7 +20,6 @@
  */
 namespace OCA\DAV\CalDAV\Publishing\Xml;
 
-use OCA\DAV\CalDAV\Publishing\PublishPlugin as Plugin;
 use Sabre\Xml\Writer;
 use Sabre\Xml\XmlSerializable;
 
@@ -40,7 +39,7 @@ class Publisher implements XmlSerializable {
 	 * @param string $publishUrl
 	 * @param boolean $isPublished
 	 */
-	function __construct($publishUrl, $isPublished) {
+	public function __construct($publishUrl, $isPublished) {
 		$this->publishUrl = $publishUrl;
 		$this->isPublished = $isPublished;
 	}
@@ -48,7 +47,7 @@ class Publisher implements XmlSerializable {
 	/**
 	 * @return string
 	 */
-	function getValue() {
+	public function getValue() {
 		return $this->publishUrl;
 	}
 
@@ -71,7 +70,7 @@ class Publisher implements XmlSerializable {
 	 * @param Writer $writer
 	 * @return void
 	 */
-	function xmlSerialize(Writer $writer) {
+	public function xmlSerialize(Writer $writer) {
 		if (!$this->isPublished) {
 			// for pre-publish-url
 			$writer->write($this->publishUrl);

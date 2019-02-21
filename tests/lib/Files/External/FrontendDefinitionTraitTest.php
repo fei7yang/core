@@ -3,7 +3,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  *
- * @copyright Copyright (c) 2016, ownCloud GmbH.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -23,7 +23,6 @@
 namespace Test\Files\External;
 
 class FrontendDefinitionTraitTest extends \Test\TestCase {
-
 	public function testJsonSerialization() {
 		$param = $this->getMockBuilder('\OCP\Files\External\DefinitionParameter')
 			->disableOriginalConstructor()
@@ -96,7 +95,7 @@ class FrontendDefinitionTraitTest extends \Test\TestCase {
 			->willReturn('param');
 		$param->expects($this->once())
 			->method('validateValue')
-			->will($this->returnCallback(function(&$value) {
+			->will($this->returnCallback(function (&$value) {
 				$value = 'foobar';
 				return true;
 			}));
@@ -116,6 +115,6 @@ class FrontendDefinitionTraitTest extends \Test\TestCase {
 		$trait->setText('test');
 		$trait->addParameter($param);
 
-		$this->assertEquals(true, $trait->validateStorageDefinition($storageConfig));
+		$this->assertTrue($trait->validateStorageDefinition($storageConfig));
 	}
 }

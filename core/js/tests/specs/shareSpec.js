@@ -2,7 +2,7 @@
 * ownCloud
 *
 * @author Vincent Petry
-* @copyright 2014 Vincent Petry <pvince81@owncloud.com>
+* @copyright Copyright (c) 2014 Vincent Petry <pvince81@owncloud.com>
 *
 * This library is free software; you can redistribute it and/or
 * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
@@ -100,7 +100,7 @@ describe('OC.Share tests', function() {
 		describe('displaying the folder icon', function() {
 			function checkIcon(expectedImage) {
 				var imageUrl = OC.TestUtil.getImageUrl($file.find('.filename .thumbnail'));
-				expectedIcon = OC.imagePath('core', expectedImage);
+				expectedIcon = OC.TestUtil.buildAbsoluteUrl(OC.imagePath('core', expectedImage));
 				expect(imageUrl).toEqual(expectedIcon);
 			}
 

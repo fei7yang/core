@@ -244,6 +244,19 @@
 		},
 
 		/**
+		 * Returns the relative path from the given absolute path based
+		 * on this client's base URL.
+		 *
+		 * @param {String} path href path
+		 * @return {String} sub-path section or null if base path mismatches
+		 *
+		 * @since 10.1.0
+		 */
+		getRelativePath: function(path) {
+			return this._extractPath(path);
+		},
+
+		/**
 		 * Parse sub-path from href
 		 *
 		 * @param {String} path href path
@@ -410,6 +423,9 @@
 		 */
 		_getSabreException: function(response) {
 			var result = {};
+			if (!response.body) {
+				return result;
+			}
 			var xml = response.xhr.responseXML;
 			var messages = xml.getElementsByTagNameNS('http://sabredav.org/ns', 'message');
 			var exceptions = xml.getElementsByTagNameNS('http://sabredav.org/ns', 'exception');
@@ -669,7 +685,7 @@
 			).then(
 				function(result) {
 					if (self._isSuccessStatus(result.status)) {
-						deferred.resolve(result.status);
+						deferred.resolve(result.status, result);
 					} else {
 						result = _.extend(result, self._getSabreException(result));
 						deferred.reject(result.status, result);
@@ -694,7 +710,50 @@
 			).then(
 				function(result) {
 					if (self._isSuccessStatus(result.status)) {
-						deferred.resolve(result.status);
+						deferred.resolve(result.status, result);
+					} else {
+						result = _.extend(result, self._getSabreException(result));
+						deferred.reject(result.status, result);
+					}
+				}
+			);
+			return promise;
+		},
+
+		_moveOrCopy: function(operation, path, destinationPath, allowOverwrite, headers, options) {
+			if (!path) {
+				throw 'Missing argument "path"';
+			}
+			if (!destinationPath) {
+				throw 'Missing argument "destinationPath"';
+			}
+			if (operation !== 'MOVE' && operation !== 'COPY') {
+				throw 'Invalid operation';
+			}
+
+			var self = this;
+			var deferred = $.Deferred();
+			var promise = deferred.promise();
+			options = _.extend({
+				'pathIsUrl' : false,
+				'destinationPathIsUrl' : false
+			}, options);
+			headers = _.extend({}, headers, {
+				'Destination' : options.destinationPathIsUrl ? destinationPath : this._buildUrl(destinationPath)
+			});
+
+			if (!allowOverwrite) {
+				headers['Overwrite'] = 'F';
+			}
+
+			this._client.request(
+				operation,
+				options.pathIsUrl ? path : this._buildUrl(path),
+				headers
+			).then(
+				function(result) {
+					if (self._isSuccessStatus(result.status)) {
+						deferred.resolve(result.status, result);
 					} else {
 						result = _.extend(result, self._getSabreException(result));
 						deferred.reject(result.status, result);
@@ -737,40 +796,24 @@
 		 *
 		 * @return {Promise} promise
 		 */
-		move: function(path, destinationPath, allowOverwrite, headers) {
-			if (!path) {
-				throw 'Missing argument "path"';
-			}
-			if (!destinationPath) {
-				throw 'Missing argument "destinationPath"';
-			}
+		move: function(path, destinationPath, allowOverwrite, headers, options) {
+			return this._moveOrCopy('MOVE', path, destinationPath, allowOverwrite, headers, options);
+		},
 
-			var self = this;
-			var deferred = $.Deferred();
-			var promise = deferred.promise();
-			headers = _.extend({}, headers, {
-				'Destination' : this._buildUrl(destinationPath)
-			});
-
-			if (!allowOverwrite) {
-				headers['Overwrite'] = 'F';
-			}
-
-			this._client.request(
-				'MOVE',
-				this._buildUrl(path),
-				headers
-			).then(
-				function(result) {
-					if (self._isSuccessStatus(result.status)) {
-						deferred.resolve(result.status);
-					} else {
-						result = _.extend(result, self._getSabreException(result));
-						deferred.reject(result.status, result);
-					}
-				}
-			);
-			return promise;
+		/**
+		 * Copies path to another path
+		 *
+		 * @param {String} path path to copy
+		 * @param {String} destinationPath destination path
+		 * @param {boolean} [allowOverwrite=false] true to allow overwriting,
+		 * false otherwise
+		 * @param {Object} [headers=null] additional headers
+		 *
+		 * @return {Promise} promise
+		 * @since 10.0.5
+		 */
+		copy: function(path, destinationPath, allowOverwrite, headers, options) {
+			return this._moveOrCopy('COPY', path, destinationPath, allowOverwrite, headers, options);
 		},
 
 		/**

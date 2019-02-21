@@ -10,7 +10,6 @@ namespace Test\Files;
 
 use OC\Files\Filesystem;
 use OC\Files\Utils\Scanner;
-use OCP\Share;
 use Test\Traits\UserTrait;
 
 /**
@@ -21,7 +20,6 @@ use Test\Traits\UserTrait;
  * @package Test\Files
  */
 class EtagTest extends \Test\TestCase {
-
 	use UserTrait;
 
 	private $datadir;
@@ -34,8 +32,6 @@ class EtagTest extends \Test\TestCase {
 		\OC_Hook::clear('OC_Filesystem', 'setup');
 		$application = new \OCA\Files_Sharing\AppInfo\Application();
 		$application->registerMountProviders();
-		\OCP\Share::registerBackend('file', 'OCA\Files_Sharing\ShareBackend\File');
-		\OCP\Share::registerBackend('folder', 'OCA\Files_Sharing\ShareBackend\Folder', 'file');
 
 		$config = \OC::$server->getConfig();
 		$this->datadir = $config->getSystemValue('datadirectory');

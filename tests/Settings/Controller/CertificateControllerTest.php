@@ -2,7 +2,7 @@
 /**
  * @author Lukas Reschke <lukas@owncloud.com>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -25,9 +25,9 @@ use OC\Settings\Controller\CertificateController;
 use OCP\App\IAppManager;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\DataResponse;
-use OCP\IRequest;
-use OCP\IL10N;
 use OCP\ICertificateManager;
+use OCP\IL10N;
+use OCP\IRequest;
 
 /**
  * Class CertificateControllerTest
@@ -128,7 +128,7 @@ class CertificateControllerTest extends \Test\TestCase {
 		$this->certificateManager
 			->expects($this->once())
 			->method('addCertificate')
-			->with(file_get_contents($uploadedFile['tmp_name'], 'goodCertificate.crt'))
+			->with(\file_get_contents($uploadedFile['tmp_name'], 'goodCertificate.crt'))
 			->will($this->returnValue($certificate));
 
 		$this->l10n
@@ -141,7 +141,6 @@ class CertificateControllerTest extends \Test\TestCase {
 			->method('l')
 			->with('date', new \DateTime('@1529099555'))
 			->will($this->returnValue('Valid Till as String'));
-
 
 		$expected = new DataResponse([
 			'name' => 'Name',
@@ -171,7 +170,7 @@ class CertificateControllerTest extends \Test\TestCase {
 		$this->certificateManager
 			->expects($this->once())
 			->method('addCertificate')
-			->with(file_get_contents($uploadedFile['tmp_name'], 'badCertificate.crt'))
+			->with(\file_get_contents($uploadedFile['tmp_name'], 'badCertificate.crt'))
 			->will($this->throwException(new \Exception()));
 
 		$expected = new DataResponse('An error occurred.', Http::STATUS_UNPROCESSABLE_ENTITY);
@@ -186,5 +185,4 @@ class CertificateControllerTest extends \Test\TestCase {
 
 		$this->assertEquals(new DataResponse(), $this->certificateController->removePersonalRootCertificate('CertificateToRemove'));
 	}
-
 }

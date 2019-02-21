@@ -15,7 +15,7 @@
  * @author Victor Dubiniuk <dubiniuk@owncloud.com>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -35,9 +35,10 @@
 /** @var $application Symfony\Component\Console\Application */
 $application->add(new OC\Core\Command\Status);
 $application->add(new OC\Core\Command\Check(\OC::$server->getConfig()));
-$infoParser = new \OC\App\InfoParser();
-$application->add(new OC\Core\Command\App\CheckCode($infoParser));
-$application->add(new OC\Core\Command\L10n\CreateJs());
+$application->add(new OC\Core\Command\App\CheckCode(
+	new \OC\App\InfoParser(),
+	\OC::$server->getAppManager()
+));
 $application->add(new \OC\Core\Command\Integrity\SignApp(
 		\OC::$server->getIntegrityCodeChecker(),
 		new \OC\IntegrityCheck\Helpers\FileAccessHelper(),
@@ -53,7 +54,6 @@ $application->add(new \OC\Core\Command\Integrity\CheckApp(
 $application->add(new \OC\Core\Command\Integrity\CheckCore(
 		\OC::$server->getIntegrityCodeChecker()
 ));
-
 
 if (\OC::$server->getConfig()->getSystemValue('installed', false)) {
 	$application->add(new OC\Core\Command\App\Disable(\OC::$server->getAppManager()));
@@ -71,6 +71,8 @@ if (\OC::$server->getConfig()->getSystemValue('installed', false)) {
 	$application->add(new OC\Core\Command\Background\Cron(\OC::$server->getConfig()));
 	$application->add(new OC\Core\Command\Background\WebCron(\OC::$server->getConfig()));
 	$application->add(new OC\Core\Command\Background\Ajax(\OC::$server->getConfig()));
+	$application->add(new OC\Core\Command\Background\Queue\Status(\OC::$server->getJobList()));
+	$application->add(new OC\Core\Command\Background\Queue\Delete(\OC::$server->getJobList()));
 
 	$application->add(new OC\Core\Command\Config\App\DeleteConfig(\OC::$server->getConfig()));
 	$application->add(new OC\Core\Command\Config\App\GetConfig(\OC::$server->getConfig()));
@@ -99,7 +101,7 @@ if (\OC::$server->getConfig()->getSystemValue('installed', false)) {
 		\OC::$server->getEncryptionManager(),
 		\OC::$server->getAppManager(),
 		\OC::$server->getConfig(),
-		new \OC\Encryption\DecryptAll(\OC::$server->getEncryptionManager(), \OC::$server->getUserManager(), new \OC\Files\View()),
+		new \OC\Encryption\DecryptAll(\OC::$server->getEncryptionManager(), \OC::$server->getUserManager(), new \OC\Files\View(), \OC::$server->getLogger()),
 		new \Symfony\Component\Console\Helper\QuestionHelper())
 	);
 
@@ -123,7 +125,7 @@ if (\OC::$server->getConfig()->getSystemValue('installed', false)) {
 	);
 	$application->add(new OC\Core\Command\Encryption\ShowKeyStorageRoot($util));
 
-	$application->add(new OC\Core\Command\Maintenance\DataFingerprint(\OC::$server->getConfig(), new \OC\AppFramework\Utility\TimeFactory()));
+	$application->add(new OC\Core\Command\Maintenance\DataFingerprint(\OC::$server->getConfig(), new \OC\AppFramework\Utility\TimeFactory(), \OC::$server->getLogger()));
 	$application->add(new OC\Core\Command\Maintenance\Mimetype\UpdateDB(\OC::$server->getMimeTypeDetector(), \OC::$server->getMimeTypeLoader()));
 	$application->add(new OC\Core\Command\Maintenance\Mimetype\UpdateJS(\OC::$server->getMimeTypeDetector()));
 	$application->add(new OC\Core\Command\Maintenance\Mode(\OC::$server->getConfig()));
@@ -132,8 +134,11 @@ if (\OC::$server->getConfig()->getSystemValue('installed', false)) {
 
 	$application->add(new OC\Core\Command\Upgrade(\OC::$server->getConfig(), \OC::$server->getLogger()));
 	$application->add(new OC\Core\Command\Maintenance\Repair(
-		new \OC\Repair(\OC\Repair::getRepairSteps(), \OC::$server->getEventDispatcher()), \OC::$server->getConfig(),
-		\OC::$server->getEventDispatcher()));
+		new \OC\Repair(\OC\Repair::getRepairSteps(), \OC::$server->getEventDispatcher()),
+		\OC::$server->getConfig(),
+		\OC::$server->getEventDispatcher(),
+		\OC::$server->getAppManager())
+	);
 
 	$application->add(new OC\Core\Command\User\Add(\OC::$server->getUserManager(), \OC::$server->getGroupManager(), \OC::$server->getMailer()));
 	$application->add(new OC\Core\Command\User\Delete(\OC::$server->getUserManager()));
@@ -143,8 +148,14 @@ if (\OC::$server->getConfig()->getSystemValue('installed', false)) {
 	$application->add(new OC\Core\Command\User\ListUsers(\OC::$server->getUserManager()));
 	$application->add(new OC\Core\Command\User\ListUserGroups(\OC::$server->getUserManager(), \OC::$server->getGroupManager()));
 	$application->add(new OC\Core\Command\User\Report(\OC::$server->getUserManager()));
-	$application->add(new OC\Core\Command\User\ResetPassword(\OC::$server->getUserManager()));
+	$application->add(new OC\Core\Command\User\ResetPassword(\OC::$server->getUserManager(), \OC::$server->getConfig(), \OC::$server->getTimeFactory(),
+		new \OC\Helper\EnvironmentHelper(), new \OC\Core\Controller\LostController('settings',
+			\OC::$server->getRequest(), \OC::$server->getURLGenerator(), \OC::$server->getUserManager(), new \OC_Defaults(),
+			\OC::$server->getL10N('settings'), \OC::$server->getConfig(), \OC::$server->getSecureRandom(),
+			\OCP\Util::getDefaultEmailAddress('lostpassword-noreply'), \OC::$server->getEncryptionManager()->isEnabled(),
+			\OC::$server->getMailer(), \OC::$server->getTimeFactory(), \OC::$server->getLogger(), \OC::$server->getUserSession())));
 	$application->add(new OC\Core\Command\User\Setting(\OC::$server->getUserManager(), \OC::$server->getConfig(), \OC::$server->getDatabaseConnection()));
+	$application->add(new OC\Core\Command\User\Modify(\OC::$server->getUserManager(), \OC::$server->getMailer()));
 	$application->add(new OC\Core\Command\User\SyncBackend(\OC::$server->getAccountMapper(), \OC::$server->getConfig(), \OC::$server->getUserManager(), \OC::$server->getLogger()));
 	$application->add(new \OC\Core\Command\User\Inactive(\OC::$server->getUserManager()));
 
@@ -158,6 +169,8 @@ if (\OC::$server->getConfig()->getSystemValue('installed', false)) {
 	$application->add(new OC\Core\Command\Security\ListCertificates(\OC::$server->getCertificateManager(null), \OC::$server->getL10N('core')));
 	$application->add(new OC\Core\Command\Security\ImportCertificate(\OC::$server->getCertificateManager(null)));
 	$application->add(new OC\Core\Command\Security\RemoveCertificate(\OC::$server->getCertificateManager(null)));
+	$application->add(new OC\Core\Command\Security\ListRoutes(\OC::$server->getRouter()));
+	$application->add(new OC\Core\Command\System\Cron(\OC::$server->getJobList(), \OC::$server->getConfig(), \OC::$server->getLogger(), \OC::$server->getTempManager()));
 } else {
 	$application->add(new OC\Core\Command\Maintenance\Install(\OC::$server->getConfig()));
 }

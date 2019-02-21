@@ -4,6 +4,7 @@ namespace Test\Comments;
 
 use OCP\Comments\ICommentsManager;
 use OCP\IDBConnection;
+use Symfony\Component\EventDispatcher\GenericEvent;
 use Test\TestCase;
 use Test\Traits\UserTrait;
 
@@ -13,7 +14,6 @@ use Test\Traits\UserTrait;
  * @group DB
  */
 class ManagerTest extends TestCase {
-
 	use UserTrait;
 
 	/** @var IDBConnection */
@@ -36,10 +36,10 @@ class ManagerTest extends TestCase {
 	}
 
 	protected function addDatabaseEntry($parentId, $topmostParentId, $creationDT = null, $latestChildDT = null, $actor_id = 'alice', $object_id = 'file64') {
-		if(is_null($creationDT)) {
+		if ($creationDT === null) {
 			$creationDT = new \DateTime();
 		}
-		if(is_null($latestChildDT)) {
+		if ($latestChildDT === null) {
 			$latestChildDT = new \DateTime('yesterday');
 		}
 
@@ -109,10 +109,10 @@ class ManagerTest extends TestCase {
 			])
 			->execute();
 
-		$id = strval($qb->getLastInsertId());
+		$id = \strval($qb->getLastInsertId());
 
 		$comment = $manager->get($id);
-		$this->assertTrue($comment instanceof \OCP\Comments\IComment);
+		$this->assertInstanceOf(\OCP\Comments\IComment::class, $comment);
 		$this->assertSame($comment->getId(), $id);
 		$this->assertSame($comment->getParentId(), '2');
 		$this->assertSame($comment->getTopmostParentId(), '1');
@@ -154,17 +154,17 @@ class ManagerTest extends TestCase {
 		$tree = $manager->getTree($headId);
 
 		// Verifying the root comment
-		$this->assertTrue(isset($tree['comment']));
-		$this->assertTrue($tree['comment'] instanceof \OCP\Comments\IComment);
-		$this->assertSame($tree['comment']->getId(), strval($headId));
-		$this->assertTrue(isset($tree['replies']));
-		$this->assertSame(count($tree['replies']), 3);
+		$this->assertArrayHasKey('comment', $tree);
+		$this->assertInstanceOf(\OCP\Comments\IComment::class, $tree['comment']);
+		$this->assertSame($tree['comment']->getId(), \strval($headId));
+		$this->assertArrayHasKey('replies', $tree);
+		$this->assertSame(\count($tree['replies']), 3);
 
 		// one level deep
-		foreach($tree['replies'] as $reply) {
-			$this->assertTrue($reply['comment'] instanceof \OCP\Comments\IComment);
-			$this->assertSame($reply['comment']->getId(), strval($id));
-			$this->assertSame(count($reply['replies']), 0);
+		foreach ($tree['replies'] as $reply) {
+			$this->assertInstanceOf(\OCP\Comments\IComment::class, $reply['comment']);
+			$this->assertSame($reply['comment']->getId(), \strval($id));
+			$this->assertSame(\count($reply['replies']), 0);
 			$id--;
 		}
 	}
@@ -176,14 +176,14 @@ class ManagerTest extends TestCase {
 		$tree = $manager->getTree($id);
 
 		// Verifying the root comment
-		$this->assertTrue(isset($tree['comment']));
-		$this->assertTrue($tree['comment'] instanceof \OCP\Comments\IComment);
-		$this->assertSame($tree['comment']->getId(), strval($id));
-		$this->assertTrue(isset($tree['replies']));
-		$this->assertSame(count($tree['replies']), 0);
+		$this->assertArrayHasKey('comment', $tree);
+		$this->assertInstanceOf(\OCP\Comments\IComment::class, $tree['comment']);
+		$this->assertSame($tree['comment']->getId(), \strval($id));
+		$this->assertArrayHasKey('replies', $tree);
+		$this->assertSame(\count($tree['replies']), 0);
 
 		// one level deep
-		foreach($tree['replies'] as $reply) {
+		foreach ($tree['replies'] as $reply) {
 			throw new \Exception('This ain`t happen');
 		}
 	}
@@ -199,20 +199,20 @@ class ManagerTest extends TestCase {
 		$manager = $this->getManager();
 
 		for ($offset = 0; $offset < 3; $offset += 2) {
-			$tree = $manager->getTree(strval($headId), 2, $offset);
+			$tree = $manager->getTree(\strval($headId), 2, $offset);
 
 			// Verifying the root comment
-			$this->assertTrue(isset($tree['comment']));
-			$this->assertTrue($tree['comment'] instanceof \OCP\Comments\IComment);
-			$this->assertSame($tree['comment']->getId(), strval($headId));
-			$this->assertTrue(isset($tree['replies']));
-			$this->assertSame(count($tree['replies']), 2);
+			$this->assertArrayHasKey('comment', $tree);
+			$this->assertInstanceOf(\OCP\Comments\IComment::class, $tree['comment']);
+			$this->assertSame($tree['comment']->getId(), \strval($headId));
+			$this->assertArrayHasKey('replies', $tree);
+			$this->assertSame(\count($tree['replies']), 2);
 
 			// one level deep
 			foreach ($tree['replies'] as $reply) {
-				$this->assertTrue($reply['comment'] instanceof \OCP\Comments\IComment);
-				$this->assertSame($reply['comment']->getId(), strval($idToVerify));
-				$this->assertSame(count($reply['replies']), 0);
+				$this->assertInstanceOf(\OCP\Comments\IComment::class, $reply['comment']);
+				$this->assertSame($reply['comment']->getId(), \strval($idToVerify));
+				$this->assertSame(\count($reply['replies']), 0);
 				$idToVerify--;
 			}
 		}
@@ -224,9 +224,9 @@ class ManagerTest extends TestCase {
 		$manager = $this->getManager();
 		$comments = $manager->getForObject('files', 'file64');
 
-		$this->assertTrue(is_array($comments));
-		$this->assertSame(count($comments), 1);
-		$this->assertTrue($comments[0] instanceof \OCP\Comments\IComment);
+		$this->assertInternalType('array', $comments);
+		$this->assertSame(\count($comments), 1);
+		$this->assertInstanceOf(\OCP\Comments\IComment::class, $comments[0]);
 		$this->assertSame($comments[0]->getMessage(), 'nice one');
 	}
 
@@ -244,15 +244,15 @@ class ManagerTest extends TestCase {
 		do {
 			$comments = $manager->getForObject('files', 'file64', 3, $offset);
 
-			$this->assertTrue(is_array($comments));
-			foreach($comments as $comment) {
-				$this->assertTrue($comment instanceof \OCP\Comments\IComment);
+			$this->assertInternalType('array', $comments);
+			foreach ($comments as $comment) {
+				$this->assertInstanceOf(\OCP\Comments\IComment::class, $comment);
 				$this->assertSame($comment->getMessage(), 'nice one');
-				$this->assertSame($comment->getId(), strval($idToVerify));
+				$this->assertSame($comment->getId(), \strval($idToVerify));
 				$idToVerify--;
 			}
 			$offset += 3;
-		} while(count($comments) > 0);
+		} while (\count($comments) > 0);
 	}
 
 	public function testGetForObjectWithDateTimeConstraint() {
@@ -264,9 +264,9 @@ class ManagerTest extends TestCase {
 		$manager = $this->getManager();
 		$comments = $manager->getForObject('files', 'file64', 0, 0, new \DateTime('-4 hours'));
 
-		$this->assertSame(count($comments), 2);
-		$this->assertSame($comments[0]->getId(), strval($id2));
-		$this->assertSame($comments[1]->getId(), strval($id1));
+		$this->assertSame(\count($comments), 2);
+		$this->assertSame($comments[0]->getId(), \strval($id2));
+		$this->assertSame($comments[1]->getId(), \strval($id1));
 	}
 
 	public function testGetForObjectWithLimitAndOffsetAndDateTimeConstraint() {
@@ -283,20 +283,20 @@ class ManagerTest extends TestCase {
 		do {
 			$comments = $manager->getForObject('files', 'file64', 3, $offset, new \DateTime('-4 hours'));
 
-			$this->assertTrue(is_array($comments));
-			foreach($comments as $comment) {
-				$this->assertTrue($comment instanceof \OCP\Comments\IComment);
+			$this->assertInternalType('array', $comments);
+			foreach ($comments as $comment) {
+				$this->assertInstanceOf(\OCP\Comments\IComment::class, $comment);
 				$this->assertSame($comment->getMessage(), 'nice one');
-				$this->assertSame($comment->getId(), strval($idToVerify));
-				$this->assertTrue(intval($comment->getId()) >= 4);
+				$this->assertSame($comment->getId(), \strval($idToVerify));
+				$this->assertGreaterThanOrEqual(4, \intval($comment->getId()));
 				$idToVerify--;
 			}
 			$offset += 3;
-		} while(count($comments) > 0);
+		} while (\count($comments) > 0);
 	}
 
 	public function testGetNumberOfCommentsForObject() {
-		for($i = 1; $i < 5; $i++) {
+		for ($i = 1; $i < 5; $i++) {
 			$this->addDatabaseEntry(0, 0);
 		}
 
@@ -340,11 +340,11 @@ class ManagerTest extends TestCase {
 		$manager->setReadMark('files', '21', $commentsTimeStamp, $user3);
 		$manager->setReadMark('files', '15', $commentsTimeStamp, $user3);
 
-		$expectedHashMap = array();
+		$expectedHashMap = [];
 		$amount = $manager->getNumberOfUnreadCommentsForNodes('files', ['36','40','20','105'], $user1);
 		$this->assertSame($amount, $expectedHashMap);
 
-		$expectedHashMap = array();
+		$expectedHashMap = [];
 		$expectedHashMap['36'] = 200;
 		$expectedHashMap['40'] = 2;
 		$amount = $manager->getNumberOfUnreadCommentsForNodes('files', ['36','40', '80','25'], $user2);
@@ -354,7 +354,7 @@ class ManagerTest extends TestCase {
 		$commentsTimeStamp1 = new \DateTime('2017-03-02 15:00:00 EDT');
 		$manager->setReadMark('files', '36', $commentsTimeStamp1, $user2);
 		$manager->setReadMark('files', '40', $commentsTimeStamp1, $user2);
-		$expectedHashMap = array();
+		$expectedHashMap = [];
 		$amount = $manager->getNumberOfUnreadCommentsForNodes('files', ['36','40','80','25'], $user2);
 		$this->assertSame($amount, $expectedHashMap);
 
@@ -362,7 +362,7 @@ class ManagerTest extends TestCase {
 		$commentsTimeStamp2 = new \DateTime('2017-03-02 15:00:01 EDT');
 		$this->addDatabaseEntry(0, 0, $commentsTimeStamp2, $commentsTimeStamp2, 'karolina', '36');
 		$manager->setReadMark('files', '36', $commentsTimeStamp2, $user2);
-		$expectedHashMap = array();
+		$expectedHashMap = [];
 		$expectedHashMap['36'] = 1;
 		$amount = $manager->getNumberOfUnreadCommentsForNodes('files', ['36','40','20','105'], $user1);
 		$this->assertSame($amount, $expectedHashMap);
@@ -397,7 +397,7 @@ class ManagerTest extends TestCase {
 		$objectId = 'bielefeld';
 
 		$comment = $this->getManager()->create($actorType, $actorId, $objectType, $objectId);
-		$this->assertTrue($comment instanceof \OCP\Comments\IComment);
+		$this->assertInstanceOf(\OCP\Comments\IComment::class, $comment);
 		$this->assertSame($comment->getActorType(), $actorType);
 		$this->assertSame($comment->getActorId(), $actorId);
 		$this->assertSame($comment->getObjectType(), $objectType);
@@ -419,15 +419,25 @@ class ManagerTest extends TestCase {
 		$done = $manager->delete('');
 		$this->assertFalse($done);
 
-		$id = strval($this->addDatabaseEntry(0, 0));
+		$id = \strval($this->addDatabaseEntry(0, 0));
 		$comment = $manager->get($id);
-		$this->assertTrue($comment instanceof \OCP\Comments\IComment);
+		$this->assertInstanceOf(\OCP\Comments\IComment::class, $comment);
 		$done = $manager->delete($id);
 		$this->assertTrue($done);
 		$manager->get($id);
 	}
 
 	public function testSaveNew() {
+		$calledBeforeCreateEvent = [];
+		$calledAfterCreateEvent = [];
+		\OC::$server->getEventDispatcher()->addListener('comment.beforecreate', function (GenericEvent $event) use (&$calledBeforeCreateEvent) {
+			$calledBeforeCreateEvent[] = 'comment.beforesave';
+			$calledBeforeCreateEvent[] = $event;
+		});
+		\OC::$server->getEventDispatcher()->addListener('comment.aftercreate', function (GenericEvent $event) use (&$calledAfterCreateEvent) {
+			$calledAfterCreateEvent[] = 'comment.aftersave';
+			$calledAfterCreateEvent[] = $event;
+		});
 		$manager = $this->getManager();
 		$comment = new \OC\Comments\Comment();
 		$comment
@@ -438,9 +448,17 @@ class ManagerTest extends TestCase {
 
 		$saveSuccessful = $manager->save($comment);
 		$this->assertTrue($saveSuccessful);
-		$this->assertTrue($comment->getId() !== '');
-		$this->assertTrue($comment->getId() !== '0');
-		$this->assertTrue(!is_null($comment->getCreationDateTime()));
+		$this->assertNotSame('', $comment->getId());
+		$this->assertNotSame('0', $comment->getId());
+		$this->assertNotNull($comment->getCreationDateTime());
+		$this->assertInstanceOf(GenericEvent::class, $calledBeforeCreateEvent[1]);
+		$this->assertInstanceOf(GenericEvent::class, $calledAfterCreateEvent[1]);
+		$this->assertEquals('comment.beforesave', $calledBeforeCreateEvent[0]);
+		$this->assertEquals('comment.aftersave', $calledAfterCreateEvent[0]);
+		$this->assertArrayHasKey('objectId', $calledBeforeCreateEvent[1]);
+		$this->assertArrayHasKey('message', $calledBeforeCreateEvent[1]);
+		$this->assertArrayHasKey('objectId', $calledAfterCreateEvent[1]);
+		$this->assertArrayHasKey('message', $calledAfterCreateEvent[1]);
 
 		$loadedComment = $manager->get($comment->getId());
 		$this->assertSame($comment->getMessage(), $loadedComment->getMessage());
@@ -448,6 +466,16 @@ class ManagerTest extends TestCase {
 	}
 
 	public function testSaveUpdate() {
+		$calledBeforeUpdateEevnt = [];
+		$calledAfterUpdateEevnt = [];
+		\OC::$server->getEventDispatcher()->addListener('comment.beforeupdate', function (GenericEvent $event) use (&$calledBeforeUpdateEevnt) {
+			$calledBeforeUpdateEevnt[] = 'comment.beforeupdate';
+			$calledBeforeUpdateEevnt[] = $event;
+		});
+		\OC::$server->getEventDispatcher()->addListener('comment.afterupdate', function (GenericEvent $event) use (&$calledAfterUpdateEevnt) {
+			$calledAfterUpdateEevnt[] = 'comment.afterupdate';
+			$calledAfterUpdateEevnt[] = $event;
+		});
 		$manager = $this->getManager();
 		$comment = new \OC\Comments\Comment();
 		$comment
@@ -463,12 +491,34 @@ class ManagerTest extends TestCase {
 
 		$loadedComment = $manager->get($comment->getId());
 		$this->assertSame($comment->getMessage(), $loadedComment->getMessage());
+
+		$this->assertInstanceOf(GenericEvent::class, $calledAfterUpdateEevnt[1]);
+		$this->assertInstanceOf(GenericEvent::class, $calledBeforeUpdateEevnt[1]);
+		$this->assertEquals('comment.beforeupdate', $calledBeforeUpdateEevnt[0]);
+		$this->assertEquals('comment.afterupdate', $calledAfterUpdateEevnt[0]);
+		$this->assertArrayHasKey('objectId', $calledAfterUpdateEevnt[1]);
+		$this->assertArrayHasKey('commentId', $calledAfterUpdateEevnt[1]);
+		$this->assertArrayHasKey('message', $calledAfterUpdateEevnt[1]);
+		$this->assertArrayHasKey('objectId', $calledBeforeUpdateEevnt[1]);
+		$this->assertArrayHasKey('commentId', $calledBeforeUpdateEevnt[1]);
+		$this->assertArrayHasKey('message', $calledBeforeUpdateEevnt[1]);
 	}
 
 	/**
 	 * @expectedException \OCP\Comments\NotFoundException
 	 */
 	public function testSaveUpdateException() {
+		$calledBeforeDeleteEvent = [];
+		$calledAfterDeleteEvent = [];
+		\OC::$server->getEventDispatcher()->addListener('comment.beforedelete', function (GenericEvent $event) use (&$calledBeforeDeleteEvent) {
+			$calledBeforeDeleteEvent[] = 'comment.beforedelete';
+			$calledBeforeDeleteEvent[] = $event;
+		});
+		\OC::$server->getEventDispatcher()->addListener('comment.afterdelete', function (GenericEvent $event) use (&$calledAfterDeleteEvent) {
+			$calledAfterDeleteEvent[] = 'comment.afterdelete';
+			$calledAfterDeleteEvent[] = $event;
+		});
+
 		$manager = $this->getManager();
 		$comment = new \OC\Comments\Comment();
 		$comment
@@ -480,6 +530,14 @@ class ManagerTest extends TestCase {
 		$manager->save($comment);
 
 		$manager->delete($comment->getId());
+		$this->assertInstanceOf(GenericEvent::class, $calledBeforeDeleteEvent[1]);
+		$this->assertInstanceOf(GenericEvent::class, $calledAfterDeleteEvent[1]);
+		$this->assertEquals('comment.beforedelete', $calledBeforeDeleteEvent[0]);
+		$this->assertEquals('comment.afterdelete', $calledAfterDeleteEvent[0]);
+		$this->assertArrayHasKey('commentId', $calledBeforeDeleteEvent[1]);
+		$this->assertArrayHasKey('commentId', $calledAfterDeleteEvent[1]);
+		$this->assertArrayHasKey('objectId', $calledAfterDeleteEvent[1]);
+
 		$comment->setMessage('very beautiful, I am really so much impressed!');
 		$manager->save($comment);
 	}
@@ -499,12 +557,12 @@ class ManagerTest extends TestCase {
 
 		$manager = $this->getManager();
 
-		for($i = 0; $i < 3; $i++) {
+		for ($i = 0; $i < 3; $i++) {
 			$comment = new \OC\Comments\Comment();
 			$comment
 					->setActor('users', 'alice')
 					->setObject('files', 'file64')
-					->setParentId(strval($id))
+					->setParentId(\strval($id))
 					->setMessage('full ack')
 					->setVerb('comment')
 					// setting the creation time avoids using sleep() while making sure to test with different timestamps
@@ -512,8 +570,8 @@ class ManagerTest extends TestCase {
 
 			$manager->save($comment);
 
-			$this->assertSame($comment->getTopmostParentId(), strval($id));
-			$parentComment = $manager->get(strval($id));
+			$this->assertSame($comment->getTopmostParentId(), \strval($id));
+			$parentComment = $manager->get(\strval($id));
 			$this->assertSame($parentComment->getChildrenCount(), $i + 1);
 			$this->assertEquals($parentComment->getLatestChildDateTime(), $comment->getCreationDateTime());
 		}
@@ -546,15 +604,15 @@ class ManagerTest extends TestCase {
 		$manager = $this->getManager();
 
 		// just to make sure they are really set, with correct actor data
-		$comment = $manager->get(strval($ids[1]));
+		$comment = $manager->get(\strval($ids[1]));
 		$this->assertSame($comment->getActorType(), 'users');
 		$this->assertSame($comment->getActorId(), 'alice');
 
 		$wasSuccessful = $manager->deleteReferencesOfActor('users', 'alice');
 		$this->assertTrue($wasSuccessful);
 
-		foreach($ids as $id) {
-			$comment = $manager->get(strval($id));
+		foreach ($ids as $id) {
+			$comment = $manager->get(\strval($id));
 			$this->assertSame($comment->getActorType(), ICommentsManager::DELETED_USER);
 			$this->assertSame($comment->getActorId(), ICommentsManager::DELETED_USER);
 		}
@@ -567,7 +625,7 @@ class ManagerTest extends TestCase {
 
 	public function testDeleteReferencesOfActorWithUserManagement() {
 		$user = $this->createUser('xenia', '123456');
-		$this->assertTrue($user instanceof \OCP\IUser);
+		$this->assertInstanceOf(\OCP\IUser::class, $user);
 
 		$manager = \OC::$server->getCommentsManager();
 		$comment = $manager->create('users', $user->getUID(), 'files', 'file64');
@@ -612,7 +670,7 @@ class ManagerTest extends TestCase {
 		$manager = $this->getManager();
 
 		// just to make sure they are really set, with correct actor data
-		$comment = $manager->get(strval($ids[1]));
+		$comment = $manager->get(\strval($ids[1]));
 		$this->assertSame($comment->getObjectType(), 'files');
 		$this->assertSame($comment->getObjectId(), 'file64');
 
@@ -620,9 +678,9 @@ class ManagerTest extends TestCase {
 		$this->assertTrue($wasSuccessful);
 
 		$verified = 0;
-		foreach($ids as $id) {
+		foreach ($ids as $id) {
 			try {
-				$manager->get(strval($id));
+				$manager->get(\strval($id));
 			} catch (\OCP\Comments\NotFoundException $e) {
 				$verified++;
 			}
@@ -646,7 +704,7 @@ class ManagerTest extends TestCase {
 		$manager = $this->getManager();
 		$manager->setReadMark('robot', '36', $dateTimeSet, $user);
 
-		$dateTimeGet = $manager->getReadMark('robot', '36',  $user);
+		$dateTimeGet = $manager->getReadMark('robot', '36', $user);
 
 		$this->assertEquals($dateTimeGet->format(\DateTime::ISO8601), $dateTimeSet->format(\DateTime::ISO8601));
 	}
@@ -665,7 +723,7 @@ class ManagerTest extends TestCase {
 		$dateTimeSet = new \DateTime('today');
 		$manager->setReadMark('robot', '36', $dateTimeSet, $user);
 
-		$dateTimeGet = $manager->getReadMark('robot', '36',  $user);
+		$dateTimeGet = $manager->getReadMark('robot', '36', $user);
 
 		$this->assertEquals($dateTimeGet, $dateTimeSet);
 	}
@@ -682,7 +740,7 @@ class ManagerTest extends TestCase {
 		$manager->setReadMark('robot', '36', $dateTimeSet, $user);
 
 		$manager->deleteReadMarksFromUser($user);
-		$dateTimeGet = $manager->getReadMark('robot', '36',  $user);
+		$dateTimeGet = $manager->getReadMark('robot', '36', $user);
 
 		$this->assertNull($dateTimeGet);
 	}
@@ -699,9 +757,8 @@ class ManagerTest extends TestCase {
 		$manager->setReadMark('robot', '36', $dateTimeSet, $user);
 
 		$manager->deleteReadMarksOnObject('robot', '36');
-		$dateTimeGet = $manager->getReadMark('robot', '36',  $user);
+		$dateTimeGet = $manager->getReadMark('robot', '36', $user);
 
 		$this->assertNull($dateTimeGet);
 	}
-
 }

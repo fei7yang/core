@@ -4,7 +4,7 @@
  * @author Joas Schilling <coding@schilljs.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -56,8 +56,8 @@ class DropOldJobs implements IRepairStep {
 	 */
 	public function run(IOutput $output) {
 		$oldJobs = $this->oldJobs();
-		foreach($oldJobs as $job) {
-			if($this->jobList->has($job['class'], $job['arguments'])) {
+		foreach ($oldJobs as $job) {
+			if ($this->jobList->has($job['class'], $job['arguments'])) {
 				$this->jobList->remove($job['class'], $job['arguments']);
 			}
 		}
@@ -82,6 +82,4 @@ class DropOldJobs implements IRepairStep {
 			['class' => '\OCA\User_LDAP\Jobs\CleanUp', 'arguments' => null],
 		];
 	}
-
-
 }

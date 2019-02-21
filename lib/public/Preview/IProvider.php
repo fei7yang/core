@@ -3,7 +3,7 @@
  * @author Joas Schilling <coding@schilljs.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -26,6 +26,7 @@ namespace OCP\Preview;
  *
  * @package OCP\Preview
  * @since 8.1.0
+ * @deprecated 10.0.8
  */
 interface IProvider {
 	/**

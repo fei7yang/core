@@ -3,33 +3,54 @@
 namespace Test\Theme;
 
 use OC\Theme\ThemeService;
-use org\bovigo\vfs\vfsStream;
-use org\bovigo\vfs\vfsStreamDirectory;
+use OC\Helper\EnvironmentHelper;
+use OCP\App\IAppManager;
 
 class ThemeServiceTest extends \PHPUnit\Framework\TestCase {
+	/**
+	 * @var IAppManager | \PHPUnit_Framework_MockObject_MockObject
+	 */
+	private $appManager;
 
 	/**
-	 * @var vfsStreamDirectory
+	 * @var EnvironmentHelper |  \PHPUnit_Framework_MockObject_MockObject
 	 */
-	private $root;
+	private $environmentHelper;
 
 	protected function setUp() {
-		$this->root = vfsStream::setup();
 		parent::setUp();
+		$this->appManager = $this->getMockBuilder(IAppManager::class)
+			->getMock();
+		$this->environmentHelper = $this->getMockBuilder(EnvironmentHelper::class)
+			->getMock();
 	}
 
 	public function testCreatesThemeByGivenName() {
-		$themeService = new ThemeService('theme-name');
+		$themeService = new ThemeService(
+			'theme-name',
+			$this->appManager,
+			$this->environmentHelper
+		);
 		$theme = $themeService->getTheme();
 		$this->assertEquals('theme-name', $theme->getName());
 		$this->assertEquals('themes/theme-name', $theme->getDirectory());
 	}
 
 	public function testCreatesEmptyThemeIfDefaultDoesNotExist() {
-		$structure = [];
-		$this->root = vfsStream::setup('root', null, $structure);
+		$themeService = $this->getMockBuilder(ThemeService::class)
+			->disableOriginalConstructor()
+			->setMethods(['defaultThemeExists'])
+			->getMock();
 
-		$themeService = new ThemeService('', $this->root->url() . '/themes/default');
+		$themeService->expects($this->any())
+			->method('defaultThemeExists')
+			->willReturn(false);
+
+		$themeService->__construct(
+			'',
+			$this->appManager,
+			$this->environmentHelper
+		);
 		$theme = $themeService->getTheme();
 
 		$this->assertEquals('', $theme->getName());
@@ -37,15 +58,20 @@ class ThemeServiceTest extends \PHPUnit\Framework\TestCase {
 	}
 
 	public function testCreatesDefaultThemeIfItExists() {
-		$structure = [
-			'themes' => [
-				'default' => []
-			]
-		];
+		$themeService = $this->getMockBuilder(ThemeService::class)
+			->disableOriginalConstructor()
+			->setMethods(['defaultThemeExists'])
+			->getMock();
 
-		$this->root = vfsStream::setup('root', null, $structure);
+		$themeService->expects($this->any())
+			->method('defaultThemeExists')
+			->willReturn(true);
 
-		$themeService = new ThemeService('', $this->root->url() . '/themes/default');
+		$themeService->__construct(
+			'',
+			$this->appManager,
+			$this->environmentHelper
+		);
 		$theme = $themeService->getTheme();
 
 		$this->assertEquals('default', $theme->getName());
@@ -53,9 +79,52 @@ class ThemeServiceTest extends \PHPUnit\Framework\TestCase {
 	}
 
 	public function testSetAppThemeSetsName() {
-		$themeService = new ThemeService();
+		$appThemeName = 'some-app-theme';
+		$this->appManager->expects($this->once())
+			->method('getAppPath')
+			->willReturn("/srv/www/apps/$appThemeName");
+		$this->environmentHelper->expects($this->any())
+			->method('getServerRoot')
+			->willReturn("/srv/www");
+
+		$themeService = new ThemeService(
+			'',
+			$this->appManager,
+			$this->environmentHelper
+		);
 		$this->assertEmpty($themeService->getTheme()->getName());
-		$themeService->setAppTheme('some-app-theme');
-		$this->assertEquals('some-app-theme', $themeService->getTheme()->getName());
+		$themeService->setAppTheme($appThemeName);
+		$this->assertEquals($appThemeName, $themeService->getTheme()->getName());
+	}
+
+	public function testThemeDirAboveOcRoot() {
+		$appThemeName = 'some-app-theme';
+		$this->appManager->expects($this->once())
+			->method('getAppPath')
+			->willReturn("/srv/www/apps/$appThemeName");
+
+		$this->environmentHelper->expects($this->any())
+			->method('getServerRoot')
+			->willReturn("/srv/www/owncloud");
+		$this->environmentHelper->expects($this->once())
+			->method('getAppsRoots')
+			->willReturn(
+				[
+					[
+						'path' => "/srv/www/apps",
+						'url' => '../apps',
+						'writable' => true,
+					]
+				]
+			);
+
+		$themeService = new ThemeService(
+			'',
+			$this->appManager,
+			$this->environmentHelper
+		);
+		$this->assertEmpty($themeService->getTheme()->getName());
+		$themeService->setAppTheme($appThemeName);
+		$this->assertEquals($appThemeName, $themeService->getTheme()->getName());
 	}
 }

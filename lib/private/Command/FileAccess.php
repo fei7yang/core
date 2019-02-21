@@ -2,7 +2,7 @@
 /**
  * @author Robin Appelman <icewind@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -24,7 +24,7 @@ namespace OC\Command;
 use OCP\IUser;
 
 trait FileAccess {
-	protected function setupFS(IUser $user){
+	protected function setupFS(IUser $user) {
 		\OC_Util::setupFS($user->getUID());
 	}
 

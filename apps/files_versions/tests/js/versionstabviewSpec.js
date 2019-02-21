@@ -24,21 +24,23 @@ describe('OCA.Versions.VersionsTabView', function() {
 			timestamp: time1,
 			name: 'some file.txt',
 			size: 140,
-			fullPath: '/subdir/some file.txt'
+			fullPath: '/subdir/some file.txt',
+			mimetype: 'text/plain'
 		});
 		var version2 = new VersionModel({
 			id: time2,
 			timestamp: time2,
 			name: 'some file.txt',
 			size: 150,
-			fullPath: '/subdir/some file.txt'
+			fullPath: '/subdir/some file.txt',
+			mimetype: 'text/plain'
 		});
 
 		testVersions = [version1, version2];
 
 		fetchStub = sinon.stub(VersionCollection.prototype, 'fetch');
 		fileInfoModel = new OCA.Files.FileInfoModel({
-			id: 123,
+			id: '123',
 			name: 'test.txt',
 			permissions: OC.PERMISSION_READ | OC.PERMISSION_UPDATE
 		});
@@ -80,14 +82,12 @@ describe('OCA.Versions.VersionsTabView', function() {
 			expect($item.find('.versiondate').text()).toEqual('seconds ago');
 			expect($item.find('.size').text()).toEqual('< 1 KB');
 			expect($item.find('.revertVersion').length).toEqual(1);
-			expect($item.find('.preview').attr('src')).toEqual(version1.getPreviewUrl());
 
 			$item = $versions.eq(1);
 			expect($item.find('.downloadVersion').attr('href')).toEqual(version2.getDownloadUrl());
 			expect($item.find('.versiondate').text()).toEqual('2 days ago');
 			expect($item.find('.size').text()).toEqual('< 1 KB');
 			expect($item.find('.revertVersion').length).toEqual(1);
-			expect($item.find('.preview').attr('src')).toEqual(version2.getPreviewUrl());
 		});
 
 		it('does not render revert button when no update permissions', function() {
@@ -104,73 +104,68 @@ describe('OCA.Versions.VersionsTabView', function() {
 			expect($item.find('.downloadVersion').attr('href')).toEqual(version1.getDownloadUrl());
 			expect($item.find('.versiondate').text()).toEqual('seconds ago');
 			expect($item.find('.revertVersion').length).toEqual(0);
-			expect($item.find('.preview').attr('src')).toEqual(version1.getPreviewUrl());
 
 			$item = $versions.eq(1);
 			expect($item.find('.downloadVersion').attr('href')).toEqual(version2.getDownloadUrl());
 			expect($item.find('.versiondate').text()).toEqual('2 days ago');
 			expect($item.find('.revertVersion').length).toEqual(0);
-			expect($item.find('.preview').attr('src')).toEqual(version2.getPreviewUrl());
-		});
-	});
-
-	describe('More versions', function() {
-		var hasMoreResultsStub;
-
-		beforeEach(function() {
-			tabView.setFileInfo(fileInfoModel);
-			fetchStub.reset();
-			tabView.collection.set(testVersions);
-			hasMoreResultsStub = sinon.stub(VersionCollection.prototype, 'hasMoreResults');
-		});
-		afterEach(function() {
-			hasMoreResultsStub.restore();
 		});
 
-		it('shows "More versions" button when more versions are available', function() {
-			hasMoreResultsStub.returns(true);
-			tabView.collection.trigger('sync');
+		describe('version file previews', function() {
+			var oldCoreConfig;
+			var getIconUrlStub;
+			var textIconUrl;
 
-			expect(tabView.$el.find('.showMoreVersions').hasClass('hidden')).toEqual(false);
-		});
-		it('does not show "More versions" button when more versions are available', function() {
-			hasMoreResultsStub.returns(false);
-			tabView.collection.trigger('sync');
+			beforeEach(function() {
+				// backup core config
+				oldCoreConfig = OC.appConfig.core;
+				OC.appConfig.core = _.extend({}, OC.appConfig.core)
 
-			expect(tabView.$el.find('.showMoreVersions').hasClass('hidden')).toEqual(true);
-		});
-		it('fetches and appends the next page when clicking the "More" button', function() {
-			hasMoreResultsStub.returns(true);
-
-			expect(fetchStub.notCalled).toEqual(true);
-
-			tabView.$el.find('.showMoreVersions').click();
-
-			expect(fetchStub.calledOnce).toEqual(true);
-		});
-		it('appends version to the list when added to collection', function() {
-			var time3 = Date.UTC(2015, 6, 10, 1, 0, 0, 0) / 1000;
-
-			var version3 = new VersionModel({
-				id: time3,
-				timestamp: time3,
-				name: 'some file.txt',
-				size: 54,
-				fullPath: '/subdir/some file.txt'
+				textIconUrl = OC.TestUtil.buildAbsoluteUrl(OC.imagePath('core', 'filetypes/text.svg'))
+				getIconUrlStub = sinon.stub(OC.MimeType, 'getIconUrl').returns(textIconUrl);
 			});
+			afterEach(function() { 
+				OC.appConfig.core = oldCoreConfig;
+				getIconUrlStub.restore();
+			});
+			
+			it('renders actual file preview when preview mime type is supported', function() {
+				OC.appConfig.core.previewsEnabled = true; 
+				OC.appConfig.core.enabledPreviewProviders = ['text/plain']; 
 
-			tabView.collection.add(version3);
+				tabView.setFileInfo(fileInfoModel);
+				tabView.collection.set([testVersions[0]]);
 
-			expect(tabView.$el.find('.versions>li').length).toEqual(3);
+				expect(getIconUrlStub.notCalled).toEqual(true);
 
-			var $item = tabView.$el.find('.versions>li').eq(2);
-			expect($item.find('.downloadVersion').attr('href')).toEqual(version3.getDownloadUrl());
-			expect($item.find('.versiondate').text()).toEqual('7 days ago');
-			expect($item.find('.revertVersion').length).toEqual(1);
-			expect($item.find('.preview').attr('src')).toEqual(version3.getPreviewUrl());
+				expect(tabView.$el.find('.versions>li:eq(0) .preview').attr('src')).toEqual(testVersions[0].getPreviewUrl());
+			});
+			it('renders mime type icon as preview when preview mime type is not supported', function() {
+				OC.appConfig.core.previewsEnabled = true; 
+				OC.appConfig.core.enabledPreviewProviders = ['something/else']; 
+
+				tabView.setFileInfo(fileInfoModel);
+				tabView.collection.set([testVersions[0]]);
+
+				expect(getIconUrlStub.calledOnce).toEqual(true);
+				expect(getIconUrlStub.getCall(0).args[0]).toEqual('text/plain');
+
+				expect(tabView.$el.find('.versions>li:eq(0) .preview').attr('src')).toEqual(textIconUrl);
+			});
+			it('renders mime type icon as preview when previews are disabled', function() {
+				OC.appConfig.core.previewsEnabled = false; 
+				OC.appConfig.core.enabledPreviewProviders = ['text/plain']; 
+
+				tabView.setFileInfo(fileInfoModel);
+				tabView.collection.set([testVersions[0]]);
+
+				expect(getIconUrlStub.calledOnce).toEqual(true);
+				expect(getIconUrlStub.getCall(0).args[0]).toEqual('text/plain');
+
+				expect(tabView.$el.find('.versions>li:eq(0) .preview').attr('src')).toEqual(textIconUrl);
+			});
 		});
 	});
-
 	describe('Reverting', function() {
 		var revertStub;
 
@@ -179,7 +174,7 @@ describe('OCA.Versions.VersionsTabView', function() {
 			tabView.setFileInfo(fileInfoModel);
 			tabView.collection.set(testVersions);
 		});
-		
+
 		afterEach(function() {
 			revertStub.restore();
 		});

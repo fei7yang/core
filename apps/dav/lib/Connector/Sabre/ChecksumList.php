@@ -2,7 +2,7 @@
 /**
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -20,9 +20,8 @@
  */
 namespace OCA\DAV\Connector\Sabre;
 
-use Sabre\Xml\XmlSerializable;
-use Sabre\Xml\Element;
 use Sabre\Xml\Writer;
+use Sabre\Xml\XmlSerializable;
 
 /**
  * Checksumlist property
@@ -40,7 +39,7 @@ class ChecksumList implements XmlSerializable {
 	 * @param string $checksum
 	 */
 	public function __construct($checksum) {
-		$this->checksums = explode(',', $checksum);
+		$this->checksums = \explode(',', $checksum);
 	}
 
 	/**
@@ -62,8 +61,7 @@ class ChecksumList implements XmlSerializable {
 	 * @param Writer $writer
 	 * @return void
 	 */
-	function xmlSerialize(Writer $writer) {
-
+	public function xmlSerialize(Writer $writer) {
 		foreach ($this->checksums as $checksum) {
 			$writer->writeElement('{' . self::NS_OWNCLOUD . '}checksum', $checksum);
 		}

@@ -8,7 +8,7 @@
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -100,7 +100,6 @@ interface IL10N {
 	 * @since 6.0.0 - parameter $options was added in 8.0.0
 	 */
 	public function l($type, $data, $options = []);
-
 
 	/**
 	 * The code (en, de, ...) of the language that is used for this IL10N object

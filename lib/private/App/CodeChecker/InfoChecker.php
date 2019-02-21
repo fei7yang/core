@@ -3,7 +3,7 @@
  * @author Joas Schilling <coding@schilljs.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -24,11 +24,15 @@ namespace OC\App\CodeChecker;
 
 use OC\App\InfoParser;
 use OC\Hooks\BasicEmitter;
+use OCP\App\IAppManager;
 
 class InfoChecker extends BasicEmitter {
 
 	/** @var InfoParser */
 	private $infoParser;
+
+	/** @var IAppManager */
+	private $appManager;
 
 	private $mandatoryFields = [
 		'author',
@@ -36,33 +40,31 @@ class InfoChecker extends BasicEmitter {
 		'id',
 		'licence',
 		'name',
+		'version',
+		'dependencies',
 	];
 	private $optionalFields = [
 		'bugs',
 		'category',
 		'default_enable',
-		'dependencies', // TODO: Mandatory as of ownCloud 11
 		'documentation',
 		'namespace',
-		'ocsid',
 		'public',
 		'remote',
 		'repository',
 		'types',
-		'version',
 		'website',
 	];
 	private $deprecatedFields = [
 		'info',
-		'require',
-		'requiremax',
-		'requiremin',
+		'ocsid',
 		'shipped',
 		'standalone',
 	];
 
-	public function __construct(InfoParser $infoParser) {
+	public function __construct(InfoParser $infoParser, IAppManager $appManager) {
 		$this->infoParser = $infoParser;
+		$this->appManager = $appManager;
 	}
 
 	/**
@@ -70,52 +72,58 @@ class InfoChecker extends BasicEmitter {
 	 * @return array
 	 */
 	public function analyse($appId) {
-		$appPath = \OC_App::getAppPath($appId);
+		$appPath = $this->appManager->getAppPath($appId);
 		if ($appPath === false) {
 			throw new \RuntimeException("No app with given id <$appId> known.");
 		}
 
 		$errors = [];
 
-		$info = $this->infoParser->parse($appPath . '/appinfo/info.xml');
-
-		if (isset($info['dependencies']['owncloud']['@attributes']['min-version']) && ($info['requiremin'] || $info['require'])) {
-			$this->emit('InfoChecker', 'duplicateRequirement', ['min']);
-			$errors[] = [
-				'type' => 'duplicateRequirement',
-				'field' => 'min',
+		try {
+			$info = $this->infoParser->parse($appPath . '/appinfo/info.xml');
+		} catch (\Exception $e) {
+			$this->emit('InfoChecker', 'invalidAppInfo', [$appId]);
+			return [
+				[
+					'type' => 'invalidAppInfo',
+					'message' => "App <$appId> has invalid XML in appinfo.xml",
+				]
 			];
-		} else if (!isset($info['dependencies']['owncloud']['@attributes']['min-version'])) {
-			$this->emit('InfoChecker', 'missingRequirement', ['min']);
 		}
 
-		if (isset($info['dependencies']['owncloud']['@attributes']['max-version']) && $info['requiremax']) {
-			$this->emit('InfoChecker', 'duplicateRequirement', ['max']);
+		if (!isset($info['dependencies']['owncloud']['@attributes']['min-version'])) {
+			$this->emit('InfoChecker', 'missingRequirement', ['min']);
 			$errors[] = [
-				'type' => 'duplicateRequirement',
-				'field' => 'max',
+				'type' => 'missingRequirement',
+				'message' => 'No minimum ownCloud version is defined in appinfo/info.xml',
 			];
-		} else if (!isset($info['dependencies']['owncloud']['@attributes']['max-version'])) {
+		}
+
+		if (!isset($info['dependencies']['owncloud']['@attributes']['max-version'])) {
 			$this->emit('InfoChecker', 'missingRequirement', ['max']);
+			$errors[] = [
+				'type' => 'missingRequirement',
+				'message' => 'No maximum ownCloud version is defined in appinfo/info.xml',
+			];
 		}
 
 		foreach ($info as $key => $value) {
-			if(is_array($value)) {
-				$value = json_encode($value);
+			if (\is_array($value)) {
+				$value = \json_encode($value);
 			}
-			if (in_array($key, $this->mandatoryFields)) {
+			if (\in_array($key, $this->mandatoryFields)) {
 				$this->emit('InfoChecker', 'mandatoryFieldFound', [$key, $value]);
 				continue;
 			}
 
-			if (in_array($key, $this->optionalFields)) {
+			if (\in_array($key, $this->optionalFields)) {
 				$this->emit('InfoChecker', 'optionalFieldFound', [$key, $value]);
 				continue;
 			}
 
-			if (in_array($key, $this->deprecatedFields)) {
+			if (\in_array($key, $this->deprecatedFields)) {
 				// skip empty arrays - empty arrays for remote and public are always added
-				if($value === '[]' && in_array($key, ['public', 'remote', 'info'])) {
+				if ($value === '[]' && \in_array($key, ['public', 'remote', 'info'])) {
 					continue;
 				}
 				$this->emit('InfoChecker', 'deprecatedFieldFound', [$key, $value]);
@@ -126,7 +134,7 @@ class InfoChecker extends BasicEmitter {
 		}
 
 		foreach ($this->mandatoryFields as $key) {
-			if(!isset($info[$key])) {
+			if (!isset($info[$key])) {
 				$this->emit('InfoChecker', 'mandatoryFieldMissing', [$key]);
 				$errors[] = [
 					'type' => 'mandatoryFieldMissing',
@@ -136,10 +144,10 @@ class InfoChecker extends BasicEmitter {
 		}
 
 		$versionFile = $appPath . '/appinfo/version';
-		if (is_file($versionFile)) {
-			$version = trim(file_get_contents($versionFile));
+		if (\is_file($versionFile)) {
+			$version = \trim(\file_get_contents($versionFile));
 			if (isset($info['version'])) {
-				if($info['version'] !== $version) {
+				if ($info['version'] !== $version) {
 					$this->emit('InfoChecker', 'differentVersions',
 						[$version, $info['version']]);
 					$errors[] = [

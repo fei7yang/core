@@ -5,7 +5,7 @@
  * @author Olivier Paroz <github@oparoz.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -25,39 +25,46 @@
 namespace OC\Preview;
 
 use Imagick;
+use OCP\Files\File;
+use OCP\Files\FileInfo;
+use OCP\Preview\IProvider2;
+use OCP\Util;
 
 /**
  * Creates a PNG preview using ImageMagick via the PECL extension
  *
  * @package OC\Preview
  */
-abstract class Bitmap extends Provider {
+abstract class Bitmap implements IProvider2 {
 
 	/**
 	 * {@inheritDoc}
 	 */
-	public function getThumbnail($path, $maxX, $maxY, $scalingup, $fileview) {
-
-		$tmpPath = $fileview->toTmpFile($path);
-		if (!$tmpPath) {
-			return false;
-		}
+	public function getThumbnail(File $file, $maxX, $maxY, $scalingUp) {
+		$stream = $file->fopen('r');
 
 		// Creates \Imagick object from bitmap or vector file
 		try {
-			$bp = $this->getResizedPreview($tmpPath, $maxX, $maxY);
+			$bp = $this->getResizedPreview($stream, $maxX, $maxY);
 		} catch (\Exception $e) {
-			\OCP\Util::writeLog('core', 'ImageMagick says: ' . $e->getmessage(), \OCP\Util::ERROR);
+			Util::writeLog('core', 'ImageMagick says: ' . $e->getmessage(), Util::ERROR);
 			return false;
+		} finally {
+			\fclose($stream);
 		}
-
-		unlink($tmpPath);
 
 		//new bitmap image object
 		$image = new \OC_Image();
 		$image->loadFromData($bp);
 		//check if image object is valid
 		return $image->valid() ? $image : false;
+	}
+
+	/**
+	 * @inheritdoc
+	 */
+	public function isAvailable(FileInfo $file) {
+		return true;
 	}
 
 	/**
@@ -68,17 +75,16 @@ abstract class Bitmap extends Provider {
 	 *    ICC profiles are here: http://www.color.org/srgbprofiles.xalter
 	 *    * It's possible to Gamma-correct an image via gammaImage()
 	 *
-	 * @param string $tmpPath the location of the file to convert
+	 * @param resource $stream the handle of the file to convert
 	 * @param int $maxX
 	 * @param int $maxY
 	 *
 	 * @return \Imagick
 	 */
-	private function getResizedPreview($tmpPath, $maxX, $maxY) {
+	private function getResizedPreview($stream, $maxX, $maxY) {
 		$bp = new Imagick();
 
-		// Layer 0 contains either the bitmap or a flat representation of all vector layers
-		$bp->readImage($tmpPath . '[0]');
+		$bp->readImageFile($stream);
 
 		$bp = $this->resize($bp, $maxX, $maxY);
 
@@ -100,7 +106,7 @@ abstract class Bitmap extends Provider {
 	 * @return \Imagick
 	 */
 	private function resize($bp, $maxX, $maxY) {
-		list($previewWidth, $previewHeight) = array_values($bp->getImageGeometry());
+		list($previewWidth, $previewHeight) = \array_values($bp->getImageGeometry());
 
 		// We only need to resize a preview which doesn't fit in the maximum dimensions
 		if ($previewWidth > $maxX || $previewHeight > $maxY) {
@@ -110,5 +116,4 @@ abstract class Bitmap extends Provider {
 
 		return $bp;
 	}
-
 }

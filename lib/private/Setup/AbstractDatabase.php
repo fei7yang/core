@@ -5,7 +5,7 @@
  * @author Manish Bisht <manish.bisht490@gmail.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -44,6 +44,8 @@ abstract class AbstractDatabase {
 	protected $dbHost;
 	/** @var string */
 	protected $tablePrefix;
+	/** @var string */
+	protected $dbprettyname;
 	/** @var IConfig */
 	protected $config;
 	/** @var ILogger */
@@ -61,14 +63,14 @@ abstract class AbstractDatabase {
 
 	public function validate($config) {
 		$errors = [];
-		if(empty($config['dbuser']) && empty($config['dbname'])) {
+		if (empty($config['dbuser']) && empty($config['dbname'])) {
 			$errors[] = $this->trans->t("%s enter the database username and name.", [$this->dbprettyname]);
-		} else if(empty($config['dbuser'])) {
+		} elseif (empty($config['dbuser'])) {
 			$errors[] = $this->trans->t("%s enter the database username.", [$this->dbprettyname]);
-		} else if(empty($config['dbname'])) {
+		} elseif (empty($config['dbname'])) {
 			$errors[] = $this->trans->t("%s enter the database name.", [$this->dbprettyname]);
 		}
-		if(substr_count($config['dbname'], '.') >= 1) {
+		if (\substr_count($config['dbname'], '.') >= 1) {
 			$errors[] = $this->trans->t("%s you may not use dots in the database name", [$this->dbprettyname]);
 		}
 		return $errors;
@@ -100,7 +102,7 @@ abstract class AbstractDatabase {
 	abstract public function setupDatabase($userName);
 
 	public function runMigrations() {
-		if (!is_dir(\OC::$SERVERROOT."/core/Migrations")) {
+		if (!\is_dir(\OC::$SERVERROOT."/core/Migrations")) {
 			return;
 		}
 		$ms = new MigrationService('core', \OC::$server->getDatabaseConnection());

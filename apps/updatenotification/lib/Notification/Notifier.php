@@ -2,7 +2,7 @@
 /**
  * @author Joas Schilling <coding@schilljs.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -20,7 +20,6 @@
  */
 
 namespace OCA\UpdateNotification\Notification;
-
 
 use OCP\L10N\IFactory;
 use OCP\Notification\IManager;
@@ -88,14 +87,14 @@ class Notifier implements INotifier {
 	 * @throws \InvalidArgumentException When the update is already installed
 	 */
 	protected function updateAlreadyInstalledCheck(INotification $notification, $installedVersion) {
-		if (version_compare($notification->getObjectId(), $installedVersion, '<=')) {
+		if (\version_compare($notification->getObjectId(), $installedVersion, '<=')) {
 			$this->notificationManager->markProcessed($notification);
 			throw new \InvalidArgumentException();
 		}
 	}
 
 	protected function getCoreVersions() {
-		return implode('.', \OCP\Util::getVersion());
+		return \implode('.', \OCP\Util::getVersion());
 	}
 
 	protected function getAppVersions() {

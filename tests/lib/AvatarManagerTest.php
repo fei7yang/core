@@ -2,7 +2,7 @@
 /**
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -94,7 +94,7 @@ class AvatarManagerTest extends TestCase {
 	 */
 	public function testPathBuilding($expectedPath, $userId) {
 		$path = $this->invokePrivate($this->avatarManager, 'buildAvatarPath', [$userId]);
-		$this->assertEquals($expectedPath, implode('/', $path));
+		$this->assertEquals($expectedPath, \implode('/', $path));
 	}
 
 	public function providesUserIds() {
@@ -112,10 +112,6 @@ class AvatarManagerTest extends TestCase {
 			->method('get')
 			->with('vaLid-USER')
 			->willReturn($user);
-
-		$user->expects($this->once())
-			->method('getUID')
-			->willReturn('valid-user');
 
 		$folder = $this->createMock(Folder::class);
 		$this->avatarManager->expects($this->once())

@@ -8,7 +8,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -27,6 +27,7 @@
 
 namespace OC\Files\Cache;
 
+use OC\Files\Utils\FileUtils;
 use OCP\Files\Cache\ICacheEntry;
 use OCP\Files\Cache\IUpdater;
 use OCP\Files\Storage\IStorage;
@@ -101,7 +102,7 @@ class Updater implements IUpdater {
 	 * @param int|null $time the timestamp to set as mtime for the parent folders, if left out the current time is used
 	 */
 	public function propagate($path, $time = null) {
-		if (Scanner::isPartialFile($path)) {
+		if (FileUtils::isPartialFile($path)) {
 			return;
 		}
 		$this->propagator->propagateChange($path, $time);
@@ -114,16 +115,16 @@ class Updater implements IUpdater {
 	 * @param int $time
 	 */
 	public function update($path, $time = null) {
-		if (!$this->enabled or Scanner::isPartialFile($path)) {
+		if (!$this->enabled or FileUtils::isPartialFile($path)) {
 			return;
 		}
-		if (is_null($time)) {
-			$time = time();
+		if ($time === null) {
+			$time = \time();
 		}
 
 		$data = $this->scanner->scan($path, Scanner::SCAN_SHALLOW, -1, false);
 		if (
-			isset($data['oldSize']) && isset($data['size']) &&
+			isset($data['oldSize'], $data['size']) &&
 			!$data['encrypted'] // encryption is a pita and touches the cache itself
 		) {
 			$sizeDifference = $data['size'] - $data['oldSize'];
@@ -144,11 +145,11 @@ class Updater implements IUpdater {
 	 * @param string $path
 	 */
 	public function remove($path) {
-		if (!$this->enabled or Scanner::isPartialFile($path)) {
+		if (!$this->enabled or FileUtils::isPartialFile($path)) {
 			return;
 		}
 
-		$parent = dirname($path);
+		$parent = \dirname($path);
 		if ($parent === '.') {
 			$parent = '';
 		}
@@ -159,14 +160,13 @@ class Updater implements IUpdater {
 
 		$this->correctParentStorageMtime($path);
 		if ($entry instanceof ICacheEntry) {
-			$this->propagator->propagateChange($path, time(), -$entry->getSize());
+			$this->propagator->propagateChange($path, \time(), -$entry->getSize());
 		} else {
-			$this->propagator->propagateChange($path, time());
+			$this->propagator->propagateChange($path, \time());
 			if ($this->cache instanceof Cache) {
 				$this->cache->correctFolderSize($parent);
 			}
 		}
-
 	}
 
 	/**
@@ -177,11 +177,11 @@ class Updater implements IUpdater {
 	 * @param string $target
 	 */
 	public function renameFromStorage(IStorage $sourceStorage, $source, $target) {
-		if (!$this->enabled or Scanner::isPartialFile($source) or Scanner::isPartialFile($target)) {
+		if (!$this->enabled or FileUtils::isPartialFile($source) or FileUtils::isPartialFile($target)) {
 			return;
 		}
 
-		$time = time();
+		$time = \time();
 
 		$sourceCache = $sourceStorage->getCache();
 		$sourceUpdater = $sourceStorage->getUpdater();
@@ -199,7 +199,7 @@ class Updater implements IUpdater {
 			}
 		}
 
-		if (pathinfo($source, PATHINFO_EXTENSION) !== pathinfo($target, PATHINFO_EXTENSION)) {
+		if (\pathinfo($source, PATHINFO_EXTENSION) !== \pathinfo($target, PATHINFO_EXTENSION)) {
 			// handle mime type change
 			$mimeType = $this->storage->getMimeType($target);
 			$fileId = $this->cache->getId($target);
@@ -240,7 +240,7 @@ class Updater implements IUpdater {
 	 */
 	private function correctParentStorageMtime($internalPath) {
 		$parentId = $this->cache->getParentId($internalPath);
-		$parent = dirname($internalPath);
+		$parent = \dirname($internalPath);
 		if ($parentId != -1) {
 			$mtime = $this->storage->filemtime($parent);
 			if ($mtime !== false) {

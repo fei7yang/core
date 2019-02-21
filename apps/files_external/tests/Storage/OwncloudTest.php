@@ -6,7 +6,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -25,7 +25,7 @@
 
 namespace OCA\Files_External\Tests\Storage;
 
-use \OCA\Files_External\Lib\Storage\OwnCloud;
+use OCA\Files_External\Lib\Storage\OwnCloud;
 
 /**
  * Class OwnCloudTest
@@ -35,7 +35,6 @@ use \OCA\Files_External\Lib\Storage\OwnCloud;
  * @package OCA\Files_External\Tests\Storage
  */
 class OwncloudTest extends \Test\Files\Storage\Storage {
-
 	private $config;
 
 	protected function setUp() {
@@ -43,7 +42,7 @@ class OwncloudTest extends \Test\Files\Storage\Storage {
 
 		$id = $this->getUniqueID();
 		$this->config = include('files_external/tests/config.php');
-		if ( ! is_array($this->config) or ! isset($this->config['owncloud']) or ! $this->config['owncloud']['run']) {
+		if (! \is_array($this->config) or ! isset($this->config['owncloud']) or ! $this->config['owncloud']['run']) {
 			$this->markTestSkipped('ownCloud backend not configured');
 		}
 		$this->config['owncloud']['root'] .= '/' . $id; //make sure we have an new empty folder to work in

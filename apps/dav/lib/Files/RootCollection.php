@@ -3,7 +3,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,10 +21,10 @@
  */
 namespace OCA\DAV\Files;
 
+use OCA\DAV\Connector\Sabre\Directory;
 use Sabre\DAV\INode;
-use Sabre\DAVACL\AbstractPrincipalCollection;
-use Sabre\HTTP\URLUtil;
 use Sabre\DAV\SimpleCollection;
+use Sabre\DAVACL\AbstractPrincipalCollection;
 
 class RootCollection extends AbstractPrincipalCollection {
 
@@ -38,20 +38,25 @@ class RootCollection extends AbstractPrincipalCollection {
 	 * @param array $principalInfo
 	 * @return INode
 	 */
-	function getChildForPrincipal(array $principalInfo) {
-		list(,$name) = URLUtil::splitPath($principalInfo['uri']);
+	public function getChildForPrincipal(array $principalInfo) {
+		list(, $name) = \Sabre\Uri\split($principalInfo['uri']);
 		$user = \OC::$server->getUserSession()->getUser();
-		if (is_null($user) || $name !== $user->getUID()) {
+		if ($user === null || $name !== $user->getUID()) {
 			// a user is only allowed to see their own home contents, so in case another collection
 			// is accessed, we return a simple empty collection for now
 			// in the future this could be considered to be used for accessing shared files
 			return new SimpleCollection($name);
 		}
-		return new FilesHome($principalInfo);
+		$view = \OC\Files\Filesystem::getView();
+		$home = new FilesHome($principalInfo);
+		$rootInfo = $view->getFileInfo('');
+		$rootNode = new Directory($view, $rootInfo, $home);
+		$home->init($rootNode, $view, \OC::$server->getMountManager());
+
+		return $home;
 	}
 
-	function getName() {
+	public function getName() {
 		return 'files';
 	}
-
 }

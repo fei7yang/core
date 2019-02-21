@@ -5,7 +5,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -24,6 +24,8 @@
 
 namespace OCA\DAV\Connector\Sabre;
 
+use OCA\DAV\DAV\CopyPlugin;
+
 /**
  * Class \OCA\DAV\Connector\Sabre\Server
  *
@@ -35,10 +37,13 @@ class Server extends \Sabre\DAV\Server {
 
 	/**
 	 * @see \Sabre\DAV\Server
+	 * @param null $treeOrNode
+	 * @throws \Sabre\DAV\Exception
 	 */
 	public function __construct($treeOrNode = null) {
 		parent::__construct($treeOrNode);
 		self::$exposeVersion = false;
 		$this->enablePropfindDepthInfinity = true;
+		$this->addPlugin(new CopyPlugin());
 	}
 }

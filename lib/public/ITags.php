@@ -5,7 +5,7 @@
  * @author Thomas Tanghus <thomas@tanghus.net>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -223,5 +223,4 @@ interface ITags {
 	 * @since 6.0.0
 	 */
 	public function delete($names);
-
 }

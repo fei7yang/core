@@ -2,7 +2,7 @@
 /**
  * @author Joas Schilling <nickvergessen@owncloud.com>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -102,7 +102,7 @@ class QuoteHelperTest extends \Test\TestCase {
 	 * @return array|string
 	 */
 	public function quoteColumnNames($strings) {
-		if (!is_array($strings)) {
+		if (!\is_array($strings)) {
 			return $this->quoteColumnName($strings);
 		}
 
@@ -131,12 +131,12 @@ class QuoteHelperTest extends \Test\TestCase {
 			return $string;
 		}
 
-		if (!is_string($string)) {
+		if (!\is_string($string)) {
 			throw new \InvalidArgumentException('Only strings, Literals and Parameters are allowed');
 		}
 
-		if (substr_count($string, '.')) {
-			list($alias, $columnName) = explode('.', $string);
+		if (\substr_count($string, '.')) {
+			list($alias, $columnName) = \explode('.', $string);
 			return '`' . $alias . '`.`' . $columnName . '`';
 		}
 

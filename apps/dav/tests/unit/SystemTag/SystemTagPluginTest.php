@@ -6,7 +6,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -27,19 +27,20 @@ namespace OCA\DAV\Tests\unit\SystemTag;
 
 use OC\SystemTag\SystemTag;
 use OCP\IGroupManager;
-use OCP\IUserSession;
-use OCP\SystemTag\TagAlreadyExistsException;
 use OCP\IUser;
+use OCP\IUserSession;
 use OCP\SystemTag\ISystemTag;
+use OCP\SystemTag\TagAlreadyExistsException;
 
 class SystemTagPluginTest extends \Test\TestCase {
-
 	const ID_PROPERTYNAME = \OCA\DAV\SystemTag\SystemTagPlugin::ID_PROPERTYNAME;
 	const DISPLAYNAME_PROPERTYNAME = \OCA\DAV\SystemTag\SystemTagPlugin::DISPLAYNAME_PROPERTYNAME;
 	const USERVISIBLE_PROPERTYNAME = \OCA\DAV\SystemTag\SystemTagPlugin::USERVISIBLE_PROPERTYNAME;
 	const USERASSIGNABLE_PROPERTYNAME = \OCA\DAV\SystemTag\SystemTagPlugin::USERASSIGNABLE_PROPERTYNAME;
 	const CANASSIGN_PROPERTYNAME = \OCA\DAV\SystemTag\SystemTagPlugin::CANASSIGN_PROPERTYNAME;
 	const GROUPS_PROPERTYNAME = \OCA\DAV\SystemTag\SystemTagPlugin::GROUPS_PROPERTYNAME;
+	const USEREDITABLE_PROPERTYNAME = \OCA\DAV\SystemTag\SystemTagPlugin::USEREDITABLE_PROPERTYNAME;
+	const WHITELISTEDINGROUP = \OCA\DAV\SystemTag\SystemTagPlugin::WHITELISTEDINGROUP;
 
 	/**
 	 * @var \Sabre\DAV\Server
@@ -115,7 +116,7 @@ class SystemTagPluginTest extends \Test\TestCase {
 					self::DISPLAYNAME_PROPERTYNAME,
 					self::USERVISIBLE_PROPERTYNAME,
 					self::USERASSIGNABLE_PROPERTYNAME,
-					self::CANASSIGN_PROPERTYNAME,
+					self::CANASSIGN_PROPERTYNAME
 				],
 				[
 					self::ID_PROPERTYNAME => '1',
@@ -156,16 +157,20 @@ class SystemTagPluginTest extends \Test\TestCase {
 				]
 			],
 			[
-				new SystemTag(1, 'Test', true, true),
+				new SystemTag(1, 'Test', true, true, true),
 				['group1', 'group2'],
 				[
 					self::ID_PROPERTYNAME,
 					self::GROUPS_PROPERTYNAME,
+					self::USEREDITABLE_PROPERTYNAME,
+					self::WHITELISTEDINGROUP,
 				],
 				[
 					self::ID_PROPERTYNAME => '1',
 					// groups only returned when userAssignable is false
 					self::GROUPS_PROPERTYNAME => '',
+					self::USEREDITABLE_PROPERTYNAME => 'true',
+					self::WHITELISTEDINGROUP => 'false'
 				]
 			],
 		];
@@ -298,6 +303,7 @@ class SystemTagPluginTest extends \Test\TestCase {
 		$propPatch = new \Sabre\DAV\PropPatch([
 			self::DISPLAYNAME_PROPERTYNAME => 'Test changed',
 			self::USERVISIBLE_PROPERTYNAME => 'false',
+			self::USEREDITABLE_PROPERTYNAME => 'true',
 			self::USERASSIGNABLE_PROPERTYNAME => 'true',
 			self::GROUPS_PROPERTYNAME => 'group1|group2',
 		]);
@@ -316,6 +322,7 @@ class SystemTagPluginTest extends \Test\TestCase {
 		$this->assertEquals(200, $result[self::DISPLAYNAME_PROPERTYNAME]);
 		$this->assertEquals(200, $result[self::USERASSIGNABLE_PROPERTYNAME]);
 		$this->assertEquals(200, $result[self::USERVISIBLE_PROPERTYNAME]);
+		$this->assertEquals(200, $result[self::USEREDITABLE_PROPERTYNAME]);
 	}
 
 	/**
@@ -365,9 +372,9 @@ class SystemTagPluginTest extends \Test\TestCase {
 
 	public function createTagInsufficientPermissionsProvider() {
 		return [
-			[true, false, ''],
-			[false, true, ''],
-			[true, true, 'group1|group2'],
+			[true, false, false, ''],
+			[false, true, false, ''],
+			[true, true, false, 'group1|group2'],
 		];
 	}
 	/**
@@ -375,7 +382,7 @@ class SystemTagPluginTest extends \Test\TestCase {
 	 * @expectedException \Sabre\DAV\Exception\BadRequest
 	 * @expectedExceptionMessage Not sufficient permissions
 	 */
-	public function testCreateNotAssignableTagAsRegularUser($userVisible, $userAssignable, $groups) {
+	public function testCreateNotAssignableTagAsRegularUser($userVisible, $userAssignable, $userEditable, $groups) {
 		$this->user->expects($this->once())
 			->method('getUID')
 			->willReturn('admin');
@@ -389,11 +396,12 @@ class SystemTagPluginTest extends \Test\TestCase {
 			'name' => 'Test',
 			'userVisible' => $userVisible,
 			'userAssignable' => $userAssignable,
+			'userEditable' => $userEditable
 		];
 		if (!empty($groups)) {
 			$requestData['groups'] = $groups;
 		}
-		$requestData = json_encode($requestData);
+		$requestData = \json_encode($requestData);
 
 		$node = $this->getMockBuilder('\OCA\DAV\SystemTag\SystemTagsByIdCollection')
 			->disableOriginalConstructor()
@@ -434,10 +442,11 @@ class SystemTagPluginTest extends \Test\TestCase {
 	public function testCreateTagInByIdCollectionAsRegularUser() {
 		$systemTag = new SystemTag(1, 'Test', true, false);
 
-		$requestData = json_encode([
+		$requestData = \json_encode([
 			'name' => 'Test',
 			'userVisible' => true,
 			'userAssignable' => true,
+			'userEditable' => true
 		]);
 
 		$node = $this->getMockBuilder('\OCA\DAV\SystemTag\SystemTagsByIdCollection')
@@ -515,7 +524,7 @@ class SystemTagPluginTest extends \Test\TestCase {
 		if (!empty($groups)) {
 			$requestData['groups'] = $groups;
 		}
-		$requestData = json_encode($requestData);
+		$requestData = \json_encode($requestData);
 
 		$node = $this->getMockBuilder('\OCA\DAV\SystemTag\SystemTagsByIdCollection')
 			->disableOriginalConstructor()
@@ -528,7 +537,7 @@ class SystemTagPluginTest extends \Test\TestCase {
 		if (!empty($groups)) {
 			$this->tagManager->expects($this->once())
 				->method('setTagGroups')
-				->with($systemTag, explode('|', $groups))
+				->with($systemTag, \explode('|', $groups))
 				->will($this->returnValue($systemTag));
 		} else {
 			$this->tagManager->expects($this->never())
@@ -558,7 +567,7 @@ class SystemTagPluginTest extends \Test\TestCase {
 		$request->expects($this->once())
 			->method('getHeader')
 			->with('Content-Type')
-			->will($this->returnValue('application/json'));	
+			->will($this->returnValue('application/json'));
 
 		$request->expects($this->once())
 			->method('getUrl')
@@ -590,7 +599,7 @@ class SystemTagPluginTest extends \Test\TestCase {
 
 		$systemTag = new SystemTag(1, 'Test', true, false);
 
-		$requestData = json_encode([
+		$requestData = \json_encode([
 			'name' => 'Test',
 			'userVisible' => true,
 			'userAssignable' => false,
@@ -632,7 +641,7 @@ class SystemTagPluginTest extends \Test\TestCase {
 		$request->expects($this->once())
 			->method('getHeader')
 			->with('Content-Type')
-			->will($this->returnValue('application/json'));	
+			->will($this->returnValue('application/json'));
 
 		$request->expects($this->once())
 			->method('getBaseUrl')
@@ -691,7 +700,7 @@ class SystemTagPluginTest extends \Test\TestCase {
 			->with('admin')
 			->willReturn(true);
 
-		$requestData = json_encode([
+		$requestData = \json_encode([
 			'name' => 'Test',
 			'userVisible' => true,
 			'userAssignable' => false,
@@ -728,9 +737,8 @@ class SystemTagPluginTest extends \Test\TestCase {
 		$request->expects($this->once())
 			->method('getHeader')
 			->with('Content-Type')
-			->will($this->returnValue('application/json'));	
+			->will($this->returnValue('application/json'));
 
 		$this->plugin->httpPost($request, $response);
 	}
-
 }

@@ -2,7 +2,7 @@
 /**
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -19,11 +19,8 @@
  *
  */
 
-
 namespace OCA\DAV\Upload;
 
-
-use OCA\DAV\Connector\Sabre\File;
 use Sabre\DAV\Exception\BadRequest;
 use Sabre\DAV\Server;
 use Sabre\DAV\ServerPlugin;
@@ -38,7 +35,7 @@ class ChunkingPlugin extends ServerPlugin {
 	/**
 	 * @inheritdoc
 	 */
-	function initialize(Server $server) {
+	public function initialize(Server $server) {
 		$server->on('beforeMove', [$this, 'beforeMove']);
 		$this->server = $server;
 	}
@@ -46,8 +43,11 @@ class ChunkingPlugin extends ServerPlugin {
 	/**
 	 * @param string $sourcePath source path
 	 * @param string $destination destination path
+	 * @return bool|void
+	 * @throws BadRequest
+	 * @throws \Sabre\DAV\Exception\NotFound
 	 */
-	function beforeMove($sourcePath, $destination) {
+	public function beforeMove($sourcePath, $destination) {
 		$this->sourceNode = $this->server->tree->getNodeForPath($sourcePath);
 		if (!$this->sourceNode instanceof FutureFile) {
 			// skip handling as the source is not a chunked FutureFile
@@ -99,7 +99,7 @@ class ChunkingPlugin extends ServerPlugin {
 			return;
 		}
 		$actualSize = $this->sourceNode->getSize();
-		if ((int)$expectedSize !== $actualSize) {
+		if ($expectedSize != $actualSize) {
 			throw new BadRequest("Chunks on server do not sum up to $expectedSize but to $actualSize");
 		}
 	}

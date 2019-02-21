@@ -6,7 +6,7 @@
  * @author Stefan Weil <sw@weilnetz.de>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -25,12 +25,12 @@
 
 namespace OC\Files\External\Service;
 
-
 use OC\Files\Filesystem;
 
 use OCP\Files\External\IStorageConfig;
 use OCP\Files\External\IStoragesBackendService;
 use OCP\Files\External\Service\IGlobalStoragesService;
+use OCP\IUser;
 
 /**
  * Service class to manage global external storages
@@ -88,10 +88,10 @@ class GlobalStoragesService extends StoragesService implements IGlobalStoragesSe
 			return;
 		}
 
-		$userAdditions = array_diff($newStorage->getApplicableUsers(), $oldStorage->getApplicableUsers());
-		$userDeletions = array_diff($oldStorage->getApplicableUsers(), $newStorage->getApplicableUsers());
-		$groupAdditions = array_diff($newStorage->getApplicableGroups(), $oldStorage->getApplicableGroups());
-		$groupDeletions = array_diff($oldStorage->getApplicableGroups(), $newStorage->getApplicableGroups());
+		$userAdditions = \array_diff($newStorage->getApplicableUsers(), $oldStorage->getApplicableUsers());
+		$userDeletions = \array_diff($oldStorage->getApplicableUsers(), $newStorage->getApplicableUsers());
+		$groupAdditions = \array_diff($newStorage->getApplicableGroups(), $oldStorage->getApplicableGroups());
+		$groupDeletions = \array_diff($oldStorage->getApplicableGroups(), $newStorage->getApplicableGroups());
 
 		// FIXME: Use as expression in empty once PHP 5.4 support is dropped
 		// if no applicable were set, raise a signal for "all"
@@ -172,15 +172,47 @@ class GlobalStoragesService extends StoragesService implements IGlobalStoragesSe
 	 */
 	public function getStorageForAllUsers() {
 		$mounts = $this->dbConfig->getAllMounts();
-		$configs = array_map([$this, 'getStorageConfigFromDBMount'], $mounts);
-		$configs = array_filter($configs, function ($config) {
+		$configs = \array_map([$this, 'getStorageConfigFromDBMount'], $mounts);
+		$configs = \array_filter($configs, function ($config) {
 			return $config instanceof IStorageConfig;
 		});
 
-		$keys = array_map(function (IStorageConfig $config) {
+		$keys = \array_map(function (IStorageConfig $config) {
 			return $config->getId();
 		}, $configs);
 
-		return array_combine($keys, $configs);
+		return \array_combine($keys, $configs);
+	}
+
+	/**
+	 * Deletes the external storages mounted to the user
+	 *
+	 * @param IUser $user
+	 * @return bool
+	 */
+	public function deleteAllForUser($user) {
+		$userId = $user->getUID();
+		$result = false;
+		//Get all valid storages
+		$mounts = $this->getStorages();
+		foreach ($mounts as $mount) {
+			$applicableUsers = $mount->getApplicableUsers();
+			$id = $mount->getId();
+			if (\in_array($userId, $applicableUsers, true)) {
+				if (\count($applicableUsers) === 1) {
+					//As this storage is associated only with this user.
+					$this->removeStorage($id);
+					$result = true;
+				} else {
+					$storage = $this->getStorage($id);
+					$userIndex = \array_search($userId, $applicableUsers, true);
+					unset($applicableUsers[$userIndex]);
+					$storage->setApplicableUsers($applicableUsers);
+					$this->updateStorage($storage);
+					$result = true;
+				}
+			}
+		}
+		return $result;
 	}
 }

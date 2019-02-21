@@ -3,7 +3,7 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -34,5 +34,4 @@ namespace OCP\Files;
  * @since 8.1.0
  */
 class InvalidCharacterInPathException extends InvalidPathException {
-
 }

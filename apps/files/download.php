@@ -9,7 +9,7 @@
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -31,20 +31,20 @@ OCP\User::checkLoggedIn();
 
 $filename = $_GET["file"];
 
-if(!\OC\Files\Filesystem::file_exists($filename)) {
-	header("HTTP/1.0 404 Not Found");
-	$tmpl = new OCP\Template( '', '404', 'guest' );
+if (!\OC\Files\Filesystem::file_exists($filename)) {
+	\header("HTTP/1.0 404 Not Found");
+	$tmpl = new OCP\Template('', '404', 'guest');
 	$tmpl->assign('file', $filename);
 	$tmpl->printPage();
 	exit;
 }
 
-$ftype=\OC::$server->getMimeTypeDetector()->getSecureMimeType(\OC\Files\Filesystem::getMimeType( $filename ));
+$ftype=\OC::$server->getMimeTypeDetector()->getSecureMimeType(\OC\Files\Filesystem::getMimeType($filename));
 
-header('Content-Type:'.$ftype);
-OCP\Response::setContentDispositionHeader(basename($filename), 'attachment');
+\header('Content-Type:'.$ftype);
+OCP\Response::setContentDispositionHeader(\basename($filename), 'attachment');
 OCP\Response::disableCaching();
 OCP\Response::setContentLengthHeader(\OC\Files\Filesystem::filesize($filename));
 
 OC_Util::obEnd();
-\OC\Files\Filesystem::readfile( $filename );
+\OC\Files\Filesystem::readfile($filename);

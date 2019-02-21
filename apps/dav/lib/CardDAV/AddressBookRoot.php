@@ -2,7 +2,7 @@
 /**
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -32,23 +32,18 @@ class AddressBookRoot extends \Sabre\CardDAV\AddressBookRoot {
 	 * @param array $principal
 	 * @return \Sabre\DAV\INode
 	 */
-	function getChildForPrincipal(array $principal) {
-
+	public function getChildForPrincipal(array $principal) {
 		return new UserAddressBooks($this->carddavBackend, $principal['uri']);
-
 	}
 
-	function getName() {
-
+	public function getName() {
 		if ($this->principalPrefix === 'principals') {
 			return parent::getName();
 		}
 		// Grabbing all the components of the principal path.
-		$parts = explode('/', $this->principalPrefix);
+		$parts = \explode('/', $this->principalPrefix);
 
 		// We are only interested in the second part.
 		return $parts[1];
-
 	}
-
 }

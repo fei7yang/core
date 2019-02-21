@@ -2,13 +2,12 @@
 
 namespace Test\Files\Storage\Wrapper;
 
-
 use OC\Files\Storage\Temporary;
 use OC\Files\Storage\Wrapper\ReadOnlyJail;
 use OCP\Constants;
+use PHPUnit\Framework\TestCase;
 
-
-class ReadOnlyJailTest extends \PHPUnit_Framework_TestCase {
+class ReadOnlyJailTest extends TestCase {
 
 	/** @var  ReadOnlyJail */
 	private $sut;

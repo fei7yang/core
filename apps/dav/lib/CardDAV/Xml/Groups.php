@@ -2,7 +2,7 @@
 /**
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -20,9 +20,8 @@
  */
 namespace OCA\DAV\CardDAV\Xml;
 
-use Sabre\Xml\XmlSerializable;
-use Sabre\Xml\Element;
 use Sabre\Xml\Writer;
+use Sabre\Xml\XmlSerializable;
 
 class Groups implements XmlSerializable {
 	const NS_OWNCLOUD = 'http://owncloud.org/ns';
@@ -37,7 +36,7 @@ class Groups implements XmlSerializable {
 		$this->groups = $groups;
 	}
 
-	function xmlSerialize(Writer $writer) {
+	public function xmlSerialize(Writer $writer) {
 		foreach ($this->groups as $group) {
 			$writer->writeElement('{' . self::NS_OWNCLOUD . '}group', $group);
 		}

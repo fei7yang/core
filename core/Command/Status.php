@@ -5,7 +5,7 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -33,14 +33,15 @@ class Status extends Base {
 
 		$this
 			->setName('status')
-			->setDescription('show some status information')
+			->setDescription('Show status information.')
 		;
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output) {
 		$values = [
 			'installed' => (bool) \OC::$server->getConfig()->getSystemValue('installed', false),
-			'version' => implode('.', \OCP\Util::getVersion()),
+			'first_install_version' => \OC::$server->getConfig()->getAppValue('core', 'first_install_version', 'unknown'),
+			'version' => \implode('.', \OCP\Util::getVersion()),
 			'versionstring' => \OC_Util::getVersionString(),
 			'edition' => \OC_Util::getEditionString(),
 		];

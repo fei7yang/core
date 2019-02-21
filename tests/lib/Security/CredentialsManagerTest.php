@@ -2,7 +2,7 @@
 /**
  * @author Robin McCorkell <rmccorkell@owncloud.com>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,9 +21,9 @@
 
 namespace Test\Security;
 
-use \OCP\Security\ICrypto;
-use \OCP\IDBConnection;
-use \OC\Security\CredentialsManager;
+use OC\Security\CredentialsManager;
+use OCP\IDBConnection;
+use OCP\Security\ICrypto;
 
 class CredentialsManagerTest extends \Test\TestCase {
 
@@ -64,7 +64,7 @@ class CredentialsManagerTest extends \Test\TestCase {
 
 		$this->crypto->expects($this->once())
 			->method('encrypt')
-			->with(json_encode($credentials))
+			->with(\json_encode($credentials))
 			->willReturn('baz');
 
 		$this->dbConnection->expects($this->once())
@@ -84,7 +84,7 @@ class CredentialsManagerTest extends \Test\TestCase {
 		$this->crypto->expects($this->once())
 			->method('decrypt')
 			->with('baz')
-			->willReturn(json_encode('bar'));
+			->willReturn(\json_encode('bar'));
 
 		$qb = $this->getMockBuilder('\OC\DB\QueryBuilder\QueryBuilder')
 			->setConstructorArgs([$this->dbConnection])
@@ -100,5 +100,4 @@ class CredentialsManagerTest extends \Test\TestCase {
 
 		$this->manager->retrieve($userId, $identifier);
 	}
-
 }

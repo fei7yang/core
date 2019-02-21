@@ -3,7 +3,7 @@
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -30,7 +30,6 @@ use OCP\Migration\ISchemaMigration;
  * Add account_terms table for account searching
  */
 class Version20170516100103 implements ISchemaMigration {
-
 	public function changeSchema(Schema $schema, array $options) {
 		$prefix = $options['tablePrefix'];
 		if (!$schema->hasTable("${prefix}account_terms")) {
@@ -56,7 +55,6 @@ class Version20170516100103 implements ISchemaMigration {
 			$table->setPrimaryKey(['id']);
 			$table->addIndex(['account_id'], 'account_id_index');
 			$table->addIndex(['term'], 'term_index');
-
 		}
 
 		if ($schema->hasTable("${prefix}accounts")) {
@@ -71,5 +69,5 @@ class Version20170516100103 implements ISchemaMigration {
 				$table->addIndex(['email'], 'email_index');
 			}
 		}
-    }
+	}
 }

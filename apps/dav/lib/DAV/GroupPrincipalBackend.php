@@ -2,7 +2,7 @@
 /**
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -24,12 +24,11 @@ use OCP\IGroup;
 use OCP\IGroupManager;
 use OCP\IUser;
 use Sabre\DAV\Exception;
-use \Sabre\DAV\PropPatch;
+use Sabre\DAV\PropPatch;
 use Sabre\DAVACL\PrincipalBackend\BackendInterface;
 
 class GroupPrincipalBackend implements BackendInterface {
-
-	const PRINCIPAL_PREFIX = 'principals/groups';
+	public const PRINCIPAL_PREFIX = 'principals/groups';
 
 	/** @var IGroupManager */
 	private $groupManager;
@@ -58,7 +57,7 @@ class GroupPrincipalBackend implements BackendInterface {
 		$principals = [];
 
 		if ($prefixPath === self::PRINCIPAL_PREFIX) {
-			foreach($this->groupManager->search('') as $user) {
+			foreach ($this->groupManager->search('') as $user) {
 				$principals[] = $this->groupToPrincipal($user);
 			}
 		}
@@ -75,7 +74,7 @@ class GroupPrincipalBackend implements BackendInterface {
 	 * @return array
 	 */
 	public function getPrincipalByPath($path) {
-		$elements = explode('/', $path);
+		$elements = \explode('/', $path);
 		if ($elements[0] !== 'principals') {
 			return null;
 		}
@@ -85,7 +84,7 @@ class GroupPrincipalBackend implements BackendInterface {
 		$name = $elements[2];
 		$group = $this->groupManager->get($name);
 
-		if (!is_null($group)) {
+		if ($group !== null) {
 			return $this->groupToPrincipal($group);
 		}
 
@@ -97,10 +96,9 @@ class GroupPrincipalBackend implements BackendInterface {
 	 *
 	 * @param string $principal
 	 * @return string[]
-	 * @throws Exception
 	 */
 	public function getGroupMemberSet($principal) {
-		$elements = explode('/', $principal);
+		$elements = \explode('/', $principal);
 		if ($elements[0] !== 'principals') {
 			return [];
 		}
@@ -110,11 +108,11 @@ class GroupPrincipalBackend implements BackendInterface {
 		$name = $elements[2];
 		$group = $this->groupManager->get($name);
 
-		if (is_null($group)) {
+		if ($group === null) {
 			return [];
 		}
 
-		return array_map(function($user) {
+		return \array_map(function ($user) {
 			return $this->userToPrincipal($user);
 		}, $group->getUsers());
 	}
@@ -124,7 +122,6 @@ class GroupPrincipalBackend implements BackendInterface {
 	 *
 	 * @param string $principal
 	 * @return array
-	 * @throws Exception
 	 */
 	public function getGroupMembership($principal) {
 		return [];
@@ -148,7 +145,7 @@ class GroupPrincipalBackend implements BackendInterface {
 	 * @param PropPatch $propPatch
 	 * @return int
 	 */
-	function updatePrincipal($path, PropPatch $propPatch) {
+	public function updatePrincipal($path, PropPatch $propPatch) {
 		return 0;
 	}
 
@@ -158,7 +155,7 @@ class GroupPrincipalBackend implements BackendInterface {
 	 * @param string $test
 	 * @return array
 	 */
-	function searchPrincipals($prefixPath, array $searchProperties, $test = 'allof') {
+	public function searchPrincipals($prefixPath, array $searchProperties, $test = 'allof') {
 		return [];
 	}
 
@@ -167,7 +164,14 @@ class GroupPrincipalBackend implements BackendInterface {
 	 * @param string $principalPrefix
 	 * @return string
 	 */
-	function findByUri($uri, $principalPrefix) {
+	public function findByUri($uri, $principalPrefix) {
+		if (\strpos($uri, 'principal:') === 0) {
+			$principal = \substr($uri, 10);
+			$principal = $this->getPrincipalByPath($principal);
+			if ($principal !== null) {
+				return $principal['uri'];
+			}
+		}
 		return '';
 	}
 

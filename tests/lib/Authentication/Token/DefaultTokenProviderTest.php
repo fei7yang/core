@@ -3,7 +3,7 @@
 /**
  * @author Christoph Wurst <christoph@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -25,7 +25,6 @@ namespace Test\Authentication\Token;
 use OC\Authentication\Token\DefaultToken;
 use OC\Authentication\Token\DefaultTokenProvider;
 use OC\Authentication\Token\IToken;
-use OCP\AppFramework\Db\DoesNotExistException;
 use Test\TestCase;
 
 class DefaultTokenProviderTest extends TestCase {
@@ -74,7 +73,7 @@ class DefaultTokenProviderTest extends TestCase {
 		$toInsert->setLoginName($user);
 		$toInsert->setPassword('encryptedpassword');
 		$toInsert->setName($name);
-		$toInsert->setToken(hash('sha512', $token . '1f4h9s'));
+		$toInsert->setToken(\hash('sha512', $token . '1f4h9s'));
 		$toInsert->setType($type);
 		$toInsert->setLastActivity($this->time);
 		$toInsert->setLastCheck($this->time);
@@ -223,7 +222,7 @@ class DefaultTokenProviderTest extends TestCase {
 	public function testInvalidateToken() {
 		$this->mapper->expects($this->once())
 			->method('invalidate')
-			->with(hash('sha512', 'token7'));
+			->with(\hash('sha512', 'token7'));
 
 		$this->tokenProvider->invalidateToken('token7');
 	}
@@ -251,5 +250,4 @@ class DefaultTokenProviderTest extends TestCase {
 
 		$this->tokenProvider->invalidateOldTokens();
 	}
-
 }

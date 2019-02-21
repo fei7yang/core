@@ -2,7 +2,7 @@
 /**
  * @author Piotr Mrowczynski <piotr@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -28,7 +28,7 @@ class QueryLoggerTest extends TestCase {
 
 	/** @var \OC\Diagnostics\QueryLogger */
 	private $logger;
-	
+
 	public function setUp() {
 		parent::setUp();
 
@@ -40,7 +40,7 @@ class QueryLoggerTest extends TestCase {
 		$this->logger->startQuery("SELECT", ["testuser", "count"], ["string", "int"]);
 		$this->logger->stopQuery();
 		$queries = $this->logger->getQueries();
-		$this->assertSame(0, sizeof($queries));
+		$this->assertCount(0, $queries);
 
 		// Activate module and log some query
 		$this->logger->activate();
@@ -48,7 +48,6 @@ class QueryLoggerTest extends TestCase {
 		$this->logger->stopQuery();
 
 		$queries = $this->logger->getQueries();
-		$this->assertSame(1, sizeof($queries));
-
+		$this->assertCount(1, $queries);
 	}
 }

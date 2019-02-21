@@ -2,7 +2,7 @@
 /**
  * @author Phil Davis <phil@jankaritech.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -44,11 +44,11 @@ class ListGroupMembers extends Base {
 
 		$this
 			->setName('group:list-members')
-			->setDescription('list group members')
+			->setDescription('List group members.')
 			->addArgument(
 				'group',
 				InputArgument::REQUIRED,
-				'Name of the group'
+				'The name of the group.'
 			)
 		;
 	}

@@ -6,7 +6,7 @@
  * @author Ross Nicoll <jrn@jrn.me.uk>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -25,10 +25,10 @@
 
 namespace OCA\Files_External\Controller;
 
-use OCP\AppFramework\Controller;
-use OCP\IRequest;
-use OCP\AppFramework\Http\JSONResponse;
 use OCA\Files_External\Lib\Auth\PublicKey\RSA;
+use OCP\AppFramework\Controller;
+use OCP\AppFramework\Http\JSONResponse;
+use OCP\IRequest;
 
 class AjaxController extends Controller {
 	/** @var RSA */
@@ -42,7 +42,7 @@ class AjaxController extends Controller {
 	private function generateSshKeys() {
 		$key = $this->rsaMechanism->createKey();
 		// Replace the placeholder label with a more meaningful one
-		$key['publickey'] = str_replace('phpseclib-generated-key', gethostname(), $key['publickey']);
+		$key['publickey'] = \str_replace('phpseclib-generated-key', \gethostname(), $key['publickey']);
 
 		return $key;
 	}

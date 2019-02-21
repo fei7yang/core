@@ -5,7 +5,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -25,13 +25,16 @@
 namespace OCA\DAV\Tests\unit\Connector\Sabre;
 
 use OC\Files\FileInfo;
+use OC\Files\Filesystem;
 use OC\Files\Storage\Local;
 use OC\Files\View;
 use OCA\DAV\Connector\Sabre\Exception\FileLocked;
+use OCA\DAV\Connector\Sabre\Exception\Forbidden;
 use OCA\DAV\Connector\Sabre\File;
 use OCP\Constants;
 use OCP\Encryption\Exceptions\GenericEncryptionException;
 use OCP\Files\EntityTooLargeException;
+use OCP\Files\FileContentNotAllowedException;
 use OCP\Files\ForbiddenException;
 use OCP\Files\InvalidContentException;
 use OCP\Files\InvalidPathException;
@@ -40,13 +43,13 @@ use OCP\Files\NotPermittedException;
 use OCP\Files\Storage;
 use OCP\Files\StorageNotAvailableException;
 use OCP\IConfig;
+use OCP\Lock\ILockingProvider;
 use OCP\Lock\LockedException;
 use OCP\Util;
 use Sabre\DAV\Exception;
 use Sabre\DAV\Exception\BadRequest;
+use Symfony\Component\EventDispatcher\GenericEvent;
 use Test\HookHelper;
-use OC\Files\Filesystem;
-use OCP\Lock\ILockingProvider;
 use Test\TestCase;
 
 /**
@@ -68,10 +71,8 @@ class FileTest extends TestCase {
 
 	public function setUp() {
 		parent::setUp();
-		unset($_SERVER['HTTP_OC_CHUNKED']);
-		unset($_SERVER['CONTENT_LENGTH']);
-		unset($_SERVER['REQUEST_METHOD']);
-
+		unset($_SERVER['HTTP_OC_CHUNKED'], $_SERVER['CONTENT_LENGTH'], $_SERVER['REQUEST_METHOD']);
+		
 		\OC_Hook::clear();
 
 		$this->user = $this->getUniqueID('user_');
@@ -97,7 +98,7 @@ class FileTest extends TestCase {
 	 * @return \PHPUnit_Framework_MockObject_MockObject | Storage
 	 */
 	private function getMockStorage() {
-		$storage = $this->createMock(Storage::class);
+		$storage = $this->createMock(Storage\IStorage::class);
 		$storage->expects($this->any())
 			->method('getId')
 			->will($this->returnValue('home::someuser'));
@@ -108,12 +109,11 @@ class FileTest extends TestCase {
 	 * @param string $string
 	 */
 	private function getStream($string) {
-		$stream = fopen('php://temp', 'r+');
-		fwrite($stream, $string);
-		fseek($stream, 0);
+		$stream = \fopen('php://temp', 'r+');
+		\fwrite($stream, $string);
+		\fseek($stream, 0);
 		return $stream;
 	}
-
 
 	public function fopenFailuresProvider() {
 		return [
@@ -217,17 +217,121 @@ class FileTest extends TestCase {
 		// action
 		$caughtException = null;
 		try {
+			$file->acquireLock(ILockingProvider::LOCK_SHARED);
 			$file->put('test data');
+			$file->releaseLock(ILockingProvider::LOCK_SHARED);
 		} catch (\Exception $e) {
 			$caughtException = $e;
 		}
 
 		$this->assertInstanceOf($expectedException, $caughtException);
 		if ($checkPreviousClass) {
-			$this->assertInstanceOf(get_class($thrownException), $caughtException->getPrevious());
+			$this->assertInstanceOf(\get_class($thrownException), $caughtException->getPrevious());
 		}
 
 		$this->assertEmpty($this->listPartFiles($view, ''), 'No stray part files');
+	}
+
+	/**
+	 * Test that FileContentNotAllowedException properly mapped to
+	 *  ForbiddenException
+	 *
+	 * @expectedException \OCA\DAV\Connector\Sabre\Exception\Forbidden
+	 *
+	 * @return void
+	 */
+	public function testFileContentNotAllowedConvertedToForbidden() {
+		$storage = $this->getMockBuilder(Local::class)
+			->setMethods(['fopen'])
+			->setConstructorArgs(
+				[
+					[
+						'datadir' => \OC::$server->getTempManager()
+							->getTemporaryFolder()
+					]
+				]
+			)
+			->getMock();
+		Filesystem::mount($storage, [], $this->user . '/');
+		/**
+		 * @var View | \PHPUnit_Framework_MockObject_MockObject $view
+		 */
+		$view = $this->getMockBuilder(View::class)
+			->setMethods(['getRelativePath', 'resolvePath'])
+			->setConstructorArgs([])
+			->getMock();
+		$view->expects($this->atLeastOnce())
+			->method('resolvePath')
+			->will(
+				$this->returnCallback(
+					function ($path) use ($storage) {
+						return [$storage, $path];
+					}
+				)
+			);
+
+		$storage->expects($this->once())
+			->method('fopen')
+			->will(
+				$this->throwException(
+					new FileContentNotAllowedException(
+						'Stop doing it',
+						true
+					)
+				)
+			);
+
+		$info = new FileInfo(
+			'/test.txt',
+			$this->getMockStorage(),
+			null,
+			['permissions' => Constants::PERMISSION_ALL],
+			null
+		);
+
+		$file = new File($view, $info);
+		$file->acquireLock(ILockingProvider::LOCK_SHARED);
+		$file->put('Look at me failing');
+		$file->releaseLock(ILockingProvider::LOCK_SHARED);
+	}
+
+	/**
+	 * Test the run value when put is called. And then try to modify the run
+	 * value in the listener.
+	 */
+	public function testPutWithModifyRun() {
+		$calledUploadAllowed = [];
+		\OC::$server->getEventDispatcher()->addListener('file.beforeCreate', function (GenericEvent $event) use (&$calledUploadAllowed) {
+			$calledUploadAllowed[] = 'file.beforeCreate';
+			//Now modify run
+			$event->setArgument('run', false);
+			$calledUploadAllowed[] = $event;
+		});
+		// setup
+		$storage = $this->getMockBuilder(Local::class)
+			->setMethods(['fopen'])
+			->setConstructorArgs([['datadir' => \OC::$server->getTempManager()->getTemporaryFolder()]])
+			->getMock();
+		$storage->method('fopen')
+			->willReturn($this->getStream('qwertz'));
+		Filesystem::mount($storage, [], $this->user . '/');
+		/** @var View | \PHPUnit_Framework_MockObject_MockObject $view */
+		$view = $this->getMockBuilder(View::class)
+			->setMethods(['getRelativePath', 'resolvePath'])
+			->setConstructorArgs([])
+			->getMock();
+
+		$this->assertNull($this->doPut('/test1.txt'));
+		$this->assertInstanceOf(GenericEvent::class, $calledUploadAllowed[1]);
+		$this->assertArrayHasKey('run', $calledUploadAllowed[1]);
+		$this->assertFalse($calledUploadAllowed[1]->getArgument('run'));
+		$this->assertEquals('file.beforeCreate', $calledUploadAllowed[0]);
+
+		//Remove the listener for the event 'file.beforeCreate'
+		$eventListeners = \OC::$server->getEventDispatcher()->getListeners('file.beforeCreate');
+		foreach ($eventListeners as $eventListener) {
+			\OC::$server->getEventDispatcher()->removeListener('file.beforeCreate', $eventListener);
+		}
 	}
 
 	/**
@@ -285,17 +389,33 @@ class FileTest extends TestCase {
 		// action
 		$caughtException = null;
 		try {
+			$calledCreateAllowed = [];
+			$calledWriteAllowed = [];
+			\OC::$server->getEventDispatcher()->addListener('file.beforeCreate', function (GenericEvent $event) use (&$calledCreateAllowed) {
+				$calledCreateAllowed[] = 'file.beforeCreate';
+				$calledCreateAllowed[] = $event;
+			});
+			\OC::$server->getEventDispatcher()->addListener('file.beforeWrite', function (GenericEvent $event) use (&$calledWriteAllowed) {
+				$calledWriteAllowed[] = 'file.beforeWrite';
+				$calledWriteAllowed[] = $event;
+			});
 			// last chunk
 			$file->acquireLock(ILockingProvider::LOCK_SHARED);
 			$file->put('test data two');
 			$file->releaseLock(ILockingProvider::LOCK_SHARED);
+			$this->assertEquals('file.beforeCreate', $calledCreateAllowed[0]);
+			$this->assertEquals('file.beforeWrite', $calledWriteAllowed[0]);
+			$this->assertInstanceOf(GenericEvent::class, $calledCreateAllowed[1]);
+			$this->assertArrayHasKey('run', $calledCreateAllowed[1]);
+			$this->assertInstanceOf(GenericEvent::class, $calledWriteAllowed[1]);
+			$this->assertArrayHasKey('run', $calledWriteAllowed[1]);
 		} catch (\Exception $e) {
 			$caughtException = $e;
 		}
 
 		$this->assertInstanceOf($expectedException, $caughtException);
 		if ($checkPreviousClass) {
-			$this->assertInstanceOf(get_class($thrownException), $caughtException->getPrevious());
+			$this->assertInstanceOf(\get_class($thrownException), $caughtException->getPrevious());
 		}
 
 		$this->assertEmpty($this->listPartFiles($view, ''), 'No stray part files');
@@ -311,14 +431,14 @@ class FileTest extends TestCase {
 	 */
 	private function doPut($path, $viewRoot = null, \OC\AppFramework\Http\Request $request = null) {
 		$view = Filesystem::getView();
-		if (!is_null($viewRoot)) {
+		if ($viewRoot !== null) {
 			$view = new View($viewRoot);
 		} else {
 			$viewRoot = '/' . $this->user . '/files';
 		}
 
 		$info = new FileInfo(
-			$viewRoot . '/' . ltrim($path, '/'),
+			$viewRoot . '/' . \ltrim($path, '/'),
 			$this->getMockStorage(),
 			null,
 			['permissions' => Constants::PERMISSION_ALL],
@@ -346,7 +466,15 @@ class FileTest extends TestCase {
 	 * Test putting a single file
 	 */
 	public function testPutSingleFile() {
+		$calledAfterEvent = [];
+		\OC::$server->getEventDispatcher()->addListener('file.aftercreate', function ($event) use (&$calledAfterEvent) {
+			$calledAfterEvent[] = 'file.aftercreate';
+			$calledAfterEvent[] = $event;
+		});
 		$this->assertNotEmpty($this->doPut('/foo.txt'));
+		$this->assertInstanceOf(GenericEvent::class, $calledAfterEvent[1]);
+		$this->assertArrayHasKey('path', $calledAfterEvent[1]);
+		$this->assertEquals('file.aftercreate', $calledAfterEvent[0]);
 	}
 
 	public function legalMtimeProvider() {
@@ -399,19 +527,19 @@ class FileTest extends TestCase {
 					'HTTP_X_OC_MTIME' => -34.43,
 					'expected result' => -34
 			],
-			"long int" => [ 
+			"long int" => [
 					'HTTP_X_OC_MTIME' => PHP_INT_MAX,
-					'expected result' => PHP_INT_MAX 
+					'expected result' => PHP_INT_MAX
 			],
-			"too long int" => [ 
+			"too long int" => [
 					'HTTP_X_OC_MTIME' => PHP_INT_MAX + 1,
-					'expected result' => PHP_INT_MAX 
+					'expected result' => PHP_INT_MAX
 			],
-			"long negative int" => [ 
+			"long negative int" => [
 					'HTTP_X_OC_MTIME' => PHP_INT_MAX * - 1,
 					'expected result' => (PHP_INT_MAX * - 1)
 			],
-			"too long negative int" => [ 
+			"too long negative int" => [
 					'HTTP_X_OC_MTIME' => (PHP_INT_MAX * - 1) - 1,
 					'expected result' => (PHP_INT_MAX * - 1)
 			],
@@ -443,12 +571,46 @@ class FileTest extends TestCase {
 						'HTTP_X_OC_MTIME' => $requestMtime,
 				]
 		], null, $this->config, null);
-		
+
 		$_SERVER['HTTP_OC_CHUNKED'] = true;
 		$file = 'foo.txt';
+
+		$calledBeforeCreateFile = [];
+		\OC::$server->getEventDispatcher()->addListener('file.beforecreate',
+			function (GenericEvent $event) use (&$calledBeforeCreateFile) {
+				$calledBeforeCreateFile[] = 'file.beforecreate';
+				$calledBeforeCreateFile[] = $event;
+			});
+		$calledAfterCreateFile = [];
+		\OC::$server->getEventDispatcher()->addListener('file.aftercreate',
+			function (GenericEvent $event) use (&$calledAfterCreateFile) {
+				$calledAfterCreateFile[] = 'file.aftercreate';
+				$calledAfterCreateFile[] = $event;
+			});
+		$calledAfterUpdateFile = [];
+		\OC::$server->getEventDispatcher()->addListener('file.afterupdate',
+			function (GenericEvent $event) use (&$calledAfterUpdateFile) {
+				$calledAfterUpdateFile[] = 'file.afterupdate';
+				$calledAfterUpdateFile[] = $event;
+			});
 		$this->doPut($file.'-chunking-12345-2-0', null, $request);
 		$this->doPut($file.'-chunking-12345-2-1', null, $request);
 		$this->assertEquals($resultMtime, $this->getFileInfos($file)['mtime']);
+		$this->assertInstanceOf(GenericEvent::class, $calledAfterCreateFile[1]);
+		$this->assertInstanceOf(GenericEvent::class, $calledBeforeCreateFile[1]);
+		$this->assertEquals('file.aftercreate', $calledAfterCreateFile[0]);
+		$this->assertEquals('file.beforecreate', $calledBeforeCreateFile[0]);
+		$this->assertEquals('file.afterupdate', $calledAfterUpdateFile[0]);
+		$this->assertArrayHasKey('path', $calledAfterCreateFile[1]);
+		$this->assertArrayHasKey('path', $calledBeforeCreateFile[1]);
+		//Internally it even tries to call mkdir to create cache dir So lets test what ever
+		// is there in the arrays. We will test all the indices.
+		$this->assertEquals('/'.$this->user.'/cache', $calledBeforeCreateFile[1]->getArgument('path'));
+		$this->assertEquals('/'.$this->user.'/files/'.$file, $calledBeforeCreateFile[3]->getArgument('path'));
+		$this->assertEquals('/'.$this->user.'/cache', $calledAfterCreateFile[1]->getArgument('path'));
+		//The indices 1 and 3 have part files.
+		$this->assertNotFalse(\strpos($calledAfterUpdateFile[1]->getArgument('path'), '/'.$this->user.'/cache/'. $file.'-chunking-12345-0'));
+		$this->assertNotFalse(\strpos($calledAfterUpdateFile[3]->getArgument('path'), '/'.$this->user.'/cache/'. $file.'-chunking-12345-1'));
 	}
 
 	/**
@@ -500,7 +662,31 @@ class FileTest extends TestCase {
 
 		HookHelper::setUpHooks();
 
+		$calledUploadAllowed = [];
+		$calledWriteAllowed = [];
+		\OC::$server->getEventDispatcher()->addListener('file.beforeUpdate', function (GenericEvent $event) use (&$calledUploadAllowed) {
+			$calledUploadAllowed[] = 'file.beforeUpdate';
+			if ($event->getArgument('run') === false) {
+				$event->setArgument('run', true);
+			}
+			$calledUploadAllowed[] = $event;
+		});
+		\OC::$server->getEventDispatcher()->addListener('file.beforeWrite', function (GenericEvent $event) use (&$calledWriteAllowed) {
+			$calledWriteAllowed[] = 'file.beforeWrite';
+			if ($event->getArgument('run') === false) {
+				$event->setArgument('run', true);
+			}
+			$calledWriteAllowed[] = $event;
+		});
+
 		$this->assertNotEmpty($this->doPut('/foo.txt'));
+
+		$this->assertEquals('file.beforeWrite', $calledWriteAllowed[0]);
+		$this->assertEquals('file.beforeUpdate', $calledUploadAllowed[0]);
+		$this->assertArrayHasKey('run', $calledWriteAllowed[1]);
+		$this->assertArrayHasKey('run', $calledUploadAllowed[1]);
+		$this->assertInstanceOf(GenericEvent::class, $calledUploadAllowed[1]);
+		$this->assertInstanceOf(GenericEvent::class, $calledWriteAllowed[1]);
 
 		$this->assertCount(4, HookHelper::$hookCalls);
 		$this->assertHookCall(
@@ -643,19 +829,8 @@ class FileTest extends TestCase {
 		);
 
 		// action
-		$thrown = false;
-		try {
-			$this->doPut('/foo.txt');
-		} catch (Exception $e) {
-			$thrown = true;
-		}
+		$this->assertNull($this->doPut('/foo.txt'));
 
-		// objectstore does not use partfiles -> no move after upload -> no exception
-		if (getenv('RUN_OBJECTSTORE_TESTS')) {
-			$this->assertFalse($thrown);
-		} else {
-			$this->assertTrue($thrown);
-		}
 		$this->assertEmpty($this->listPartFiles(), 'No stray part files');
 	}
 
@@ -978,6 +1153,74 @@ class FileTest extends TestCase {
 	}
 
 	/**
+	 * Testing update of file when put method is called repeatedly on same file.
+	 * This test also verifies the hooks being called.
+	 */
+	public function testUpdateFileWithPut() {
+		$view = new View('/' . $this->user . '/files/');
+
+		$path = 'test-update.txt';
+		$info = new FileInfo(
+			'/' . $this->user . '/files/' . $path,
+			$this->getMockStorage(),
+			null,
+			['permissions' => Constants::PERMISSION_ALL],
+			null
+		);
+
+		$file = new File($view, $info);
+
+		$calledBeforeCreate = [];
+		\OC::$server->getEventDispatcher()->addListener('file.beforecreate',
+			function (GenericEvent $event) use (&$calledBeforeCreate) {
+				$calledBeforeCreate[] = 'file.beforecreate';
+				$calledBeforeCreate[] = $event;
+			});
+		$calledAfterCreate = [];
+		\OC::$server->getEventDispatcher()->addListener('file.aftercreate',
+			function (GenericEvent $event) use (&$calledAfterCreate) {
+				$calledAfterCreate[] = 'file.aftercreate';
+				$calledAfterCreate[] = $event;
+			});
+		$view->lockFile($path, ILockingProvider::LOCK_SHARED);
+		$file->put($this->getStream('hello'));
+		$view->unlockFile($path, ILockingProvider::LOCK_SHARED);
+
+		$this->assertInstanceOf(GenericEvent::class, $calledBeforeCreate[1]);
+		$this->assertInstanceOf(GenericEvent::class, $calledAfterCreate[1]);
+		$this->assertEquals('file.beforecreate', $calledBeforeCreate[0]);
+		$this->assertEquals('file.aftercreate', $calledAfterCreate[0]);
+		$this->assertArrayHasKey('path', $calledBeforeCreate[1]);
+		$this->assertEquals('/'.$this->user.'/files//test-update.txt', $calledBeforeCreate[1]->getArgument('path'));
+		$this->assertArrayHasKey('path', $calledAfterCreate[1]);
+		$this->assertEquals('/'.$this->user.'/files//test-update.txt', $calledAfterCreate[1]->getArgument('path'));
+
+		$calledBeforeUpdate = [];
+		\OC::$server->getEventDispatcher()->addListener('file.beforeupdate',
+			function (GenericEvent $event) use (&$calledBeforeUpdate) {
+				$calledBeforeUpdate[] = 'file.beforeupdate';
+				$calledBeforeUpdate[] = $event;
+			});
+		$calledAfterUpdte = [];
+		\OC::$server->getEventDispatcher()->addListener('file.afterupdate',
+			function (GenericEvent $event) use (&$calledAfterUpdte) {
+				$calledAfterUpdte[] = 'file.afterupdate';
+				$calledAfterUpdte[] = $event;
+			});
+		$view->lockFile($path, ILockingProvider::LOCK_SHARED);
+		$file->put($this->getStream('world'));
+		$view->unlockFile($path, ILockingProvider::LOCK_SHARED);
+		$this->assertInstanceOf(GenericEvent::class, $calledBeforeUpdate[1]);
+		$this->assertInstanceOf(GenericEvent::class, $calledAfterUpdte[1]);
+		$this->assertEquals('file.beforeupdate', $calledBeforeUpdate[0]);
+		$this->assertEquals('file.afterupdate', $calledAfterUpdte[0]);
+		$this->assertArrayHasKey('path', $calledBeforeUpdate[1]);
+		$this->assertEquals('/'.$this->user.'/files//'.$path, $calledBeforeUpdate[1]->getArgument('path'));
+		$this->assertArrayHasKey('path', $calledAfterUpdte[1]);
+		$this->assertEquals('/'.$this->user.'/files//'.$path, $calledAfterUpdte[1]->getArgument('path'));
+	}
+
+	/**
 	 * Test whether locks are set before and after the operation
 	 */
 	public function testPutLocking() {
@@ -1076,15 +1319,15 @@ class FileTest extends TestCase {
 		}
 		$files = [];
 		list($storage, $internalPath) = $userView->resolvePath($path);
-		if($storage instanceof Local) {
+		if ($storage instanceof Local) {
 			$realPath = $storage->getSourcePath($internalPath);
-			$dh = opendir($realPath);
-			while (($file = readdir($dh)) !== false) {
-				if (substr($file, strlen($file) - 5, 5) === '.part') {
+			$dh = \opendir($realPath);
+			while (($file = \readdir($dh)) !== false) {
+				if (\substr($file, \strlen($file) - 5, 5) === '.part') {
 					$files[] = $file;
 				}
 			}
-			closedir($dh);
+			\closedir($dh);
 		}
 		return $files;
 	}
@@ -1141,6 +1384,30 @@ class FileTest extends TestCase {
 		$view->expects($this->atLeastOnce())
 			->method('fopen')
 			->willThrowException(new ForbiddenException('', true));
+		$view->expects($this->atLeastOnce())
+			->method('file_exists')
+			->will($this->returnValue(true));
+
+		$info = new FileInfo('/test.txt', $this->getMockStorage(), null, [
+			'permissions' => Constants::PERMISSION_ALL
+		], null);
+
+		$file = new File($view, $info);
+
+		$file->get();
+	}
+
+	/**
+	 * @expectedException \Sabre\Dav\Exception\Forbidden
+	 * @expectedExceptionMessage Encryption not ready
+	 */
+	public function testFopenForbiddenExceptionEncryption() {
+		$view = $this->getMockBuilder(View::class)
+			->setMethods(['fopen', 'file_exists'])
+			->getMock();
+		$view->expects($this->atLeastOnce())
+			->method('fopen')
+			->willThrowException(new Exception\Forbidden('Encryption not ready', true));
 		$view->expects($this->atLeastOnce())
 			->method('file_exists')
 			->will($this->returnValue(true));

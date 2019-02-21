@@ -2,7 +2,7 @@
 /**
  * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -18,7 +18,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
-
 
 // use OCP namespace for all classes that are considered public.
 // This means that they should be used by apps instead of the internal ownCloud classes
@@ -42,4 +41,3 @@ interface IProvidesExtendedSearchBackend {
 	 */
 	public function getSearchTerms($uid);
 }
-

@@ -2,7 +2,7 @@
 /**
  * @author Arthur Schiwon <blizzz@arthur-schiwon.de>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -24,4 +24,5 @@ namespace OCP\Comments;
  * Exception thrown when a comment message exceeds the allowed character limit
  * @since 9.0.0
  */
-class MessageTooLongException extends \OverflowException {}
+class MessageTooLongException extends \OverflowException {
+}

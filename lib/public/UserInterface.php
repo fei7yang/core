@@ -4,7 +4,7 @@
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Morris Jobke <hey@morrisjobke.de>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -45,7 +45,7 @@ interface UserInterface {
 	 * @return boolean
 	 *
 	 * Returns the supported actions as int to be
-	 * compared with \OC_User_Backend::CREATE_USER etc.
+	 * compared with \OC\User\Backend::CREATE_USER etc.
 	 * @since 4.5.0
 	 */
 	public function implementsActions($actions);
@@ -102,5 +102,4 @@ interface UserInterface {
 	 * @since 4.5.0
 	 */
 	public function hasUserListings();
-
 }

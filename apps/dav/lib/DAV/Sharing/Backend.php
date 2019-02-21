@@ -5,7 +5,7 @@
  * @author Thomas Citharel <tcit@tcit.fr>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -25,6 +25,7 @@
 namespace OCA\DAV\DAV\Sharing;
 
 use OCA\DAV\Connector\Sabre\Principal;
+use OCA\DAV\DAV\GroupPrincipalBackend;
 use OCP\IDBConnection;
 
 class Backend {
@@ -33,21 +34,25 @@ class Backend {
 	private $db;
 	/** @var Principal */
 	private $principalBackend;
+	/** @var GroupPrincipalBackend */
+	private $groupPrincipalBackend;
 	/** @var string */
 	private $resourceType;
 
-	const ACCESS_OWNER = 1;
-	const ACCESS_READ_WRITE = 2;
-	const ACCESS_READ = 3;
+	public const ACCESS_OWNER = 1;
+	public const ACCESS_READ_WRITE = 2;
+	public const ACCESS_READ = 3;
 
 	/**
 	 * @param IDBConnection $db
 	 * @param Principal $principalBackend
+	 * @param GroupPrincipalBackend $groupPrincipalBackend
 	 * @param string $resourceType
 	 */
-	public function __construct(IDBConnection $db, Principal $principalBackend, $resourceType) {
+	public function __construct(IDBConnection $db, Principal $principalBackend, GroupPrincipalBackend $groupPrincipalBackend, $resourceType) {
 		$this->db = $db;
 		$this->principalBackend = $principalBackend;
+		$this->groupPrincipalBackend = $groupPrincipalBackend;
 		$this->resourceType = $resourceType;
 	}
 
@@ -57,12 +62,26 @@ class Backend {
 	 * @param string[] $remove
 	 */
 	public function updateShares($shareable, $add, $remove) {
-		foreach($add as $element) {
-			$this->shareWith($shareable, $element);
+		foreach ($add as $element) {
+			$principal = $this->findByUri($element['href']);
+			if ($principal !== '') {
+				$this->shareWith($shareable, $element);
+			}
 		}
-		foreach($remove as $element) {
-			$this->unshare($shareable, $element);
+		foreach ($remove as $element) {
+			$principal = $this->findByUri($element);
+			if ($principal !== '') {
+				$this->unshare($shareable, $element);
+			}
 		}
+	}
+
+	private function findByUri($uri) {
+		$principal = $this->principalBackend->findByUri($uri, '');
+		if ($principal !== '') {
+			return $principal;
+		}
+		return $this->groupPrincipalBackend->findByUri($uri, '');
 	}
 
 	/**
@@ -71,7 +90,7 @@ class Backend {
 	 */
 	private function shareWith($shareable, $element) {
 		$user = $element['href'];
-		$parts = explode(':', $user, 2);
+		$parts = \explode(':', $user, 2);
 		if ($parts[0] !== 'principal') {
 			return;
 		}
@@ -123,7 +142,7 @@ class Backend {
 	 * @param string $element
 	 */
 	private function unshare($shareable, $element) {
-		$parts = explode(':', $element, 2);
+		$parts = \explode(':', $element, 2);
 		if ($parts[0] !== 'principal') {
 			return;
 		}
@@ -164,15 +183,15 @@ class Backend {
 			->execute();
 
 		$shares = [];
-		while($row = $result->fetch()) {
+		while ($row = $result->fetch()) {
 			$p = $this->principalBackend->getPrincipalByPath($row['principaluri']);
 			$shares[]= [
 				'href' => "principal:${row['principaluri']}",
-				'commonName' => isset($p['{DAV:}displayname']) ? $p['{DAV:}displayname'] : '',
+				'commonName' => $p['{DAV:}displayname'] ?? '',
 				'status' => 1,
-				'readOnly' => ($row['access'] == self::ACCESS_READ),
+				'readOnly' => $row['access'] == self::ACCESS_READ,
 				'{http://owncloud.org/ns}principal' => $row['principaluri'],
-				'{http://owncloud.org/ns}group-share' => is_null($p)
+				'{http://owncloud.org/ns}group-share' => $p === null
 			];
 		}
 
@@ -187,26 +206,25 @@ class Backend {
 	 * @return array
 	 */
 	public function applyShareAcl($resourceId, $acl) {
-
 		$shares = $this->getShares($resourceId);
 		foreach ($shares as $share) {
 			$acl[] = [
 				'privilege' => '{DAV:}read',
-				'principal' => $share['{' . \OCA\DAV\DAV\Sharing\Plugin::NS_OWNCLOUD . '}principal'],
+				'principal' => $share['{' . Plugin::NS_OWNCLOUD . '}principal'],
 				'protected' => true,
 			];
 			if (!$share['readOnly']) {
 				$acl[] = [
 					'privilege' => '{DAV:}write',
-					'principal' => $share['{' . \OCA\DAV\DAV\Sharing\Plugin::NS_OWNCLOUD . '}principal'],
+					'principal' => $share['{' . Plugin::NS_OWNCLOUD . '}principal'],
 					'protected' => true,
 				];
-			} else if ($this->resourceType === 'calendar') {
+			} elseif ($this->resourceType === 'calendar') {
 				// Allow changing the properties of read only calendars,
 				// so users can change the visibility.
 				$acl[] = [
 					'privilege' => '{DAV:}write-properties',
-					'principal' => $share['{' . \OCA\DAV\DAV\Sharing\Plugin::NS_OWNCLOUD . '}principal'],
+					'principal' => $share['{' . Plugin::NS_OWNCLOUD . '}principal'],
 					'protected' => true,
 				];
 			}

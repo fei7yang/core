@@ -3,7 +3,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  *
- * @copyright Copyright (c) 2016, ownCloud GmbH.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -22,10 +22,9 @@
 
 namespace Test\Files\External;
 
-use \OCP\Files\External\DefinitionParameter as Param;
+use OCP\Files\External\DefinitionParameter as Param;
 
 class DefinitionParameterTest extends \Test\TestCase {
-
 	public function testJsonSerialization() {
 		$param = new Param('foo', 'bar');
 		$this->assertEquals([

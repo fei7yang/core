@@ -2,7 +2,7 @@
 /**
  * @author Joas Schilling <coding@schilljs.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -45,28 +45,28 @@ class SetConfig extends Base {
 
 		$this
 			->setName('config:app:set')
-			->setDescription('Set an app config value')
+			->setDescription('Set an app config value.')
 			->addArgument(
 				'app',
 				InputArgument::REQUIRED,
-				'Name of the app'
+				'Name of the app.'
 			)
 			->addArgument(
 				'name',
 				InputArgument::REQUIRED,
-				'Name of the config to set'
+				'Name of the config to set.'
 			)
 			->addOption(
 				'value',
 				null,
 				InputOption::VALUE_REQUIRED,
-				'The new value of the config'
+				'The new value of the config.'
 			)
 			->addOption(
 				'update-only',
 				null,
 				InputOption::VALUE_NONE,
-				'Only updates the value, if it is not set before, it is not being added'
+				'Only updates the value, if it has not already been set, it will not be added.'
 			)
 		;
 	}
@@ -75,7 +75,7 @@ class SetConfig extends Base {
 		$appName = $input->getArgument('app');
 		$configName = $input->getArgument('name');
 
-		if (!in_array($configName, $this->config->getAppKeys($appName)) && $input->hasParameterOption('--update-only')) {
+		if (!\in_array($configName, $this->config->getAppKeys($appName)) && $input->hasParameterOption('--update-only')) {
 			$output->writeln('<comment>Config value ' . $configName . ' for app ' . $appName . ' not updated, as it has not been set before.</comment>');
 			return 1;
 		}

@@ -2,7 +2,7 @@
 /**
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -27,7 +27,6 @@ use OCP\Migration\ISchemaMigration;
  * Add "name" column to the oc_share table
  */
 class Version20170320173955 implements ISchemaMigration {
-
 	public function changeSchema(Schema $schema, array $options) {
 		$prefix = $options['tablePrefix'];
 		$table = $schema->getTable("${prefix}share");

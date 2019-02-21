@@ -2,7 +2,7 @@
 /**
  * @author Robin Appelman <icewind@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -40,7 +40,6 @@ class FailedCache implements ICache {
 		$this->visible = $visible;
 	}
 
-
 	public function getNumericStorageId() {
 		return -1;
 	}
@@ -53,7 +52,7 @@ class FailedCache implements ICache {
 				'mimetype' => 'httpd/unix-directory',
 				'mimepart' => 'httpd',
 				'permissions' => $this->visible ? Constants::PERMISSION_READ : 0,
-				'mtime' => time()
+				'mtime' => \time()
 			]);
 		} else {
 			return false;

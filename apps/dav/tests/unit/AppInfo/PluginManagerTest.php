@@ -2,7 +2,7 @@
 /**
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,10 +21,10 @@
 
 namespace OCA\DAV\Tests\unit\AppInfo;
 
-use Test\TestCase;
-use OCP\App\IAppManager;
 use OC\ServerContainer;
 use OCA\DAV\AppInfo\PluginManager;
+use OCP\App\IAppManager;
+use Test\TestCase;
 
 /**
  * Class PluginManagerTest
@@ -34,7 +34,6 @@ use OCA\DAV\AppInfo\PluginManager;
 class PluginManagerTest extends TestCase {
 	public function test() {
 		$server = $this->createMock(ServerContainer::class);
-
 
 		$appManager = $this->createMock(IAppManager::class);
 		$appManager->method('getInstalledApps')

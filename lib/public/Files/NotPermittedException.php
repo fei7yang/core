@@ -3,7 +3,7 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -33,4 +33,5 @@ namespace OCP\Files;
  * Exception for not permitted action
  * @since 6.0.0
  */
-class NotPermittedException extends \Exception {}
+class NotPermittedException extends \Exception {
+}

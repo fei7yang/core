@@ -4,7 +4,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -27,7 +27,6 @@ use OCP\Settings\ISettings;
 use OCP\Template;
 
 class Version implements ISettings {
-
 	public function getPriority() {
 		return 0;
 	}
@@ -40,5 +39,4 @@ class Version implements ISettings {
 	public function getSectionID() {
 		return 'general';
 	}
-
 }

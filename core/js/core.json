@@ -1,15 +1,14 @@
 {
 	"vendor": [
 		"jquery/dist/jquery.min.js",
-		"jquery-migrate/jquery-migrate.min.js",
-		"jquery-ui/ui/jquery-ui.custom.js",
+		"jquery-ui/jquery-ui.js",
 		"underscore/underscore.js",
 		"moment/min/moment-with-locales.js",
 		"handlebars/handlebars.js",
 		"blueimp-md5/js/md5.js",
 		"bootstrap/js/tooltip.js",
 		"backbone/backbone.js",
-		"es6-promise/dist/es6-promise.js",
+		"es6-promise/es6-promise.auto.js",
 		"davclient.js/lib/client.js",
 		"clipboard/dist/clipboard.js",
 		"bowser/src/bowser.js"

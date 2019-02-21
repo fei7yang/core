@@ -3,7 +3,7 @@
  * @author Achim Königs <garfonso@tratschtante.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -35,11 +35,16 @@ use Sabre\VObject\Property\VCard\DateAndOrTime;
 use Sabre\VObject\Reader;
 
 class BirthdayService {
-
 	const BIRTHDAY_CALENDAR_URI = 'contact_birthdays';
 
 	/** @var GroupPrincipalBackend */
 	private $principalBackend;
+
+	/** @var CardDavBackend  */
+	private $cardDavBackEnd;
+
+	/** @var CalDavBackend  */
+	private $calDavBackEnd;
 
 	/**
 	 * BirthdayService constructor.
@@ -101,7 +106,7 @@ class BirthdayService {
 	 */
 	public function ensureCalendarExists($principal) {
 		$book = $this->calDavBackEnd->getCalendarByUri($principal, self::BIRTHDAY_CALENDAR_URI);
-		if (!is_null($book)) {
+		if ($book !== null) {
 			return $book;
 		}
 		$this->calDavBackEnd->createCalendar($principal, self::BIRTHDAY_CALENDAR_URI, [
@@ -210,9 +215,9 @@ class BirthdayService {
 		$principal = 'principals/users/'.$user;
 		$this->ensureCalendarExists($principal);
 		$books = $this->cardDavBackEnd->getAddressBooksForUser($principal);
-		foreach($books as $book) {
+		foreach ($books as $book) {
 			$cards = $this->cardDavBackEnd->getCards($book['id']);
-			foreach($cards as $card) {
+			foreach ($cards as $card) {
 				$this->onCardChanged($book['id'], $card['uri'], $card['carddata']);
 			}
 		}
@@ -254,7 +259,7 @@ class BirthdayService {
 				$targetPrincipals[] = $share['{http://owncloud.org/ns}principal'];
 			}
 		}
-		return array_values(array_unique($targetPrincipals, SORT_STRING));
+		return \array_values(\array_unique($targetPrincipals, SORT_STRING));
 	}
 
 	/**
@@ -268,12 +273,12 @@ class BirthdayService {
 		$objectUri = $book['uri'] . '-' . $cardUri . $type['postfix'] . '.ics';
 		$calendarData = $this->buildDateFromContact($cardData, $type['field'], $type['symbol']);
 		$existing = $this->calDavBackEnd->getCalendarObject($calendarId, $objectUri);
-		if (is_null($calendarData)) {
-			if (!is_null($existing)) {
+		if ($calendarData === null) {
+			if ($existing !== null) {
 				$this->calDavBackEnd->deleteCalendarObject($calendarId, $objectUri);
 			}
 		} else {
-			if (is_null($existing)) {
+			if ($existing === null) {
 				$this->calDavBackEnd->createCalendarObject($calendarId, $objectUri, $calendarData->serialize());
 			} else {
 				if ($this->birthdayEvenChanged($existing['calendardata'], $calendarData)) {
@@ -282,5 +287,4 @@ class BirthdayService {
 			}
 		}
 	}
-
 }

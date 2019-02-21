@@ -8,7 +8,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -27,7 +27,7 @@
 
 namespace OCA\Files_External\Tests\Storage;
 
-use \OCA\Files_External\Lib\Storage\SMB;
+use OCA\Files_External\Lib\Storage\SMB;
 
 /**
  * Class SmbTest
@@ -37,16 +37,15 @@ use \OCA\Files_External\Lib\Storage\SMB;
  * @package OCA\Files_External\Tests\Storage
  */
 class SmbTest extends \Test\Files\Storage\Storage {
-
 	protected function setUp() {
 		parent::setUp();
 
 		$id = $this->getUniqueID();
 		$config = include('files_external/tests/config.smb.php');
-		if (!is_array($config) or !$config['run']) {
+		if (!\is_array($config) or !$config['run']) {
 			$this->markTestSkipped('Samba backend not configured');
 		}
-		if (substr($config['root'], -1, 1) != '/') {
+		if (\substr($config['root'], -1, 1) != '/') {
 			$config['root'] .= '/';
 		}
 		$config['root'] .= $id; //make sure we have an new empty folder to work in

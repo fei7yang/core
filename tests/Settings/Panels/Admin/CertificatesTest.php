@@ -1,7 +1,7 @@
 <?php
 /**
  * @author Tom Needham
- * @copyright 2016 Tom Needham tom@owncloud.com
+ * @copyright Copyright (c) 2016 Tom Needham tom@owncloud.com
  *
  * This file is licensed under the Affero General Public License version 3 or
  * later.
@@ -43,9 +43,9 @@ class CertificatesTest extends \Test\TestCase {
 	}
 
 	public function testGetPriority() {
-		$this->assertTrue(is_integer($this->panel->getPriority()));
-		$this->assertTrue($this->panel->getPriority() > -100);
-		$this->assertTrue($this->panel->getPriority() < 100);
+		$this->assertInternalType('int', $this->panel->getPriority());
+		$this->assertGreaterThan(-100, $this->panel->getPriority());
+		$this->assertLessThan(100, $this->panel->getPriority());
 	}
 
 	public function testGetPanel() {
@@ -57,7 +57,7 @@ class CertificatesTest extends \Test\TestCase {
 		$mockCert = $this->getMockBuilder(ICertificate::class)->getMock();
 		$mockCert->expects($this->once())->method('isExpired')->willReturn(false);
 		$mockCert->expects($this->once())->method('getCommonName')->willReturn('commonname');
-		$mockCert->expects($this->exactly(2))->method('getExpireDate')->willReturn(time()+60*60*24*10);
+		$mockCert->expects($this->exactly(2))->method('getExpireDate')->willReturn(\time()+60*60*24*10);
 		$mockCert->expects($this->once())->method('getIssuerOrganization')->willReturn('issueOrg');
 		$mockCert->expects($this->once())->method('getIssuerName')->willReturn('issuer');
 		$mockCert->expects($this->once())->method('getOrganization')->willReturn('org');
@@ -79,5 +79,4 @@ class CertificatesTest extends \Test\TestCase {
 		$template = $this->panel->getPanel();
 		$this->assertNull($template);
 	}
-
 }

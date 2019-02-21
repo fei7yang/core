@@ -3,7 +3,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -43,11 +43,11 @@ class SharePropagation implements IRepairStep {
 		return 'Remove old share propagation app entries';
 	}
 
-	public function run(IOutput $out ) {
+	public function run(IOutput $out) {
 		$keys = $this->config->getAppKeys('files_sharing');
 
 		foreach ($keys as $key) {
-			if (is_numeric($key)) {
+			if (\is_numeric($key)) {
 				$this->config->deleteAppValue('files_sharing', $key);
 			}
 		}

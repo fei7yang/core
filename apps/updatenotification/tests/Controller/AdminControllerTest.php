@@ -6,7 +6,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -94,7 +94,7 @@ class AdminControllerTest extends TestCase {
 		$currentChannel = \OCP\Util::getChannel();
 
 		// Remove the currently used channel from the channels list
-		if(($key = array_search($currentChannel, $channels)) !== false) {
+		if (($key = \array_search($currentChannel, $channels)) !== false) {
 			unset($channels[$key]);
 		}
 
@@ -139,7 +139,7 @@ class AdminControllerTest extends TestCase {
 		$currentChannel = \OCP\Util::getChannel();
 
 		// Remove the currently used channel from the channels list
-		if(($key = array_search($currentChannel, $channels)) !== false) {
+		if (($key = \array_search($currentChannel, $channels)) !== false) {
 			unset($channels[$key]);
 		}
 
@@ -174,7 +174,6 @@ class AdminControllerTest extends TestCase {
 		$this->assertEquals($expected, $this->adminController->displayPanel());
 	}
 
-
 	public function testCreateCredentials() {
 		$this->jobList
 			->expects($this->once())
@@ -203,11 +202,10 @@ class AdminControllerTest extends TestCase {
 	}
 
 	public function testGetPriority() {
-		$this->assertTrue(is_integer($this->adminController->getPriority()));
+		$this->assertInternalType('int', $this->adminController->getPriority());
 	}
 
 	public function testGetSectionID() {
 		$this->assertEquals('general', $this->adminController->getSectionID());
 	}
-
 }

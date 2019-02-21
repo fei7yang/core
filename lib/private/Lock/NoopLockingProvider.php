@@ -3,7 +3,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -31,22 +31,22 @@ use OCP\Lock\ILockingProvider;
  */
 class NoopLockingProvider implements ILockingProvider {
 
-    /**
-     * {@inheritdoc}
-     */
+	/**
+	 * {@inheritdoc}
+	 */
 	public function isLocked($path, $type) {
 		return false;
 	}
 
-    /**
-     * {@inheritdoc}
-     */
+	/**
+	 * {@inheritdoc}
+	 */
 	public function acquireLock($path, $type) {
 		// do nothing
 	}
 
 	/**
-     * {@inheritdoc}
+	 * {@inheritdoc}
 	 */
 	public function releaseLock($path, $type) {
 		// do nothing

@@ -1,7 +1,7 @@
 <?php
 /**
  * @author Georg Ehrke
- * @copyright 2014 Georg Ehrke <georg@ownCloud.com>
+ * @copyright Copyright (c) 2014 Georg Ehrke <georg@ownCloud.com>
  *
  * This file is licensed under the Affero General Public License version 3 or
  * later.
@@ -10,7 +10,7 @@
 
 namespace Tests\Settings\Controller;
 
-use \OC\Settings\Application;
+use OC\Settings\Application;
 use OC\Settings\Controller\LogSettingsController;
 
 /**

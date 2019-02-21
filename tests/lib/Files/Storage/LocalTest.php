@@ -3,7 +3,7 @@
  * ownCloud
  *
  * @author Robin Appelman
- * @copyright 2012 Robin Appelman icewind@owncloud.com
+ * @copyright Copyright (c) 2012 Robin Appelman icewind@owncloud.com
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
@@ -22,6 +22,8 @@
 
 namespace Test\Files\Storage;
 
+use OC\Files\Storage\Local;
+
 /**
  * Class LocalTest
  *
@@ -34,6 +36,9 @@ class LocalTest extends Storage {
 	 * @var string tmpDir
 	 */
 	private $tmpDir;
+
+	/** @var Local */
+	protected $instance;
 
 	protected function setUp() {
 		parent::setUp();
@@ -56,7 +61,7 @@ class LocalTest extends Storage {
 
 	public function testEtagChange() {
 		$this->instance->file_put_contents('test.txt', 'foo');
-		$this->instance->touch('test.txt', time() - 2);
+		$this->instance->touch('test.txt', \time() - 2);
 		$etag1 = $this->instance->getETag('test.txt');
 		$this->instance->file_put_contents('test.txt', 'bar');
 		$etag2 = $this->instance->getETag('test.txt');
@@ -84,10 +89,10 @@ class LocalTest extends Storage {
 		$subDir1 = $this->tmpDir . 'sub1';
 		$subDir2 = $this->tmpDir . 'sub2';
 		$sym = $this->tmpDir . 'sub1/sym';
-		mkdir($subDir1);
-		mkdir($subDir2);
+		\mkdir($subDir1);
+		\mkdir($subDir2);
 
-		symlink($subDir2, $sym);
+		\symlink($subDir2, $sym);
 
 		$storage = new \OC\Files\Storage\Local(['datadir' => $subDir1]);
 
@@ -98,14 +103,27 @@ class LocalTest extends Storage {
 		$subDir1 = $this->tmpDir . 'sub1';
 		$subDir2 = $this->tmpDir . 'sub1/sub2';
 		$sym = $this->tmpDir . 'sub1/sym';
-		mkdir($subDir1);
-		mkdir($subDir2);
+		\mkdir($subDir1);
+		\mkdir($subDir2);
 
-		symlink($subDir2, $sym);
+		\symlink($subDir2, $sym);
 
 		$storage = new \OC\Files\Storage\Local(['datadir' => $subDir1]);
 
 		$storage->file_put_contents('sym/foo', 'bar');
 	}
-}
 
+	/**
+	 * @expectedException \OCP\Files\ForbiddenException
+	 */
+	public function testBrokenSymlink() {
+		$linkTarget = $this->tmpDir . 'link_target';
+		$linkName = $this->tmpDir . 'broken_symlink';
+
+		\mkdir($linkTarget);
+		\symlink($linkTarget, $linkName);
+		\rmdir($linkTarget);
+
+		$this->instance->getSourcePath('broken_symlink');
+	}
+}

@@ -2,7 +2,7 @@
 /**
  * @author Noveen Sachdeva <noveen.sachdeva@research.iiit.ac.in>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,13 +21,16 @@
 
 namespace OCA\DAV\Connector\Sabre;
 
-use Sabre\HTTP\ResponseInterface;
+use OCP\IUserSession;
+use OCP\Util;
+use Sabre\DAV\ServerPlugin;
 use Sabre\HTTP\RequestInterface;
+use Sabre\HTTP\ResponseInterface;
 
 /**
  * Class CorsPlugin is a plugin which adds CORS headers to the responses
  */
-class CorsPlugin extends \Sabre\DAV\ServerPlugin {
+class CorsPlugin extends ServerPlugin {
 
 	/**
 	 * Reference to main server object
@@ -39,17 +42,42 @@ class CorsPlugin extends \Sabre\DAV\ServerPlugin {
 	/**
 	 * Reference to logged in user's session
 	 *
-	 * @var \OCP\IUserSession
+	 * @var IUserSession
 	 */
 	private $userSession;
 
 	/**
-	 * @param \OCP\IUserSession $userSession
+	 * @var string[]
 	 */
-	public function __construct(\OCP\IUserSession $userSession) {
+	private $extraHeaders;
+
+	/**
+	 * @param IUserSession $userSession
+	 */
+	public function __construct(IUserSession $userSession) {
 		$this->userSession = $userSession;
-		$this->extraHeaders['Access-Control-Allow-Headers'] = ["X-OC-Mtime", "OC-Checksum", "OC-Total-Length", "Depth", "Destination", "Overwrite"];
-		$this->extraHeaders['Access-Control-Allow-Methods'] = ["MOVE", "COPY"];
+	}
+
+	private function getExtraHeaders(RequestInterface $request) {
+		if ($this->extraHeaders === null) {
+			if ($this->userSession->getUser() === null) {
+				$this->extraHeaders['Access-Control-Allow-Methods'] = [
+					'OPTIONS',
+					'GET',
+					'HEAD',
+					'DELETE',
+					'PROPFIND',
+					'PUT',
+					'PROPPATCH',
+					'COPY',
+					'MOVE',
+					'REPORT'
+				];
+			} else {
+				$this->extraHeaders['Access-Control-Allow-Methods'] = $this->server->getAllowedMethods($request->getPath());
+			}
+		}
+		return $this->extraHeaders;
 	}
 
 	/**
@@ -66,20 +94,42 @@ class CorsPlugin extends \Sabre\DAV\ServerPlugin {
 	public function initialize(\Sabre\DAV\Server $server) {
 		$this->server = $server;
 
-		$this->server->on('beforeMethod', [$this, 'setCorsHeaders']);
-		$this->server->on('beforeMethod:OPTIONS', [$this, 'setOptionsRequestHeaders']);
+		$request = $this->server->httpRequest;
+		if (!$request->hasHeader('Origin')) {
+			return;
+		}
+		$originHeader = $request->getHeader('Origin');
+		if ($this->ignoreOriginHeader($originHeader)) {
+			return;
+		}
+		if (Util::isSameDomain($originHeader, $request->getAbsoluteUrl())) {
+			return;
+		}
+
+		$this->server->on('beforeMethod:*', [$this, 'setCorsHeaders']);
+		$this->server->on('beforeMethod:OPTIONS', [$this, 'setOptionsRequestHeaders'], 5);
 	}
 
 	/**
 	 * This method sets the cors headers for all requests
 	 *
+	 * @param RequestInterface $request
+	 * @param ResponseInterface $response
 	 * @return void
 	 */
 	public function setCorsHeaders(RequestInterface $request, ResponseInterface $response) {
-		if ($request->getHeader('origin') !== null && !is_null($this->userSession->getUser())) {
+		if ($request->getHeader('origin') !== null) {
 			$requesterDomain = $request->getHeader('origin');
-			$userId = $this->userSession->getUser()->getUID();
-			$response = \OC_Response::setCorsHeaders($userId, $requesterDomain, $response, null, $this->extraHeaders);
+			// unauthenticated request shall add cors headers as well
+			$userId = null;
+			if ($this->userSession->getUser() !== null) {
+				$userId = $this->userSession->getUser()->getUID();
+			}
+
+			$headers = \OC_Response::setCorsHeaders($userId, $requesterDomain, null, $this->getExtraHeaders($request));
+			foreach ($headers as $key => $value) {
+				$response->addHeader($key, \implode(',', $value));
+			}
 		}
 	}
 
@@ -90,13 +140,14 @@ class CorsPlugin extends \Sabre\DAV\ServerPlugin {
 	 * @param ResponseInterface $response
 	 *
 	 * @return false
+	 * @throws \InvalidArgumentException
 	 */
 	public function setOptionsRequestHeaders(RequestInterface $request, ResponseInterface $response) {
 		$authorization = $request->getHeader('Authorization');
 		if ($authorization === null || $authorization === '') {
 			// Set the proper response
 			$response->setStatus(200);
-			$response = \OC_Response::setOptionsRequestHeaders($response, $this->extraHeaders);
+			$response = \OC_Response::setOptionsRequestHeaders($response, $this->getExtraHeaders($request));
 
 			// Since All OPTIONS requests are unauthorized, we will have to return false from here
 			// If we don't return false, due to no authorization, a 401-Unauthorized will be thrown
@@ -105,5 +156,22 @@ class CorsPlugin extends \Sabre\DAV\ServerPlugin {
 			$this->server->sapi->sendResponse($response);
 			return false;
 		}
+	}
+
+	/**
+	 * in addition to schemas used by extensions we ignore empty origin header
+	 * values as well as 'null' which is not valid by the specification but used
+	 * by some clients.
+	 * @link https://github.com/owncloud/core/pull/32120#issuecomment-407008243
+	 *
+	 * @param string $originHeader
+	 * @return bool
+	 */
+	public function ignoreOriginHeader($originHeader) {
+		if (\in_array($originHeader, ['', null, 'null'], true)) {
+			return true;
+		}
+		$schema = \parse_url($originHeader, PHP_URL_SCHEME);
+		return \in_array(\strtolower($schema), ['moz-extension', 'chrome-extension']);
 	}
 }

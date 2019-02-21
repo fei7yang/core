@@ -3,7 +3,7 @@
  * @author Björn Schießle <bjoern@schiessle.org>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -20,9 +20,7 @@
  *
  */
 
-
 namespace OCA\Federation;
-
 
 use OC\Files\Filesystem;
 use OC\HintException;
@@ -43,7 +41,7 @@ class DbHandler {
 	private $connection;
 
 	/** @var  IL10N */
-	private $l;
+	private $il10n;
 
 	/** @var string  */
 	private $dbTable = 'trusted_servers';
@@ -57,7 +55,7 @@ class DbHandler {
 		IL10N $il10n
 	) {
 		$this->connection = $connection;
-		$this->IL10N = $il10n;
+		$this->il10n = $il10n;
 	}
 
 	/**
@@ -69,7 +67,7 @@ class DbHandler {
 	 */
 	public function addServer($url) {
 		$hash = $this->hash($url);
-		$url = rtrim($url, '/');
+		$url = \rtrim($url, '/');
 		$query = $this->connection->getQueryBuilder();
 		$query->insert($this->dbTable)
 			->values(
@@ -87,7 +85,7 @@ class DbHandler {
 			return (int)$this->connection->lastInsertId('*PREFIX*'.$this->dbTable);
 		} else {
 			$message = 'Internal failure, Could not add ownCloud as trusted server: ' . $url;
-			$message_t = $this->l->t('Could not add server');
+			$message_t = $this->il10n->t('Could not add server');
 			throw new HintException($message, $message_t);
 		}
 	}
@@ -243,7 +241,7 @@ class DbHandler {
 		$query->update($this->dbTable)
 				->set('status', $query->createNamedParameter($status))
 				->where($query->expr()->eq('url_hash', $query->createNamedParameter($hash)));
-		if (!is_null($token)) {
+		if ($token !== null) {
 			$query->set('sync_token', $query->createNamedParameter($token));
 		}
 		$query->execute();
@@ -274,7 +272,7 @@ class DbHandler {
 	 */
 	protected function hash($url) {
 		$normalized = $this->normalizeUrl($url);
-		return sha1($normalized);
+		return \sha1($normalized);
 	}
 
 	/**
@@ -286,14 +284,14 @@ class DbHandler {
 	protected function normalizeUrl($url) {
 		$normalized = $url;
 
-		if (strpos($url, 'https://') === 0) {
-			$normalized = substr($url, strlen('https://'));
-		} else if (strpos($url, 'http://') === 0) {
-			$normalized = substr($url, strlen('http://'));
+		if (\strpos($url, 'https://') === 0) {
+			$normalized = \substr($url, \strlen('https://'));
+		} elseif (\strpos($url, 'http://') === 0) {
+			$normalized = \substr($url, \strlen('http://'));
 		}
 
 		$normalized = Filesystem::normalizePath($normalized);
-		$normalized = trim($normalized, '/');
+		$normalized = \trim($normalized, '/');
 
 		return $normalized;
 	}
@@ -314,5 +312,4 @@ class DbHandler {
 		$result = $query->execute()->fetch();
 		return !empty($result);
 	}
-
 }

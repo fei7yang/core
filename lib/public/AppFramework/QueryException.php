@@ -3,7 +3,7 @@
  * @author Bernhard Posselt <dev@bernhard-posselt.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -30,4 +30,5 @@ use Exception;
  * @package OCP\AppFramework
  * @since 8.1.0
  */
-class QueryException extends Exception {}
+class QueryException extends Exception {
+}

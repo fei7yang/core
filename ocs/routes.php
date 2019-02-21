@@ -7,7 +7,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -30,7 +30,7 @@ use OCP\API;
 API::register(
 	'get',
 	'/config',
-	['OC_OCS_Config', 'apiConfig'],
+	['\OC\OCS\Config', 'apiConfig'],
 	'core',
 	API::GUEST_AUTH
 	);
@@ -38,7 +38,7 @@ API::register(
 API::register(
 	'post',
 	'/person/check',
-	['OC_OCS_Person', 'check'],
+	['\OC\OCS\Person', 'check'],
 	'core',
 	API::GUEST_AUTH
 	);
@@ -46,7 +46,7 @@ API::register(
 API::register(
 	'get',
 	'/privatedata/getattribute',
-	['OC_OCS_Privatedata', 'get'],
+	['\OC\OCS\PrivateData', 'get'],
 	'core',
 	API::USER_AUTH,
 	['app' => '', 'key' => '']
@@ -54,7 +54,7 @@ API::register(
 API::register(
 	'get',
 	'/privatedata/getattribute/{app}',
-	['OC_OCS_Privatedata', 'get'],
+	['\OC\OCS\PrivateData', 'get'],
 	'core',
 	API::USER_AUTH,
 	['key' => '']
@@ -62,94 +62,21 @@ API::register(
 API::register(
 	'get',
 	'/privatedata/getattribute/{app}/{key}',
-	['OC_OCS_Privatedata', 'get'],
+	['\OC\OCS\PrivateData', 'get'],
 	'core',
 	API::USER_AUTH
 	);
 API::register(
 	'post',
 	'/privatedata/setattribute/{app}/{key}',
-	['OC_OCS_Privatedata', 'set'],
+	['\OC\OCS\PrivateData', 'set'],
 	'core',
 	API::USER_AUTH
 	);
 API::register(
 	'post',
 	'/privatedata/deleteattribute/{app}/{key}',
-	['OC_OCS_Privatedata', 'delete'],
+	['\OC\OCS\PrivateData', 'delete'],
 	'core',
 	API::USER_AUTH
 	);
-
-// Server-to-Server Sharing
-if (\OC::$server->getAppManager()->isEnabledForUser('files_sharing')) {
-	$federatedSharingApp = new \OCA\FederatedFileSharing\AppInfo\Application('federatedfilesharing');
-	$addressHandler = new \OCA\FederatedFileSharing\AddressHandler(
-		\OC::$server->getURLGenerator(),
-		\OC::$server->getL10N('federatedfilesharing')
-	);
-	$notification = new \OCA\FederatedFileSharing\Notifications(
-		$addressHandler,
-		\OC::$server->getHTTPClientService(),
-		new \OCA\FederatedFileSharing\DiscoveryManager(\OC::$server->getMemCacheFactory(), \OC::$server->getHTTPClientService()),
-		\OC::$server->getJobList()
-	);
-	$s2s = new OCA\FederatedFileSharing\RequestHandler(
-		$federatedSharingApp->getFederatedShareProvider(),
-		\OC::$server->getDatabaseConnection(),
-		\OC::$server->getShareManager(),
-		\OC::$server->getRequest(),
-		$notification,
-		$addressHandler,
-		\OC::$server->getUserManager()
-	);
-	API::register('post',
-		'/cloud/shares',
-		[$s2s, 'createShare'],
-		'files_sharing',
-		API::GUEST_AUTH
-	);
-
-	API::register('post',
-		'/cloud/shares/{id}/reshare',
-		[$s2s, 'reShare'],
-		'files_sharing',
-		API::GUEST_AUTH
-	);
-
-	API::register('post',
-		'/cloud/shares/{id}/permissions',
-		[$s2s, 'updatePermissions'],
-		'files_sharing',
-		API::GUEST_AUTH
-	);
-
-
-	API::register('post',
-		'/cloud/shares/{id}/accept',
-		[$s2s, 'acceptShare'],
-		'files_sharing',
-		API::GUEST_AUTH
-	);
-
-	API::register('post',
-		'/cloud/shares/{id}/decline',
-		[$s2s, 'declineShare'],
-		'files_sharing',
-		API::GUEST_AUTH
-	);
-
-	API::register('post',
-		'/cloud/shares/{id}/unshare',
-		[$s2s, 'unshare'],
-		'files_sharing',
-		API::GUEST_AUTH
-	);
-
-	API::register('post',
-		'/cloud/shares/{id}/revoke',
-		[$s2s, 'revoke'],
-		'files_sharing',
-		API::GUEST_AUTH
-	);
-}

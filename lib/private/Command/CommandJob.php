@@ -2,7 +2,7 @@
 /**
  * @author Robin Appelman <icewind@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -29,7 +29,7 @@ use OCP\Command\ICommand;
  */
 class CommandJob extends QueuedJob {
 	protected function run($serializedCommand) {
-		$command = unserialize($serializedCommand);
+		$command = \unserialize($serializedCommand);
 		if ($command instanceof ICommand) {
 			$command->handle();
 		} else {

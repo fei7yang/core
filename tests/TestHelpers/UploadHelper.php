@@ -3,7 +3,7 @@
  * ownCloud
  *
  * @author Artur Neumann <artur@jankaritech.com>
- * @copyright 2017 Artur Neumann artur@jankaritech.com
+ * @copyright Copyright (c) 2017 Artur Neumann artur@jankaritech.com
  *
  * This code is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License,
@@ -21,6 +21,7 @@
  */
 namespace TestHelpers;
 
+use GuzzleHttp\Message\ResponseInterface;
 use GuzzleHttp\Stream\Stream;
 use PHPUnit_Framework_Assert;
 
@@ -32,7 +33,7 @@ use PHPUnit_Framework_Assert;
  */
 class UploadHelper {
 	/**
-	 * 
+	 *
 	 * @param string $baseUrl             URL of owncloud
 	 *                                    e.g. http://localhost:8080
 	 *                                    should include the subfolder
@@ -40,14 +41,15 @@ class UploadHelper {
 	 *                                    e.g. http://localhost:8080/owncloud-core
 	 * @param string $user
 	 * @param string $password
-	 * @param string $source 
+	 * @param string $source
 	 * @param string $destination
 	 * @param array  $headers
 	 * @param int    $davPathVersionToUse (1|2)
 	 * @param int    $chunkingVersion     (1|2|null)
 	 *                                    if set to null chunking will not be used
 	 * @param int    $noOfChunks          how many chunks do we want to upload
-	 * @return \GuzzleHttp\Message\FutureResponse|\GuzzleHttp\Message\ResponseInterface|NULL
+	 *
+	 * @return ResponseInterface
 	 */
 	public static function upload(
 		$baseUrl,
@@ -55,15 +57,15 @@ class UploadHelper {
 		$password,
 		$source,
 		$destination,
-		$headers = array(),
+		$headers = [],
 		$davPathVersionToUse = 1,
 		$chunkingVersion = null,
 		$noOfChunks = 1
 	) {
-	
+
 		//simple upload with no chunking
 		if ($chunkingVersion === null) {
-			$data = Stream::factory(fopen($source, 'r'));
+			$data = Stream::factory(\fopen($source, 'r'));
 			return WebDavHelper::makeDavRequest(
 				$baseUrl,
 				$user,
@@ -78,15 +80,15 @@ class UploadHelper {
 		} else {
 			//prepare chunking
 			$chunks = self::chunkFile($source, $noOfChunks);
-			$chunkingId = 'chunking-' . (string)rand(1000, 9999);
+			$chunkingId = 'chunking-' . (string)\rand(1000, 9999);
 			$v2ChunksDestination = '/uploads/' . $user . '/' . $chunkingId;
 		}
-		
+
 		//prepare chunking version specific stuff
 		if ($chunkingVersion === 1) {
 			$headers['OC-Chunked'] = '1';
 		} elseif ($chunkingVersion === 2) {
-			WebDavHelper::makeDavRequest(
+			$result = WebDavHelper::makeDavRequest(
 				$baseUrl,
 				$user,
 				$password,
@@ -96,14 +98,17 @@ class UploadHelper {
 				$davPathVersionToUse,
 				"uploads"
 			);
+			if ($result->getStatusCode() >= 400) {
+				return $result;
+			}
 		}
-		
+
 		//upload chunks
 		foreach ($chunks as $index => $chunk) {
 			$data = Stream::factory($chunk);
 			if ($chunkingVersion === 1) {
 				$filename = $destination . "-" . $chunkingId . "-" .
-							count($chunks) . '-' . ( string ) $index;
+					\count($chunks) . '-' . ( string ) $index;
 				$davRequestType = "files";
 			} elseif ($chunkingVersion === 2) {
 				$filename = $v2ChunksDestination . '/' . (string)($index);
@@ -121,46 +126,106 @@ class UploadHelper {
 				$davPathVersionToUse,
 				$davRequestType
 			);
+			if ($result->getStatusCode() >= 400) {
+				return $result;
+			}
 		}
 		//finish upload for new chunking
 		if ($chunkingVersion === 2) {
 			$source = $v2ChunksDestination . '/.file';
-			$finalDestination = $baseUrl . "/" . 
-						WebDavHelper::getDavPath($user, $davPathVersionToUse) .
-						$destination;
+			$headers['Destination'] = $baseUrl . "/" .
+				WebDavHelper::getDavPath($user, $davPathVersionToUse) .
+				$destination;
 			$result = WebDavHelper::makeDavRequest(
 				$baseUrl,
 				$user,
 				$password,
 				'MOVE',
 				$source,
-				['Destination' => $finalDestination ],
+				$headers,
 				null, null,
 				$davPathVersionToUse,
 				"uploads"
 			);
+			if ($result->getStatusCode() >= 400) {
+				return $result;
+			}
 		}
 		return $result;
 	}
 
 	/**
+	 * Upload the same file multiple times with different mechanisms.
+	 *
+	 * @param string $baseUrl URL of owncloud
+	 * @param string $user user who uploads
+	 * @param string $password
+	 * @param string $source source file path
+	 * @param string $destination destination path on the server
+	 * @param bool $overwriteMode when false creates separate files to test uploading brand new files,
+	 *                            when true it just overwrites the same file over and over again with the same name
+	 *
+	 * @return array of ResponseInterface
+	 */
+	public static function uploadWithAllMechanisms(
+		$baseUrl, $user, $password, $source, $destination, $overwriteMode = false
+	) {
+		$responses = [];
+		foreach ([1, 2] as $davPathVersion) {
+			if ($davPathVersion === 1) {
+				$davHuman = 'old';
+			} else {
+				$davHuman = 'new';
+			}
+	
+			foreach ([null, 1, 2] as $chunkingVersion) {
+				$valid = WebDavHelper::isValidDavChunkingCombination(
+					$davPathVersion,
+					$chunkingVersion
+				);
+				if ($valid === false) {
+					continue;
+				}
+				$finalDestination = $destination;
+				if (!$overwriteMode && $chunkingVersion !== null) {
+					$finalDestination .= "-{$davHuman}dav-{$davHuman}chunking";
+				} elseif (!$overwriteMode && $chunkingVersion === null) {
+					$finalDestination .= "-{$davHuman}dav-regular";
+				}
+				$responses[] = self::upload(
+					$baseUrl,
+					$user,
+					$password,
+					$source,
+					$finalDestination,
+					[],
+					$davPathVersion,
+					$chunkingVersion,
+					2
+				);
+			}
+		}
+		return $responses;
+	}
+	/**
 	 * cut the file in multiple chunks
 	 * returns an array of chunks with the content of the file
 	 *
 	 * @param string $file
-	 * @param number $noOfChunks
+	 * @param int $noOfChunks
+	 *
 	 * @return array $string
 	 */
-	public static function chunkFile($file, $noOfChunks = 1) { 
-		$size = filesize($file);
-		$chunkSize = ceil($size / $noOfChunks);
+	public static function chunkFile($file, $noOfChunks = 1) {
+		$size = \filesize($file);
+		$chunkSize = \ceil($size / $noOfChunks);
 		$chunks = [];
-		$fp = fopen($file, 'r');
-		while (!feof($fp) && ftell($fp) < $size) {
-			$chunks[] = fread($fp, $chunkSize);
+		$fp = \fopen($file, 'r');
+		while (!\feof($fp) && \ftell($fp) < $size) {
+			$chunks[] = \fread($fp, $chunkSize);
 		}
-		fclose($fp);
-		if (count($chunks) === 0) {
+		\fclose($fp);
+		if (\count($chunks) === 0) {
 			// chunk an empty file
 			$chunks[] = '';
 		}
@@ -172,23 +237,24 @@ class UploadHelper {
 	 *
 	 * @param string $name full path of the file to create
 	 * @param int $size
+	 *
 	 * @return void
 	 */
 	public static function createFileSpecificSize($name, $size) {
-		if (file_exists($name)) {
-			unlink($name);
+		if (\file_exists($name)) {
+			\unlink($name);
 		}
-		$file = fopen($name, 'w');
-		fseek($file, max($size - 1, 0), SEEK_CUR);
+		$file = \fopen($name, 'w');
+		\fseek($file, \max($size - 1, 0), SEEK_CUR);
 		if ($size) {
-			fwrite($file, 'a'); // write a dummy char at SIZE position
+			\fwrite($file, 'a'); // write a dummy char at SIZE position
 		}
-		fclose($file);
+		\fclose($file);
 		PHPUnit_Framework_Assert::assertEquals(
-			1, file_exists($name)
+			1, \file_exists($name)
 		);
 		PHPUnit_Framework_Assert::assertEquals(
-			$size, filesize($name)
+			$size, \filesize($name)
 		);
 	}
 
@@ -197,14 +263,26 @@ class UploadHelper {
 	 *
 	 * @param string $name full path of the file to create
 	 * @param string $text
+	 *
 	 * @return void
 	 */
 	public static function createFileWithText($name, $text) {
-		$file = fopen($name, 'w');
-		fwrite($file, $text);
-		fclose($file);
+		$file = \fopen($name, 'w');
+		\fwrite($file, $text);
+		\fclose($file);
 		PHPUnit_Framework_Assert::assertEquals(
-			1, file_exists($name)
+			1, \file_exists($name)
 		);
+	}
+
+	/**
+	 * get the path of a file from FilesForUpload directory
+	 *
+	 * @param string $name name of the file to upload
+	 *
+	 * @return string
+	 */
+	public static function getUploadFilesDir($name) {
+		return \getenv("FILES_FOR_UPLOAD") . $name;
 	}
 }

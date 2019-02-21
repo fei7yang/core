@@ -6,7 +6,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -31,8 +31,7 @@ namespace OCA\Files_Sharing\Tests;
  * @group DB
  */
 class ExternalStorageTest extends \Test\TestCase {
-
-	function optionsProvider() {
+	public function optionsProvider() {
 		return [
 			[
 				'http://remoteserver:8080/owncloud',
@@ -91,7 +90,7 @@ class ExternalStorageTest extends \Test\TestCase {
 
 	public function testIfTestReturnsTheValue() {
 		$result = $this->getTestStorage('https://remoteserver')->test();
-		$this->assertSame(true, $result);
+		$this->assertTrue($result);
 	}
 }
 
@@ -99,7 +98,6 @@ class ExternalStorageTest extends \Test\TestCase {
  * Dummy subclass to make it possible to access private members
  */
 class TestSharingExternalStorage extends \OCA\Files_Sharing\External\Storage {
-
 	public function getBaseUri() {
 		return $this->createBaseUri();
 	}

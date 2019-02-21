@@ -4,7 +4,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -29,7 +29,6 @@ namespace OCA\DAV\Tests\unit\Connector\Sabre;
  * See the COPYING-README file.
  */
 class TagsPluginTest extends \Test\TestCase {
-
 	const TAGS_PROPERTYNAME = \OCA\DAV\Connector\Sabre\TagsPlugin::TAGS_PROPERTYNAME;
 	const FAVORITE_PROPERTYNAME = \OCA\DAV\Connector\Sabre\TagsPlugin::FAVORITE_PROPERTYNAME;
 	const TAG_FAVORITE = \OCA\DAV\Connector\Sabre\TagsPlugin::TAG_FAVORITE;
@@ -87,7 +86,7 @@ class TagsPluginTest extends \Test\TestCase {
 			->will($this->returnValue(123));
 
 		$expectedCallCount = 0;
-		if (count($requestedProperties) > 0) {
+		if (\count($requestedProperties) > 0) {
 			$expectedCallCount = 1;
 		}
 
@@ -132,7 +131,7 @@ class TagsPluginTest extends \Test\TestCase {
 			->will($this->returnValue(222));
 
 		$expectedCallCount = 0;
-		if (count($requestedProperties) > 0) {
+		if (\count($requestedProperties) > 0) {
 			// this guarantees that getTagsForObjects
 			// is only called once and then the tags
 			// are cached
@@ -196,7 +195,7 @@ class TagsPluginTest extends \Test\TestCase {
 		$this->assertEquals($expectedProperties, $result);
 	}
 
-	function tagsGetPropertiesDataProvider() {
+	public function tagsGetPropertiesDataProvider() {
 		return [
 			// request both, receive both
 			[
@@ -301,7 +300,7 @@ class TagsPluginTest extends \Test\TestCase {
 
 		$result = $propPatch->getResult();
 		$this->assertEquals(200, $result[self::TAGS_PROPERTYNAME]);
-		$this->assertFalse(isset($result[self::FAVORITE_PROPERTYNAME]));
+		$this->assertArrayNotHasKey(self::FAVORITE_PROPERTYNAME, $result);
 	}
 
 	public function testUpdateTagsFromScratch() {
@@ -414,5 +413,4 @@ class TagsPluginTest extends \Test\TestCase {
 		$this->assertFalse(false, isset($result[self::TAGS_PROPERTYNAME]));
 		$this->assertEquals(200, isset($result[self::FAVORITE_PROPERTYNAME]));
 	}
-
 }

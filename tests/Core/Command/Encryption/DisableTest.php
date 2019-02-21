@@ -2,7 +2,7 @@
 /**
  * @author Joas Schilling <nickvergessen@owncloud.com>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -20,7 +20,6 @@
  */
 
 namespace Tests\Core\Command\Encryption;
-
 
 use OC\Core\Command\Encryption\Disable;
 use Test\TestCase;
@@ -48,7 +47,6 @@ class DisableTest extends TestCase {
 		/** @var \OCP\IConfig $config */
 		$this->command = new Disable($config);
 	}
-
 
 	public function dataDisable() {
 		return [

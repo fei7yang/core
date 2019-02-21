@@ -5,7 +5,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -24,17 +24,16 @@
 
 namespace OCA\DAV\Tests\unit\Connector\Sabre;
 
+use OC\Files\View;
 use OCA\DAV\Connector\Sabre\FilesReportPlugin as FilesReportPluginImplementation;
 use OCA\DAV\Files\Xml\FilterRequest;
-use OCP\SystemTag\ISystemTagObjectMapper;
-use OC\Files\View;
 use OCP\Files\Folder;
-use OCP\IGroupManager;
-use OCP\SystemTag\ISystemTagManager;
-use OCP\ITags;
-use OCP\Files\FileInfo;
-use OCP\IRequest;
 use OCP\IConfig;
+use OCP\IGroupManager;
+use OCP\IRequest;
+use OCP\ITags;
+use OCP\SystemTag\ISystemTagManager;
+use OCP\SystemTag\ISystemTagObjectMapper;
 
 class FilesReportPluginTest extends \Test\TestCase {
 	/** @var \Sabre\DAV\Server|\PHPUnit_Framework_MockObject_MockObject */
@@ -238,7 +237,7 @@ class FilesReportPluginTest extends \Test\TestCase {
 		$responses = null;
 		$this->server->expects($this->once())
 			->method('generateMultiStatus')
-			->will($this->returnCallback(function($responsesArg) use (&$responses) {
+			->will($this->returnCallback(function ($responsesArg) use (&$responses) {
 				$responses = $responsesArg;
 			})
 		);
@@ -295,7 +294,7 @@ class FilesReportPluginTest extends \Test\TestCase {
 		// return all above nodes as favorites
 		$this->privateTags->expects($this->once())
 			->method('getFavorites')
-			->will($this->returnValue(array_keys($filesNodes)));
+			->will($this->returnValue(\array_keys($filesNodes)));
 
 		$reportTargetNode = $this->createMock(\OCA\DAV\Connector\Sabre\Directory::class);
 
@@ -327,7 +326,7 @@ class FilesReportPluginTest extends \Test\TestCase {
 		$responses = null;
 		$this->server->expects($this->once())
 			->method('generateMultiStatus')
-			->will($this->returnCallback(function($responsesArg) use (&$responses) {
+			->will($this->returnCallback(function ($responsesArg) use (&$responses) {
 				$responses = $responsesArg;
 			})
 		);
@@ -404,7 +403,6 @@ class FilesReportPluginTest extends \Test\TestCase {
 			->method('getPath')
 			->will($this->returnValue('/sub1/sub2'));
 
-
 		$subNode = $this->getMockBuilder('\OCP\Files\Folder')
 			->disableOriginalConstructor()
 			->getMock();
@@ -471,13 +469,12 @@ class FilesReportPluginTest extends \Test\TestCase {
 				['456', 'files', 0, '', ['222', '333']],
 			]);
 
-
 		$rules = [
 			'systemtag' => ['123', '456'],
 			'favorite' => null
 		];
 
-		$this->assertEquals(['222'], array_values($this->invokePrivate($this->plugin, 'processFilterRules', [$rules])));
+		$this->assertEquals(['222'], \array_values($this->invokePrivate($this->plugin, 'processFilterRules', [$rules])));
 	}
 
 	public function testProcessFilterRulesAndConditionWithOneEmptyResult() {
@@ -501,7 +498,7 @@ class FilesReportPluginTest extends \Test\TestCase {
 			'favorite' => null
 		];
 
-		$this->assertEquals([], array_values($this->invokePrivate($this->plugin, 'processFilterRules', [$rules])));
+		$this->assertEquals([], \array_values($this->invokePrivate($this->plugin, 'processFilterRules', [$rules])));
 	}
 
 	public function testProcessFilterRulesAndConditionWithFirstEmptyResult() {
@@ -525,7 +522,7 @@ class FilesReportPluginTest extends \Test\TestCase {
 			'favorite' => null
 		];
 
-		$this->assertEquals([], array_values($this->invokePrivate($this->plugin, 'processFilterRules', [$rules])));
+		$this->assertEquals([], \array_values($this->invokePrivate($this->plugin, 'processFilterRules', [$rules])));
 	}
 
 	public function testProcessFilterRulesAndConditionWithEmptyMidResult() {
@@ -551,7 +548,7 @@ class FilesReportPluginTest extends \Test\TestCase {
 			'favorite' => null
 		];
 
-		$this->assertEquals([], array_values($this->invokePrivate($this->plugin, 'processFilterRules', [$rules])));
+		$this->assertEquals([], \array_values($this->invokePrivate($this->plugin, 'processFilterRules', [$rules])));
 	}
 
 	public function testProcessFilterRulesInvisibleTagAsAdmin() {
@@ -593,7 +590,7 @@ class FilesReportPluginTest extends \Test\TestCase {
 			'favorite' => null
 		];
 
-		$this->assertEquals(['222'], array_values($this->invokePrivate($this->plugin, 'processFilterRules', [$rules])));
+		$this->assertEquals(['222'], \array_values($this->invokePrivate($this->plugin, 'processFilterRules', [$rules])));
 	}
 
 	/**
@@ -673,7 +670,7 @@ class FilesReportPluginTest extends \Test\TestCase {
 			'favorite' => null
 		];
 
-		$this->assertEquals(['222'], array_values($this->invokePrivate($this->plugin, 'processFilterRules', [$rules])));
+		$this->assertEquals(['222'], \array_values($this->invokePrivate($this->plugin, 'processFilterRules', [$rules])));
 	}
 
 	public function testProcessFavoriteFilter() {
@@ -686,7 +683,7 @@ class FilesReportPluginTest extends \Test\TestCase {
 			->method('getFavorites')
 			->will($this->returnValue(['456', '789']));
 
-		$this->assertEquals(['456', '789'], array_values($this->invokePrivate($this->plugin, 'processFilterRules', [$rules])));
+		$this->assertEquals(['456', '789'], \array_values($this->invokePrivate($this->plugin, 'processFilterRules', [$rules])));
 	}
 
 	public function filesBaseUriProvider() {

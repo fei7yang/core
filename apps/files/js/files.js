@@ -114,11 +114,12 @@
 				return;
 			}
 
+			var currentUser = OC.getCurrentUser().uid;
 			var usedSpacePercent = $('#usedSpacePercent').val(),
 				owner = $('#owner').val(),
 				ownerDisplayName = $('#ownerDisplayName').val();
 			if (usedSpacePercent > 98) {
-				if (owner !== oc_current_user) {
+				if (owner !== currentUser) {
 					OC.Notification.show(t('files', 'Storage of {owner} is full, files can not be updated or synced anymore!', 
 						{owner: ownerDisplayName}), {type: 'error'}
 					);
@@ -131,7 +132,7 @@
 				return;
 			}
 			if (usedSpacePercent > 90) {
-				if (owner !== oc_current_user) {
+				if (owner !== currentUser) {
 					OC.Notification.show(t('files', 'Storage of {owner} is almost full ({usedSpacePercent}%)', 
 						{
 							usedSpacePercent: usedSpacePercent,  
@@ -242,9 +243,6 @@
 		 */
 		initialize: function() {
 			Files.bindKeyboardShortcuts(document, $);
-
-			// TODO: move file list related code (upload) to OCA.Files.FileList
-			$('#file_action_panel').attr('activeAction', false);
 
 			// drag&drop support using jquery.fileupload
 			// TODO use OC.dialogs

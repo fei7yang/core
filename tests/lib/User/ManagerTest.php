@@ -14,11 +14,16 @@ use OC\User\AccountTermMapper;
 use OC\User\Backend;
 use OC\User\Database;
 use OC\User\Manager;
+use OC\User\SyncService;
 use OCP\AppFramework\Db\DoesNotExistException;
+use OCP\AppFramework\Db\MultipleObjectsReturnedException;
 use OCP\IConfig;
 use OCP\ILogger;
 use OCP\IUser;
+use Punic\Data;
 use Test\TestCase;
+use Symfony\Component\EventDispatcher\EventDispatcher;
+use Symfony\Component\EventDispatcher\GenericEvent;
 
 /**
  * Class ManagerTest
@@ -33,19 +38,34 @@ class ManagerTest extends TestCase {
 	private $manager;
 	/** @var AccountMapper | \PHPUnit_Framework_MockObject_MockObject */
 	private $accountMapper;
-	/** @var AccountTermMapper | \PHPUnit_Framework_MockObject_MockObject */
-	private $accountTermMapper;
+	/** @var SyncService | \PHPUnit_Framework_MockObject_MockObject */
+	private $syncService;
+
+	/**
+	 * @var \OCP\Util\UserSearch
+	 */
+	protected $userSearch;
 
 	public function setUp() {
 		parent::setUp();
 
+		$this->overwriteService('EventDispatcher', new EventDispatcher());
 		/** @var IConfig | \PHPUnit_Framework_MockObject_MockObject $config */
 		$config = $this->createMock(IConfig::class);
 		/** @var ILogger | \PHPUnit_Framework_MockObject_MockObject $logger */
 		$logger = $this->createMock(ILogger::class);
 		$this->accountMapper = $this->createMock(AccountMapper::class);
-		$this->accountTermMapper = $this->createMock(AccountTermMapper::class);
-		$this->manager = new \OC\User\Manager($config, $logger, $this->accountMapper, $this->accountTermMapper);
+		$this->syncService = $this->createMock(SyncService::class);
+
+		$this->userSearch = $this->getMockBuilder(\OCP\Util\UserSearch::class)
+			->disableOriginalConstructor()
+			->getMock();
+		$this->userSearch->expects($this->any())
+			->method('isSearchable')
+			->willReturn(true);
+		$this->manager = new \OC\User\Manager(
+			$config, $logger, $this->accountMapper, $this->syncService, $this->userSearch
+		);
 	}
 
 	public function testGetBackends() {
@@ -60,19 +80,14 @@ class ManagerTest extends TestCase {
 		$this->assertEquals([$backend, $dummyDatabaseBackend], $this->manager->getBackends());
 	}
 
-
-	public function testUserExistsSingleBackendExists() {
+	public function testUserExistsAccountExists() {
 		$account = $this->createMock(Account::class);
 		$this->accountMapper->expects($this->once())->method('getByUid')->with('foo')->willReturn($account);
 		$this->assertTrue($this->manager->userExists('foo'));
 	}
 
-	public function testUserExistsSingleBackendNotExists() {
+	public function testUserExistsAccountNotExists() {
 		$this->accountMapper->expects($this->once())->method('getByUid')->with('foo')->willThrowException(new DoesNotExistException(''));
-		$this->assertFalse($this->manager->userExists('foo'));
-	}
-
-	public function testUserExistsNoBackends() {
 		$this->assertFalse($this->manager->userExists('foo'));
 	}
 
@@ -89,20 +104,24 @@ class ManagerTest extends TestCase {
 		$backend->expects($this->any())
 			->method('implementsActions')
 			->will($this->returnCallback(function ($actions) {
-				if ($actions === \OC_User_Backend::CHECK_PASSWORD) {
+				if ($actions === \OC\User\Backend::CHECK_PASSWORD) {
 					return true;
 				} else {
 					return false;
 				}
 			}));
 
+		$account = $this->createMock(Account::class);
+
+		$this->syncService->expects($this->once())
+			->method('createOrSyncAccount')
+			->with('foo', $backend)
+			->willReturn($account);
+
 		$this->manager->registerBackend($backend);
 
-		$account = $this->createMock(Account::class);
-		$this->accountMapper->expects($this->once())->method('getByUid')->with('foo')->willReturn($account);
-
 		$user = $this->manager->checkPassword('foo', 'bar');
-		$this->assertTrue($user instanceof \OC\User\User);
+		$this->assertInstanceOf(\OC\User\User::class, $user);
 	}
 
 	public function testCheckPasswordNotSupported() {
@@ -122,15 +141,21 @@ class ManagerTest extends TestCase {
 		$this->assertFalse($this->manager->checkPassword('foo', 'bar'));
 	}
 
-	public function testGetOneBackendExists() {
+	public function testGetAccountExists() {
 		$account = new Account();
 		$account->setUserId('foo');
 		$this->accountMapper->expects($this->once())->method('getByUid')->with('foo')->willReturn($account);
 		$this->assertEquals('foo', $this->manager->get('foo')->getUID());
 	}
 
-	public function testGetOneBackendNotExists() {
-		$this->assertEquals(null, $this->manager->get('foo'));
+	public function testGetAccountNotExists() {
+		$this->accountMapper->expects($this->once())->method('getByUid')->with('foo')->willThrowException(new DoesNotExistException(''));
+		$this->assertNull($this->manager->get('foo'));
+	}
+
+	public function testGetDuplicateAccountNotExists() {
+		$this->accountMapper->expects($this->once())->method('getByUid')->with('foo')->willThrowException(new MultipleObjectsReturnedException(''));
+		$this->assertNull($this->manager->get('foo'));
 	}
 
 	public function testFind() {
@@ -141,9 +166,9 @@ class ManagerTest extends TestCase {
 		$this->accountMapper->expects($this->once())->method('find')
 			->with('fo')->willReturn([$a0, $a1]);
 		$result = $this->manager->find('fo');
-		$this->assertEquals(2, count($result));
-		$this->assertEquals('foo', array_shift($result)->getUID());
-		$this->assertEquals('foob', array_shift($result)->getUID());
+		$this->assertCount(2, $result);
+		$this->assertEquals('foo', \array_shift($result)->getUID());
+		$this->assertEquals('foob', \array_shift($result)->getUID());
 	}
 
 	public function testSearch() {
@@ -154,9 +179,9 @@ class ManagerTest extends TestCase {
 		$this->accountMapper->expects($this->once())->method('search')
 			->with('user_id', 'fo')->willReturn([$a0, $a1]);
 		$result = $this->manager->search('fo');
-		$this->assertEquals(2, count($result));
-		$this->assertEquals('afoo', array_shift($result)->getUID());
-		$this->assertEquals('foo', array_shift($result)->getUID());
+		$this->assertCount(2, $result);
+		$this->assertEquals('afoo', \array_shift($result)->getUID());
+		$this->assertEquals('foo', \array_shift($result)->getUID());
 	}
 
 	public function testSearchLimitOffset() {
@@ -169,10 +194,10 @@ class ManagerTest extends TestCase {
 		$this->accountMapper->expects($this->once())->method('search')
 			->with('user_id', 'fo', 3, 1)->willReturn([$a0, $a1, $a2]);
 		$result = $this->manager->search('fo', 3, 1);
-		$this->assertEquals(3, count($result));
-		$this->assertEquals('foo1', array_shift($result)->getUID());
-		$this->assertEquals('foo2', array_shift($result)->getUID());
-		$this->assertEquals('foo3', array_shift($result)->getUID());
+		$this->assertCount(3, $result);
+		$this->assertEquals('foo1', \array_shift($result)->getUID());
+		$this->assertEquals('foo2', \array_shift($result)->getUID());
+		$this->assertEquals('foo3', \array_shift($result)->getUID());
 	}
 
 	public function testCountUsersNoBackend() {
@@ -266,7 +291,7 @@ class ManagerTest extends TestCase {
 
 		$users = [];
 		$this->manager->callForAllUsers($function, '', true);
-		$this->assertEquals(count($usersBefore) + 3, count($users), join(', ', $usersBefore) . " !== " . join(', ', $users));
+		$this->assertCount(\count($usersBefore) + 3, $users, \join(', ', $usersBefore) . " !== " . \join(', ', $users));
 
 		//cleanup
 		$user1->delete();
@@ -274,10 +299,41 @@ class ManagerTest extends TestCase {
 		$user3->delete();
 		$user4->delete();
 	}
-	
+
+	public function testUsernameMaxLength() {
+		$this->expectException(\Exception::class);
+		$this->expectExceptionMessage('The username can not be longer than 64 characters');
+		$this->manager = \OC::$server->getUserManager();
+		$user = $this->manager->createUser('testuser123456789012345678901234567890123456789012345678901234567890', 'testuser1');
+	}
+
 	public function testNullUidMakesNoQueryToAccountsTable() {
 		// migration from versions below 10.0. accounts table hasn't been created yet.
 		$this->accountMapper->expects($this->never())->method('getByUid');
 		$this->assertNull($this->manager->get(null));
+	}
+
+	public function testValidatePassword() {
+		$this->accountMapper->expects($this->once())
+			->method('getByUid')
+			->with('testuser1')
+			->willThrowException(new DoesNotExistException(''));
+
+		$account = $this->createMock(Account::class);
+		$this->syncService->expects($this->once())
+			->method('createOrSyncAccount')
+			->with('testuser1')
+			->willReturn($account);
+
+		$event = null;
+		\OC::$server->getEventDispatcher()->addListener('OCP\User::validatePassword',
+			function (GenericEvent $receivedEvent) use (&$event) {
+				$event = $receivedEvent;
+			});
+
+		$this->manager->createUser('testuser1', 'abcdefg');
+
+		$this->assertEquals('abcdefg', $event->getArgument('password'));
+		$this->assertEquals('testuser1', $event->getArgument('uid'));
 	}
 }

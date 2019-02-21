@@ -2,7 +2,7 @@
 /**
  * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -44,29 +44,29 @@ class Inactive extends Base {
 	protected function configure() {
 		$this
 			->setName('user:inactive')
-			->setDescription('reports users who are known to owncloud, but have not logged in for a certain number of days')
+			->setDescription('Reports users who are known to ownCloud, but have not logged in for a certain number of days.')
 			->addArgument(
 				'days',
 				InputArgument::REQUIRED,
-				'Integer number of days that the user has not logged in since'
+				'The number of days (integer) that the user has not logged in since.'
 			);
 		parent::configure();
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output) {
 		$days = $input->getArgument('days');
-		if((!is_int($days) && !ctype_digit($days)) || $days < 1) {
+		if ((!\is_int($days) && !\ctype_digit($days)) || $days < 1) {
 			throw new InvalidArgumentException('Days must be integer and above zero');
 		}
 
-		$now = time();
+		$now = \time();
 
 		$inactive = [];
-		$this->userManager->callForSeenUsers(function(IUser $user) use (&$inactive, $days, $now) {
+		$this->userManager->callForSeenUsers(function (IUser $user) use (&$inactive, $days, $now) {
 			$lastLogin = $user->getLastLogin();
 			// Difference between now and last login, into days, and rounded down
-			$daysSinceLastLogin = floor(($now - $lastLogin) / (60*60*24));
-			if($daysSinceLastLogin >= $days) {
+			$daysSinceLastLogin = \floor(($now - $lastLogin) / (60*60*24));
+			if ($daysSinceLastLogin >= $days) {
 				$inactive[] = [
 					'uid' => $user->getUID(),
 					'displayName' => $user->getDisplayName(),
@@ -76,6 +76,5 @@ class Inactive extends Base {
 		});
 
 		$this->writeArrayInOutputFormat($input, $output, $inactive);
-
 	}
 }

@@ -3,7 +3,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -53,8 +53,8 @@ class Option extends Config {
 	 */
 	protected function getOption(IStorageConfig $mount, $key, OutputInterface $output) {
 		$value = $mount->getMountOption($key);
-		if (!is_string($value)) { // show bools and objects correctly
-			$value = json_encode($value);
+		if (!\is_string($value)) { // show bools and objects correctly
+			$value = \json_encode($value);
 		}
 		$output->writeln($value);
 	}
@@ -66,8 +66,8 @@ class Option extends Config {
 	 * @param OutputInterface $output
 	 */
 	protected function setOption(IStorageConfig $mount, $key, $value, OutputInterface $output) {
-		$decoded = json_decode($value, true);
-		if (!is_null($decoded)) {
+		$decoded = \json_decode($value, true);
+		if ($decoded !== null) {
 			$value = $decoded;
 		}
 		$mount->setMountOption($key, $value);

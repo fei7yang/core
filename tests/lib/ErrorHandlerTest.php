@@ -3,7 +3,7 @@
  * ownCloud
  *
  * @author Bjoern Schiessle
- * @copyright 2014 Bjoern Schiessle <schiessle@owncloud.com>
+ * @copyright Copyright (c) 2014 Bjoern Schiessle <schiessle@owncloud.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
@@ -28,7 +28,7 @@ class ErrorHandlerTest extends \Test\TestCase {
 	 * provide username, password combinations for testRemovePassword
 	 * @return array
 	 */
-	function passwordProvider() {
+	public function passwordProvider() {
 		return [
 			['user', 'password'],
 			['user@owncloud.org', 'password'],
@@ -36,7 +36,6 @@ class ErrorHandlerTest extends \Test\TestCase {
 			['us:er', 'password'],
 			['user', 'pass:word'],
 		];
-
 	}
 
 	/**
@@ -44,14 +43,13 @@ class ErrorHandlerTest extends \Test\TestCase {
 	 * @param string $username
 	 * @param string $password
 	 */
-	function testRemovePassword($username, $password) {
+	public function testRemovePassword($username, $password) {
 		$url = 'http://'.$username.':'.$password.'@owncloud.org';
 		$expectedResult = 'http://xxx:xxx@owncloud.org';
 		$result = TestableErrorHandler::testRemovePassword($url);
 
 		$this->assertEquals($expectedResult, $result);
 	}
-
 }
 
 /**

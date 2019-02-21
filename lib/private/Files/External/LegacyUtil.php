@@ -2,7 +2,7 @@
 /**
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -66,7 +66,7 @@ class LegacyUtil {
 			$mountPoint = '/'.$uid.'/files'.$storage->getMountPoint();
 			$mountEntry = self::prepareMountPointEntry($storage, false);
 			foreach ($mountEntry['options'] as &$option) {
-				$option = self::setUserVars($uid, $option);
+				$option = self::setUserVars($user->getUserName(), $option);
 			}
 			$mountPoints[$mountPoint] = $mountEntry;
 		}
@@ -75,7 +75,7 @@ class LegacyUtil {
 			$mountPoint = '/'.$uid.'/files'.$storage->getMountPoint();
 			$mountEntry = self::prepareMountPointEntry($storage, true);
 			foreach ($mountEntry['options'] as &$option) {
-				$option = self::setUserVars($uid, $option);
+				$option = self::setUserVars($user->getUserName(), $option);
 			}
 			$mountPoints[$mountPoint] = $mountEntry;
 		}
@@ -133,7 +133,7 @@ class LegacyUtil {
 	private static function prepareMountPointEntry(IStorageConfig $storage, $isPersonal) {
 		$mountEntry = [];
 
-		$mountEntry['mountpoint'] = substr($storage->getMountPoint(), 1); // remove leading slash
+		$mountEntry['mountpoint'] = \substr($storage->getMountPoint(), 1); // remove leading slash
 		$mountEntry['class'] = $storage->getBackend()->getIdentifier();
 		$mountEntry['backend'] = $storage->getBackend()->getText();
 		$mountEntry['authMechanism'] = $storage->getAuthMechanism()->getIdentifier();
@@ -163,15 +163,15 @@ class LegacyUtil {
 	 * @return string
 	 */
 	public static function setUserVars($user, $input) {
-		if (is_array($input)) {
+		if (\is_array($input)) {
 			foreach ($input as $key => $value) {
-				if (is_string($value)) {
-					$input[$key] = str_replace('$user', $user, $value);
+				if (\is_string($value)) {
+					$input[$key] = \str_replace('$user', $user, $value);
 				}
 			}
 		} else {
-			if (is_string($input)) {
-				$input = str_replace('$user', $user, $input);
+			if (\is_string($input)) {
+				$input = \str_replace('$user', $user, $input);
 			}
 		}
 		return $input;
@@ -190,10 +190,13 @@ class LegacyUtil {
 		if (self::$skipTest) {
 			return StorageNotAvailableException::STATUS_SUCCESS;
 		}
-		foreach ($options as $key => $option) {
-			$options[$key] = self::setUserVars(\OCP\User::getUser(), $option);
+		$user = \OC::$server->getUserSession()->getUser();
+		if ($user) {
+			foreach ($options as $key => $option) {
+				$options[$key] = self::setUserVars($user->getUserName(), $option);
+			}
 		}
-		if (class_exists($class)) {
+		if (\class_exists($class)) {
 			try {
 				/** @var \OC\Files\Storage\Common $storage */
 				$storage = new $class($options);
@@ -208,7 +211,7 @@ class LegacyUtil {
 					$storage->setAvailability(false);
 					throw $e;
 				}
-			} catch (Exception $exception) {
+			} catch (\Exception $exception) {
 				\OCP\Util::logException('files_external', $exception);
 				throw $exception;
 			}
@@ -230,9 +233,9 @@ class LegacyUtil {
 			$datadir = $config->getSystemValue('datadirectory', \OC::$SERVERROOT . '/data/');
 			$jsonFile = $config->getSystemValue('mount_file', $datadir . '/mount.json');
 		}
-		if (is_file($jsonFile)) {
-			$mountPoints = json_decode(file_get_contents($jsonFile), true);
-			if (is_array($mountPoints)) {
+		if (\is_file($jsonFile)) {
+			$mountPoints = \json_decode(\file_get_contents($jsonFile), true);
+			if (\is_array($mountPoints)) {
 				return $mountPoints;
 			}
 		}
@@ -280,7 +283,7 @@ class LegacyUtil {
 		$cipher = self::getCipher();
 		$iv = \OCP\Util::generateRandomBytes(16);
 		$cipher->setIV($iv);
-		return base64_encode($iv . $cipher->encrypt($password));
+		return \base64_encode($iv . $cipher->encrypt($password));
 	}
 
 	/**
@@ -291,10 +294,10 @@ class LegacyUtil {
 	 */
 	private static function decryptPassword($encryptedPassword) {
 		$cipher = self::getCipher();
-		$binaryPassword = base64_decode($encryptedPassword);
-		$iv = substr($binaryPassword, 0, 16);
+		$binaryPassword = \base64_decode($encryptedPassword);
+		$iv = \substr($binaryPassword, 0, 16);
 		$cipher->setIV($iv);
-		$binaryPassword = substr($binaryPassword, 16);
+		$binaryPassword = \substr($binaryPassword, 16);
 		return $cipher->decrypt($binaryPassword);
 	}
 
@@ -318,16 +321,16 @@ class LegacyUtil {
 	 * @return string
 	 */
 	public static function makeConfigHash($config) {
-		$data = json_encode(
-			array(
+		$data = \json_encode(
+			[
 				'c' => $config['backend'],
 				'a' => $config['authMechanism'],
 				'm' => $config['mountpoint'],
 				'o' => $config['options'],
 				'p' => isset($config['priority']) ? $config['priority'] : -1,
 				'mo' => isset($config['mountOptions']) ? $config['mountOptions'] : [],
-			)
+			]
 		);
-		return hash('md5', $data);
+		return \hash('md5', $data);
 	}
 }

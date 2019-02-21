@@ -5,7 +5,7 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -22,11 +22,9 @@
  *
  */
 
-
 namespace OC\AppFramework;
 
 use OC\AppFramework\Http\Dispatcher;
-use OC_App;
 use OC\AppFramework\DependencyInjection\DIContainer;
 use OCP\AppFramework\QueryException;
 use OCP\AppFramework\Http\ICallbackResponse;
@@ -38,7 +36,6 @@ use OCP\AppFramework\Http\ICallbackResponse;
  * Handles all the dependency injection, controllers and output flow
  */
 class App {
-
 
 	/**
 	 * Turns an app id into a namespace by either reading the appinfo.xml's
@@ -52,13 +49,12 @@ class App {
 		// first try to parse the app's appinfo/info.xml <namespace> tag
 		$appInfo = \OC_App::getAppInfo($appId);
 		if (isset($appInfo['namespace'])) {
-			return $topNamespace . trim($appInfo['namespace']);
+			return $topNamespace . \trim($appInfo['namespace']);
 		}
 
 		// if the tag is not found, fall back to uppercasing the first letter
-		return $topNamespace . ucfirst($appId);
+		return $topNamespace . \ucfirst($appId);
 	}
-
 
 	/**
 	 * Shortcut for calling a controller method and printing the result
@@ -69,9 +65,9 @@ class App {
 	 * @param array $urlParams list of URL parameters (optional)
 	 */
 	public static function main($controllerName, $methodName, DIContainer $container, array $urlParams = null) {
-		if (!is_null($urlParams)) {
+		if ($urlParams !== null) {
 			$container['OCP\\IRequest']->setUrlParameters($urlParams);
-		} else if (isset($container['urlParams']) && !is_null($container['urlParams'])) {
+		} elseif (isset($container['urlParams']) && $container['urlParams'] !== null) {
 			$container['OCP\\IRequest']->setUrlParameters($container['urlParams']);
 		}
 		$appName = $container['AppName'];
@@ -79,10 +75,16 @@ class App {
 		// first try $controllerName then go for \OCA\AppName\Controller\$controllerName
 		try {
 			$controller = $container->query($controllerName);
-		} catch(QueryException $e) {
+		} catch (QueryException $e) {
 			$appNameSpace = self::buildAppNamespace($appName);
 			$controllerName = $appNameSpace . '\\Controller\\' . $controllerName;
-			$controller = $container->query($controllerName);
+			try {
+				$controller = $container->query($controllerName);
+			} catch (QueryException $e2) {
+				// the reason we got here could also be because of the first exception above,
+				// so combine the message from both
+				throw new QueryException($e2->getMessage() . ' or error resolving constructor arguments: ' . $e->getMessage());
+			}
 		}
 
 		// initialize the dispatcher and run all the middleware before the controller
@@ -99,17 +101,17 @@ class App {
 
 		$io = $container['OCP\\AppFramework\\Http\\IOutput'];
 
-		if(!is_null($httpHeaders)) {
+		if ($httpHeaders !== null) {
 			$io->setHeader($httpHeaders);
 		}
 
-		foreach($responseHeaders as $name => $value) {
+		foreach ($responseHeaders as $name => $value) {
 			$io->setHeader($name . ': ' . $value);
 		}
 
-		foreach($responseCookies as $name => $value) {
+		foreach ($responseCookies as $name => $value) {
 			$expireDate = null;
-			if($value['expireDate'] instanceof \DateTime) {
+			if ($value['expireDate'] instanceof \DateTime) {
 				$expireDate = $value['expireDate']->getTimestamp();
 			}
 			$io->setCookie(
@@ -125,11 +127,10 @@ class App {
 
 		if ($response instanceof ICallbackResponse) {
 			$response->callback($io);
-		} else if(!is_null($output)) {
-			$io->setHeader('Content-Length: ' . strlen($output));
+		} elseif ($output !== null) {
+			$io->setHeader('Content-Length: ' . \strlen($output));
 			$io->setOutput($output);
 		}
-
 	}
 
 	/**
@@ -145,8 +146,7 @@ class App {
 	 * @param DIContainer $container an instance of a pimple container.
 	 */
 	public static function part($controllerName, $methodName, array $urlParams,
-								DIContainer $container){
-
+								DIContainer $container) {
 		$container['urlParams'] = $urlParams;
 		$controller = $container[$controllerName];
 
@@ -155,5 +155,4 @@ class App {
 		list(, , $output) =  $dispatcher->dispatch($controller, $methodName);
 		return $output;
 	}
-
 }

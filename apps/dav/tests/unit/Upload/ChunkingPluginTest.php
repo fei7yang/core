@@ -2,7 +2,7 @@
 /**
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -19,19 +19,16 @@
  *
  */
 
-
 namespace OCA\DAV\Tests\unit\Upload;
 
-
+use OCA\DAV\Connector\Sabre\Directory;
 use OCA\DAV\Upload\ChunkingPlugin;
+use OCA\DAV\Upload\FutureFile;
 use Sabre\HTTP\RequestInterface;
 use Sabre\HTTP\ResponseInterface;
 use Test\TestCase;
-use OCA\DAV\Upload\FutureFile;
-use OCA\DAV\Connector\Sabre\Directory;
 
 class ChunkingPluginTest extends TestCase {
-
 
 	/**
 	 * @var \Sabre\DAV\Server | \PHPUnit_Framework_MockObject_MockObject
@@ -164,4 +161,53 @@ class ChunkingPluginTest extends TestCase {
 		$this->assertFalse($this->plugin->beforeMove('source', 'target'));
 	}
 
+	/**
+	 * We provide data to validate expectedSize and Actual size.
+	 * The actual size can be float too. So we check that too.
+	 * @return array
+	 */
+	public function expectedAndActualSizeData() {
+		return [
+			['12345678910', 12345678910.0],
+			['12345678910', 12345678910.0123],
+			['9999999999999', 9999999999999.0],
+			['9999999999999.9999', 9999999999999.9999],
+			['999999999999999.9999', 999999999999999.9999],
+			['9999999999999999999', 9999999999999999999],
+		];
+	}
+
+	/**
+	 * @dataProvider expectedAndActualSizeData
+	 * @param $expectedSize
+	 * @param $actualSize
+	 */
+	public function testVerifySizeFordifferentTypes($expectedSize, $actualSize) {
+		$reflector = new \ReflectionClass($this->plugin);
+		$property = $reflector->getProperty('sourceNode');
+		$property->setAccessible(true);
+
+		$sourceNode = $this->createMock(FutureFile::class);
+		$property->setValue($this->plugin, $sourceNode);
+		$sourceNode->expects($this->once())
+			->method('getSize')
+			->willReturn($actualSize);
+
+		$this->tree->expects($this->any())
+			->method('getNodeForPath')
+			->with('source')
+			->will($this->returnValue($sourceNode));
+		$this->request->expects($this->once())
+			->method('getHeader')
+			->with('OC-Total-Length')
+			->willReturn($expectedSize);
+
+		if ($expectedSize != $actualSize) {
+			$this->expectException(\Sabre\DAV\Exception\BadRequest::class);
+			$this->expectExceptionMessage(\sprintf("Chunks on server do not sum up to %s but to %.3f", $expectedSize, $actualSize));
+		} else {
+			$this->assertTrue(true);
+		}
+		$this->invokePrivate($this->plugin, 'verifySize', []);
+	}
 }

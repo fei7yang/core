@@ -8,7 +8,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -92,6 +92,9 @@ interface IDBConnection {
 
 	/**
 	 * Used to get the id of the just inserted element
+	 * Note: On postgres platform, this will return the last sequence id which
+	 * may not be the id last inserted if you were reinserting a previously
+	 * used auto_increment id.
 	 * @param string $table the name of the table where we inserted the item
 	 * @return int the id of the inserted element
 	 * @since 6.0.0
@@ -111,6 +114,20 @@ interface IDBConnection {
 	 * @since 6.0.0 - parameter $compare was added in 8.1.0, return type changed from boolean in 8.1.0
 	 */
 	public function insertIfNotExist($table, $input, array $compare = null);
+
+	/**
+	 * Attempt to update a row, else insert a new one
+	 *
+	 * @param string $table The table name (will replace *PREFIX* with the actual prefix)
+	 * @param array $input data that should be inserted into the table  (column name => value)
+	 * @param array|null $compare List of values that should be checked for "if not exists"
+	 *				If this is null or an empty array, all keys of $input will be compared
+	 *				Please note: text fields (clob) must not be used in the compare array
+	 * @return int number of affected rows
+	 * @throws \Doctrine\DBAL\DBALException
+	 * @since 10.0.3
+	 */
+	public function upsert($table, $input, array $compare = null);
 
 	/**
 	 * Insert or update a row value

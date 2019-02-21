@@ -6,7 +6,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -69,8 +69,7 @@ class API {
 	 * @since 5.0.0
 	 */
 	public static function register($method, $url, $action, $app, $authLevel = self::USER_AUTH,
-									$defaults = [], $requirements = [], $cors = true){
+									$defaults = [], $requirements = [], $cors = true) {
 		\OC_API::register($method, $url, $action, $app, $authLevel, $defaults, $requirements, $cors);
 	}
-
 }

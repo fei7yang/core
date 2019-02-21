@@ -7,7 +7,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -26,8 +26,8 @@
 
 namespace OCA\Provisioning_API;
 
-use \OC_OCS_Result;
-use \OC_App;
+use OC_App;
+use OC_OCS_Result;
 
 class Apps {
 	/** @var \OCP\App\IAppManager */
@@ -45,27 +45,26 @@ class Apps {
 	 * @return OC_OCS_Result
 	 */
 	public function getApps($parameters) {
-		$apps = OC_App::listAllApps(false, true);
+		$apps = OC_App::listAllApps();
 		$list = [];
-		foreach($apps as $app) {
+		foreach ($apps as $app) {
 			$list[] = $app['id'];
 		}
 		$filter = isset($_GET['filter']) ? $_GET['filter'] : false;
-		if($filter){
-			switch($filter){
+		if ($filter) {
+			switch ($filter) {
 				case 'enabled':
 					return new OC_OCS_Result(['apps' => \OC_App::getEnabledApps()]);
 					break;
 				case 'disabled':
 					$enabled = OC_App::getEnabledApps();
-					return new OC_OCS_Result(['apps' => array_diff($list, $enabled)]);
+					return new OC_OCS_Result(['apps' => \array_diff($list, $enabled)]);
 					break;
 				default:
 					// Invalid filter variable
 					return new OC_OCS_Result(null, 101);
 					break;
 			}
-
 		} else {
 			return new OC_OCS_Result(['apps' => $list]);
 		}
@@ -78,7 +77,7 @@ class Apps {
 	public function getAppInfo($parameters) {
 		$app = $parameters['appid'];
 		$info = \OCP\App::getAppInfo($app);
-		if(!is_null($info)) {
+		if ($info !== null) {
 			return new OC_OCS_Result(OC_App::getAppInfo($app));
 		} else {
 			return new OC_OCS_Result(null, \OCP\API::RESPOND_NOT_FOUND, 'The request app was not found');
@@ -104,5 +103,4 @@ class Apps {
 		$this->appManager->disableApp($app);
 		return new OC_OCS_Result(null, 100);
 	}
-
 }

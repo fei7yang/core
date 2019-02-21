@@ -3,7 +3,7 @@
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -22,7 +22,6 @@
 
 namespace OC\User;
 
-
 use OCP\AppFramework\Db\Entity;
 
 /**
@@ -36,7 +35,6 @@ use OCP\AppFramework\Db\Entity;
  * @package OC\User
  */
 class AccountTerm extends Entity {
-
 	protected $accountId;
 	protected $term;
 	public function __construct() {

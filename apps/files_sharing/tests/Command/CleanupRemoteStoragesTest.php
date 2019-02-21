@@ -3,7 +3,7 @@
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -23,7 +23,6 @@
 namespace OCA\Files_Sharing\Tests\Command;
 
 use OCA\Files_Sharing\Command\CleanupRemoteStorages;
-use OCP\DB\QueryBuilder\IQueryBuilder;
 use Test\TestCase;
 
 /**
@@ -99,7 +98,7 @@ class CleanupRemoteStoragesTest extends TestCase {
 				for ($i = 0; $i < $storage['files_count']; $i++) {
 					$filesQuery->setParameter(0, $storage['numeric_id']);
 					$filesQuery->setParameter(1, 'file' . $i);
-					$filesQuery->setParameter(2, md5('file' . $i));
+					$filesQuery->setParameter(2, \md5('file' . $i));
 					$filesQuery->execute();
 				}
 			}
@@ -188,7 +187,5 @@ class CleanupRemoteStoragesTest extends TestCase {
 		$this->assertFalse($this->doesStorageExist($this->storages[3]['numeric_id']));
 		$this->assertTrue($this->doesStorageExist($this->storages[4]['numeric_id']));
 		$this->assertFalse($this->doesStorageExist($this->storages[5]['numeric_id']));
-
 	}
 }
-

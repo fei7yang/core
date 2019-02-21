@@ -7,7 +7,7 @@
  * @author Stefan Weil <sw@weilnetz.de>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -37,6 +37,8 @@ use OCP\Files\StorageNotAvailableException;
 use OCP\Files\External\IStoragesBackendService;
 use OCP\Files\External\NotFoundException;
 use OCP\Files\External\Service\IStoragesService;
+use OCP\Files\External\Backend\InvalidBackend;
+use OCP\Files\External\Auth\InvalidAuth;
 
 /**
  * Service class to manage external storages
@@ -72,17 +74,17 @@ abstract class StoragesService implements IStoragesService {
 	}
 
 	protected function getStorageConfigFromDBMount(array $mount) {
-		$applicableUsers = array_filter($mount['applicable'], function ($applicable) {
+		$applicableUsers = \array_filter($mount['applicable'], function ($applicable) {
 			return $applicable['type'] === DBConfigService::APPLICABLE_TYPE_USER;
 		});
-		$applicableUsers = array_map(function ($applicable) {
+		$applicableUsers = \array_map(function ($applicable) {
 			return $applicable['value'];
 		}, $applicableUsers);
 
-		$applicableGroups = array_filter($mount['applicable'], function ($applicable) {
+		$applicableGroups = \array_filter($mount['applicable'], function ($applicable) {
 			return $applicable['type'] === DBConfigService::APPLICABLE_TYPE_GROUP;
 		});
-		$applicableGroups = array_map(function ($applicable) {
+		$applicableGroups = \array_map(function ($applicable) {
 			return $applicable['value'];
 		}, $applicableGroups);
 
@@ -93,8 +95,8 @@ abstract class StoragesService implements IStoragesService {
 				$mount['auth_backend'],
 				$mount['config'],
 				$mount['options'],
-				array_values($applicableUsers),
-				array_values($applicableGroups),
+				\array_values($applicableUsers),
+				\array_values($applicableGroups),
 				$mount['priority']
 			);
 			$config->setType($mount['type']);
@@ -125,16 +127,16 @@ abstract class StoragesService implements IStoragesService {
 	 */
 	protected function readConfig() {
 		$mounts = $this->readDBConfig();
-		$configs = array_map([$this, 'getStorageConfigFromDBMount'], $mounts);
-		$configs = array_filter($configs, function ($config) {
+		$configs = \array_map([$this, 'getStorageConfigFromDBMount'], $mounts);
+		$configs = \array_filter($configs, function ($config) {
 			return $config instanceof IStorageConfig;
 		});
 
-		$keys = array_map(function (IStorageConfig $config) {
+		$keys = \array_map(function (IStorageConfig $config) {
 			return $config->getId();
 		}, $configs);
 
-		return array_combine($keys, $configs);
+		return \array_combine($keys, $configs);
 	}
 
 	/**
@@ -148,7 +150,7 @@ abstract class StoragesService implements IStoragesService {
 	public function getStorage($id) {
 		$mount = $this->dbConfig->getMountById($id);
 
-		if (!is_array($mount)) {
+		if (!\is_array($mount)) {
 			throw new NotFoundException('Storage with id "' . $id . '" not found');
 		}
 
@@ -183,7 +185,7 @@ abstract class StoragesService implements IStoragesService {
 	 * @return IStorageConfig[]
 	 */
 	public function getStorages() {
-		return array_filter($this->getAllStorages(), [$this, 'validateStorage']);
+		return \array_filter($this->getAllStorages(), [$this, 'validateStorage']);
 	}
 
 	/**
@@ -268,7 +270,7 @@ abstract class StoragesService implements IStoragesService {
 			$this->dbConfig->setOption($configId, $key, $value);
 		}
 
-		if (count($newStorage->getApplicableUsers()) === 0 && count($newStorage->getApplicableGroups()) === 0) {
+		if (\count($newStorage->getApplicableUsers()) === 0 && \count($newStorage->getApplicableGroups()) === 0) {
 			$this->dbConfig->addApplicable($configId, DBConfigService::APPLICABLE_TYPE_GLOBAL, null);
 		}
 
@@ -307,11 +309,11 @@ abstract class StoragesService implements IStoragesService {
 	) {
 		$backend = $this->backendService->getBackend($backendIdentifier);
 		if (!$backend) {
-			throw new \InvalidArgumentException('Unable to get backend for ' . $backendIdentifier);
+			$backend = new InvalidBackend($backendIdentifier);
 		}
 		$authMechanism = $this->backendService->getAuthMechanism($authMechanismIdentifier);
 		if (!$authMechanism) {
-			throw new \InvalidArgumentException('Unable to get authentication mechanism for ' . $authMechanismIdentifier);
+			$authMechanism = new InvalidAuth($authMechanismIdentifier);
 		}
 		$newStorage = $this->createConfig();
 		$newStorage->setMountPoint($mountPoint);
@@ -388,21 +390,25 @@ abstract class StoragesService implements IStoragesService {
 
 		$existingMount = $this->dbConfig->getMountById($id);
 
-		if (!is_array($existingMount)) {
-			throw new NotFoundException('Storage with id "' . $id . '" not found while updating storage');
+		if (!\is_array($existingMount)) {
+			throw new NotFoundException('Storage config with id "' . $id . '" not found while updating storage');
 		}
 
 		$oldStorage = $this->getStorageConfigFromDBMount($existingMount);
 
-		$removedUsers = array_diff($oldStorage->getApplicableUsers(), $updatedStorage->getApplicableUsers());
-		$removedGroups = array_diff($oldStorage->getApplicableGroups(), $updatedStorage->getApplicableGroups());
-		$addedUsers = array_diff($updatedStorage->getApplicableUsers(), $oldStorage->getApplicableUsers());
-		$addedGroups = array_diff($updatedStorage->getApplicableGroups(), $oldStorage->getApplicableGroups());
+		if ($oldStorage->getBackend() instanceof InvalidBackend) {
+			throw new NotFoundException('Storage config with id "' . $id . '" and backend id "' . $oldStorage->getBackend()->getInvalidId() . '" cannot be edited due to missing backend');
+		}
 
-		$oldUserCount = count($oldStorage->getApplicableUsers());
-		$oldGroupCount = count($oldStorage->getApplicableGroups());
-		$newUserCount = count($updatedStorage->getApplicableUsers());
-		$newGroupCount = count($updatedStorage->getApplicableGroups());
+		$removedUsers = \array_diff($oldStorage->getApplicableUsers(), $updatedStorage->getApplicableUsers());
+		$removedGroups = \array_diff($oldStorage->getApplicableGroups(), $updatedStorage->getApplicableGroups());
+		$addedUsers = \array_diff($updatedStorage->getApplicableUsers(), $oldStorage->getApplicableUsers());
+		$addedGroups = \array_diff($updatedStorage->getApplicableGroups(), $oldStorage->getApplicableGroups());
+
+		$oldUserCount = \count($oldStorage->getApplicableUsers());
+		$oldGroupCount = \count($oldStorage->getApplicableGroups());
+		$newUserCount = \count($updatedStorage->getApplicableUsers());
+		$newGroupCount = \count($updatedStorage->getApplicableGroups());
 		$wasGlobal = ($oldUserCount + $oldGroupCount) === 0;
 		$isGlobal = ($newUserCount + $newGroupCount) === 0;
 
@@ -421,12 +427,12 @@ abstract class StoragesService implements IStoragesService {
 
 		if ($wasGlobal && !$isGlobal) {
 			$this->dbConfig->removeApplicable($id, DBConfigService::APPLICABLE_TYPE_GLOBAL, null);
-		} else if (!$wasGlobal && $isGlobal) {
+		} elseif (!$wasGlobal && $isGlobal) {
 			$this->dbConfig->addApplicable($id, DBConfigService::APPLICABLE_TYPE_GLOBAL, null);
 		}
 
-		$changedConfig = array_diff_assoc($updatedStorage->getBackendOptions(), $oldStorage->getBackendOptions());
-		$changedOptions = array_diff_assoc($updatedStorage->getMountOptions(), $oldStorage->getMountOptions());
+		$changedConfig = \array_diff_assoc($updatedStorage->getBackendOptions(), $oldStorage->getBackendOptions());
+		$changedOptions = \array_diff_assoc($updatedStorage->getMountOptions(), $oldStorage->getMountOptions());
 
 		foreach ($changedConfig as $key => $value) {
 			$this->dbConfig->setConfig($id, $key, $value);
@@ -445,7 +451,7 @@ abstract class StoragesService implements IStoragesService {
 
 		$this->triggerChangeHooks($oldStorage, $updatedStorage);
 
-		if (($wasGlobal && !$isGlobal) || count($removedGroups) > 0) { // to expensive to properly handle these on the fly
+		if (($wasGlobal && !$isGlobal) || \count($removedGroups) > 0) { // to expensive to properly handle these on the fly
 			$this->userMountCache->remoteStorageMounts($this->getStorageId($updatedStorage));
 		} else {
 			$storageId = $this->getStorageId($updatedStorage);
@@ -467,7 +473,7 @@ abstract class StoragesService implements IStoragesService {
 	public function removeStorage($id) {
 		$existingMount = $this->dbConfig->getMountById($id);
 
-		if (!is_array($existingMount)) {
+		if (!\is_array($existingMount)) {
 			throw new NotFoundException('Storage with id "' . $id . '" not found');
 		}
 
@@ -503,7 +509,7 @@ abstract class StoragesService implements IStoragesService {
 		// to compute the possible storage id as we don't know which users
 		// mounted it already (and we certainly don't want to iterate over ALL users)
 		foreach ($storageConfig->getBackendOptions() as $value) {
-			if (strpos($value, '$user') !== false) {
+			if (\strpos($value, '$user') !== false) {
 				throw new \Exception('Cannot compute storage id for deletion due to $user vars in the configuration');
 			}
 		}

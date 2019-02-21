@@ -2,7 +2,7 @@
 /**
  * @author Joas Schilling <coding@schilljs.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -30,7 +30,6 @@ use Symfony\Component\EventDispatcher\Event;
  * @since 9.1.0
  */
 class CommentsEntityEvent extends Event {
-
 	const EVENT_ENTITY = 'OCP\Comments\ICommentsManager::registerEntity';
 
 	/** @var string */

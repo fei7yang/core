@@ -5,7 +5,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -22,13 +22,11 @@
  *
  */
 
-
 namespace OCA\Federation\BackgroundJob;
 
-
 use GuzzleHttp\Exception\ClientException;
-use OC\BackgroundJob\JobList;
 use OC\BackgroundJob\Job;
+use OC\BackgroundJob\JobList;
 use OCA\Federation\DbHandler;
 use OCA\Federation\TrustedServers;
 use OCP\AppFramework\Http;
@@ -105,7 +103,6 @@ class RequestSharedSecret extends Job {
 		}
 	}
 
-
 	/**
 	 * run the job, then remove it from the joblist
 	 *
@@ -135,10 +132,9 @@ class RequestSharedSecret extends Job {
 	}
 
 	protected function run($argument) {
-
 		$target = $argument['url'];
 		$source = $this->urlGenerator->getAbsoluteURL('/');
-		$source = rtrim($source, '/');
+		$source = \rtrim($source, '/');
 		$token = $argument['token'];
 
 		try {
@@ -155,7 +151,6 @@ class RequestSharedSecret extends Job {
 			);
 
 			$status = $result->getStatusCode();
-
 		} catch (ClientException $e) {
 			$status = $e->getCode();
 			if ($status === Http::STATUS_FORBIDDEN) {
@@ -180,6 +175,5 @@ class RequestSharedSecret extends Job {
 			// clear token if remote server refuses to ask for shared secret
 			$this->dbHandler->addToken($target, '');
 		}
-
 	}
 }

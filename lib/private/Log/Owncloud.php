@@ -11,7 +11,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -37,7 +37,7 @@ namespace OC\Log;
  */
 
 class Owncloud {
-	static protected $logFile;
+	protected static $logFile;
 
 	/**
 	 * Init class data
@@ -51,14 +51,8 @@ class Owncloud {
 		 * Fall back to default log file if specified logfile does not exist
 		 * and can not be created.
 		 */
-		if (!file_exists(self::$logFile)) {
-			if(!is_writable(dirname(self::$logFile))) {
-				self::$logFile = $defaultLogFile;
-			} else {
-				if(!touch(self::$logFile)) {
-					self::$logFile = $defaultLogFile;
-				}
-			}
+		if (!self::createLogFile(self::$logFile)) {
+			self::$logFile = $defaultLogFile;
 		}
 	}
 
@@ -70,17 +64,21 @@ class Owncloud {
 	 * @param string conditionalLogFile
 	 */
 	public static function write($app, $message, $level, $conditionalLogFile = null) {
+		return self::writeExtra($app, $message, $level, $conditionalLogFile, []);
+	}
+
+	public static function writeExtra($app, $message, $level, $conditionalLogFile, $extraFields = []) {
 		$config = \OC::$server->getSystemConfig();
 
 		// default to ISO8601
 		$format = $config->getValue('logdateformat', 'c');
-		$logTimeZone = $config->getValue( "logtimezone", 'UTC' );
+		$logTimeZone = $config->getValue("logtimezone", 'UTC');
 		try {
 			$timezone = new \DateTimeZone($logTimeZone);
 		} catch (\Exception $e) {
 			$timezone = new \DateTimeZone('UTC');
 		}
-		$time = \DateTime::createFromFormat("U.u", number_format(microtime(true), 4, ".", ""));
+		$time = \DateTime::createFromFormat("U.u", \number_format(\microtime(true), 4, ".", ""));
 		if ($time === false) {
 			$time = new \DateTime(null, $timezone);
 		} else {
@@ -93,13 +91,13 @@ class Owncloud {
 		// remove username/passwords from URLs before writing the to the log file
 		$time = $time->format($format);
 		$url = ($request->getRequestUri() !== '') ? $request->getRequestUri() : '--';
-		$method = is_string($request->getMethod()) ? $request->getMethod() : '--';
-		if(\OC::$server->getConfig()->getSystemValue('installed', false)) {
+		$method = \is_string($request->getMethod()) ? $request->getMethod() : '--';
+		if (\OC::$server->getConfig()->getSystemValue('installed', false)) {
 			$user = (\OC_User::getUser()) ? \OC_User::getUser() : '--';
 		} else {
 			$user = '--';
 		}
-		$entry = compact(
+		$entry = \compact(
 			'reqId',
 			'level',
 			'time',
@@ -110,29 +108,51 @@ class Owncloud {
 			'url',
 			'message'
 		);
-		$entry = json_encode($entry);
-		if (!is_null($conditionalLogFile)) {
+
+		if (!empty($extraFields)) {
+			// augment with additional fields
+			$entry = \array_merge($entry, $extraFields);
+		}
+
+		$entry = \json_encode($entry);
+		if ($conditionalLogFile !== null) {
 			if ($conditionalLogFile[0] !== '/') {
 				$conditionalLogFile = \OC::$server->getConfig()->getSystemValue('datadirectory') . "/" . $conditionalLogFile;
 			}
-			$handle = @fopen($conditionalLogFile, 'a');
-			@chmod($conditionalLogFile, 0640);
+			self::createLogFile($conditionalLogFile);
+			$handle = @\fopen($conditionalLogFile, 'a');
 		} else {
-			$handle = @fopen(self::$logFile, 'a');
-			@chmod(self::$logFile, 0640);
+			self::createLogFile(self::$logFile);
+			$handle = @\fopen(self::$logFile, 'a');
 		}
 		if ($handle) {
-			fwrite($handle, $entry."\n");
-			fclose($handle);
+			\fwrite($handle, $entry."\n");
+			\fclose($handle);
 		} else {
 			// Fall back to error_log
-			error_log($entry);
+			\error_log($entry);
 		}
-		if (php_sapi_name() === 'cli-server') {
-			error_log($message, 4);
+		if (\php_sapi_name() === 'cli-server') {
+			\error_log($message, 4);
 		}
 	}
 
+	/**
+	 * create a log file and chmod it to the correct permissions
+	 * @param string $logFile
+	 * @return boolean
+	 */
+	public static function createLogFile($logFile) {
+		if (\file_exists($logFile)) {
+			return true;
+		}
+		if (\is_writable(\dirname($logFile)) && \touch($logFile)) {
+			@\chmod($logFile, 0640);
+			return true;
+		}
+		return false;
+	}
+	
 	/**
 	 * @return string
 	 */

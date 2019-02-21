@@ -8,7 +8,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -35,7 +35,6 @@ use OCP\Share\Exceptions\ShareNotFound;
  * @group DB
  */
 class UpdaterTest extends TestCase {
-
 	const TEST_FOLDER_NAME = '/folder_share_updater_test';
 
 	public static function setUpBeforeClass() {
@@ -77,7 +76,7 @@ class UpdaterTest extends TestCase {
 		\OCA\Files_Trashbin\Trashbin::registerHooks();
 
 		$fileinfo = \OC\Files\Filesystem::getFileInfo($this->folder);
-		$this->assertTrue($fileinfo instanceof \OC\Files\FileInfo);
+		$this->assertInstanceOf(\OC\Files\FileInfo::class, $fileinfo);
 
 		$share = $this->share(
 			\OCP\Share::SHARE_TYPE_USER,
@@ -109,21 +108,15 @@ class UpdaterTest extends TestCase {
 
 		$this->loginHelper(self::TEST_FILES_SHARING_API_USER2);
 
-		// shared folder should be unshared
-		$caught = null;
-		try {
-			$this->shareManager->getShareById($share->getFullId());
-		} catch (ShareNotFound $e) {
-			$caught = $e;
-		}
-
-		$this->assertNotNull($caught);
+		// shared folder should be rejected
+		$rejectedShare = $this->shareManager->getShareById($share->getFullId());
+		$this->assertEquals(\OCP\Share::STATE_REJECTED, $rejectedShare->getState(), 'after the parent directory was deleted the share should be rejected');
 
 		// trashbin should contain the local file but not the mount point
 		$rootView = new \OC\Files\View('/' . self::TEST_FILES_SHARING_API_USER2);
 		$trashContent = \OCA\Files_Trashbin\Helper::getTrashFiles('/', self::TEST_FILES_SHARING_API_USER2);
-		$this->assertSame(1, count($trashContent));
-		$firstElement = reset($trashContent);
+		$this->assertCount(1, $trashContent);
+		$firstElement = \reset($trashContent);
 		$timestamp = $firstElement['mtime'];
 		$this->assertTrue($rootView->file_exists('files_trashbin/files/localFolder.d' . $timestamp . '/localFile.txt'));
 		$this->assertFalse($rootView->file_exists('files_trashbin/files/localFolder.d' . $timestamp . '/' . $this->folder));
@@ -185,12 +178,12 @@ class UpdaterTest extends TestCase {
 		$afterShareDir = \OC\Files\Filesystem::getFileInfo($shareFolder);
 		$etagAfterShareDir = $afterShareDir->getEtag();
 
-		$this->assertTrue(is_string($etagBeforeShareRoot));
-		$this->assertTrue(is_string($etagBeforeShareDir));
-		$this->assertTrue(is_string($etagAfterShareRoot));
-		$this->assertTrue(is_string($etagAfterShareDir));
-		$this->assertTrue($etagBeforeShareRoot !== $etagAfterShareRoot);
-		$this->assertTrue($etagBeforeShareDir !== $etagAfterShareDir);
+		$this->assertInternalType('string', $etagBeforeShareRoot);
+		$this->assertInternalType('string', $etagBeforeShareDir);
+		$this->assertInternalType('string', $etagAfterShareRoot);
+		$this->assertInternalType('string', $etagAfterShareDir);
+		$this->assertNotSame($etagBeforeShareRoot, $etagAfterShareRoot);
+		$this->assertNotSame($etagBeforeShareDir, $etagAfterShareDir);
 
 		// cleanup
 		$this->loginHelper(self::TEST_FILES_SHARING_API_USER1);
@@ -202,8 +195,7 @@ class UpdaterTest extends TestCase {
 	/**
 	 * if a folder gets renamed all children mount points should be renamed too
 	 */
-	function testRename() {
-
+	public function testRename() {
 		$fileinfo = \OC\Files\Filesystem::getFileInfo($this->folder);
 
 		$share = $this->share(
@@ -238,5 +230,4 @@ class UpdaterTest extends TestCase {
 		// cleanup
 		$this->shareManager->deleteShare($share);
 	}
-
 }

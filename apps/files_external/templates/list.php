@@ -1,7 +1,5 @@
 <?php /** @var $l \OCP\IL10N */ ?>
-<div id="controls">
-	<div id="file_action_panel"></div>
-</div>
+<div id="controls"></div>
 <div id='notification'></div>
 
 <div id="emptycontent" class="hidden">
@@ -12,15 +10,13 @@
 		$userId = \OC::$server->getUserSession()->getUser()->getUID();
 		if (\OC::$server->getGroupManager()->isAdmin($userId)) {
 			echo 	'<p><a href="' .
-				link_to('', 'index.php/settings/admin?sectionid=storage' ) .
+				link_to('', 'index.php/settings/admin?sectionid=storage') .
 				'">' .
 				$l->t('You can add external storages in the storage settings') .
 				'</a></p>';
-		}
-
-		else {
+		} else {
 			echo 	'<p><a href="' .
-				link_to('', 'index.php/settings/personal?sectionid=storage' ) .
+				link_to('', 'index.php/settings/personal?sectionid=storage') .
 				'">' .
 				$l->t('You can add external storages in the storage settings') .
 				'</a></p>';
@@ -35,7 +31,7 @@
 		<tr>
 			<th id='headerName' class="hidden column-name">
 				<div id="headerName-container">
-					<a class="name sort columntitle" data-sort="name"><span><?php p($l->t( 'Name' )); ?></span><span class="sort-indicator"></span></a>
+					<a class="name sort columntitle" data-sort="name"><span><?php p($l->t('Name')); ?></span><span class="sort-indicator"></span></a>
 				</div>
 			</th>
 			<th id="headerBackend" class="hidden column-backend">

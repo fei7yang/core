@@ -22,10 +22,15 @@
 			'<div class="avatar {{#if modSeed}}imageplaceholderseed{{/if}}" data-username="{{shareWith}}" {{#if modSeed}}data-seed="{{shareWith}} {{shareType}}"{{/if}}></div>' +
 			'{{/if}}' +
 			'<span class="has-tooltip username" title="{{shareWith}}">{{shareWithDisplayName}}</span>' +
+			'{{#if shareWithAdditionalInfo}}' +
+			'<span class="has-tooltip user-additional-info">({{shareWithAdditionalInfo}})</span>' +
+			'{{/if}}' +
 			'{{#if mailNotificationEnabled}}  {{#unless isRemoteShare}}' +
 			'<span class="shareOption">' +
-			'<input id="mail-{{cid}}-{{shareWith}}" type="checkbox" name="mailNotification" class="mailNotification checkbox" {{#if wasMailSent}}checked="checked"{{/if}} />' +
-			'<label for="mail-{{cid}}-{{shareWith}}">{{notifyByMailLabel}}</label>' +
+			'{{#unless wasMailSent}}' +
+			'<span class="mailNotificationSpinner icon-loading-small hidden"></span>' +
+			'<input id="mail-{{cid}}-{{shareWith}}" type="button" name="mailNotification" value="{{notifyByMailLabel}}" class="mailNotification checkbox" />' +
+			'{{/unless}}' +
 			'</span>' +
 			'{{/unless}} {{/if}}' +
 			'{{#if isResharingAllowed}} {{#if sharePermissionPossible}}' +
@@ -115,12 +120,13 @@
 			var shareWith = this.model.getShareWith(shareIndex);
 			var shareWithDisplayName = this.model.getShareWithDisplayName(shareIndex);
 			var shareType = this.model.getShareType(shareIndex);
+			var shareWithAdditionalInfo = this.model.getShareWithAdditionalInfo(shareIndex);
 
 			var hasPermissionOverride = {};
 			if (shareType === OC.Share.SHARE_TYPE_GROUP) {
 				shareWithDisplayName = shareWithDisplayName + " (" + t('core', 'group') + ')';
 			} else if (shareType === OC.Share.SHARE_TYPE_REMOTE) {
-				shareWithDisplayName = shareWithDisplayName + " (" + t('core', 'remote') + ')';
+				shareWithDisplayName = shareWithDisplayName + " (" + t('core', 'federated') + ')';
 			}
 
 			return _.extend(hasPermissionOverride, {
@@ -133,6 +139,7 @@
 				wasMailSent: this.model.notificationMailWasSent(shareIndex),
 				shareWith: shareWith,
 				shareWithDisplayName: shareWithDisplayName,
+				shareWithAdditionalInfo: shareWithAdditionalInfo,
 				shareType: shareType,
 				shareId: this.model.get('shares')[shareIndex].id,
 				modSeed: shareType !== OC.Share.SHARE_TYPE_USER,
@@ -287,7 +294,23 @@
 			var shareType = $li.data('share-type');
 			var shareWith = $li.attr('data-share-with');
 
-			this.model.sendNotificationForShare(shareType, shareWith, $target.is(':checked'));
+			var $loading = $target.prev('.icon-loading-small');
+
+			$target.addClass('hidden');
+			$loading.removeClass('hidden');
+
+			this.model.sendNotificationForShare(shareType, shareWith, true).then(function(result) {
+				if (result.ocs.meta.status === 'ok') {
+					OC.Notification.showTemporary(t('core', 'Email notification was sent!'));
+					$target.remove();
+				} else {
+					// sending was successful but some users might not have any email address
+					OC.dialogs.alert(t('core', result.ocs.meta.message), t('core', 'Email notification not sent'));
+				}
+
+				$target.removeClass('hidden');
+				$loading.addClass('hidden');
+			});
 		}
 	});
 

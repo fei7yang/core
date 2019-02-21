@@ -8,7 +8,7 @@
  * @author Robin McCorkell <rmccorkell@karoshi.org.uk>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -27,7 +27,7 @@
 
 namespace Test\Util\User;
 
-use \OC\User\Backend;
+use OC\User\Backend;
 
 /**
  * dummy user backend, does not keep state, only for testing use
@@ -118,11 +118,11 @@ class Dummy extends Backend implements \OCP\IUserBackend {
 	 */
 	public function getUsers($search = '', $limit = null, $offset = null) {
 		if (empty($search)) {
-			return array_keys($this->users);
+			return \array_keys($this->users);
 		}
 		$result = [];
-		foreach (array_keys($this->users) as $user) {
-			if (stripos($user, $search) !== false) {
+		foreach (\array_keys($this->users) as $user) {
+			if (\stripos($user, $search) !== false) {
 				$result[] = $user;
 			}
 		}
@@ -167,7 +167,7 @@ class Dummy extends Backend implements \OCP\IUserBackend {
 	 * Backend name to be shown in user management
 	 * @return string the name of the backend to be shown
 	 */
-	public function getBackendName(){
+	public function getBackendName() {
 		return 'Dummy';
 	}
 }

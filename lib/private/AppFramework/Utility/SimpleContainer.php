@@ -7,7 +7,7 @@
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -39,7 +39,6 @@ use OCP\IContainer;
  * SimpleContainer is a simple implementation of IContainer on basis of Pimple
  */
 class SimpleContainer extends Container implements IContainer {
-
 
 	/**
 	 * @param ReflectionClass $class the class to instantiate
@@ -76,7 +75,6 @@ class SimpleContainer extends Container implements IContainer {
 		}
 	}
 
-
 	/**
 	 * If a parameter is not registered in the container try to instantiate it
 	 * by using reflection to find out how to build the class
@@ -94,11 +92,10 @@ class SimpleContainer extends Container implements IContainer {
 				throw new QueryException($baseMsg .
 					' Class can not be instantiated');
 			}
-		} catch(ReflectionException $e) {
+		} catch (ReflectionException $e) {
 			throw new QueryException($baseMsg . ' ' . $e->getMessage());
 		}
 	}
-
 
 	/**
 	 * @param string $name name of the service to query for
@@ -137,7 +134,7 @@ class SimpleContainer extends Container implements IContainer {
 	 */
 	public function registerService($name, Closure $closure, $shared = true) {
 		$name = $this->sanitizeName($name);
-		if (isset($this[$name]))  {
+		if (isset($this[$name])) {
 			unset($this[$name]);
 		}
 		if ($shared) {
@@ -165,7 +162,9 @@ class SimpleContainer extends Container implements IContainer {
 	 * @return string
 	 */
 	protected function sanitizeName($name) {
-		return ltrim($name, '\\');
+		if ($name[0] === '\\') {
+			return \ltrim($name, '\\'); // this is more expensive than you think
+		}
+		return $name;
 	}
-
 }

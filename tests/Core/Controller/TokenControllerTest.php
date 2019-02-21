@@ -3,7 +3,7 @@
 /**
  * @author Christoph Wurst <christoph@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -124,5 +124,4 @@ class TokenControllerTest extends TestCase {
 
 		$this->assertEquals($expected, $actual);
 	}
-
 }

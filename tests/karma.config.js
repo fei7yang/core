@@ -2,7 +2,7 @@
 * ownCloud
 *
 * @author Vincent Petry
-* @copyright 2014 Vincent Petry <pvince81@owncloud.com>
+* @copyright Copyright (c) 2014 Vincent Petry <pvince81@owncloud.com>
 *
 * This library is free software; you can redistribute it and/or
 * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
@@ -110,10 +110,11 @@ module.exports = function(config) {
 			{
 				name: 'settings',
 				srcFiles: [
-					'settings/js/users/deleteHandler.js'
+					'settings/js/users/deleteHandler.js',
+					'settings/js/admin-apps.js'
 				],
 				testFiles: [
-					'settings/tests/js/users/deleteHandlerSpec.js'
+					'settings/tests/js/apps/appSettingsSpec.js'
 				]
 			}
 		];
@@ -238,9 +239,9 @@ module.exports = function(config) {
 
 		proxies: {
 			// prevent warnings for images
-			'/context.html//core/img/': 'http://localhost:9876/base/core/img/',
-			'/context.html//core/css/': 'http://localhost:9876/base/core/css/',
-			'/context.html//core/fonts/': 'http://localhost:9876/base/core/fonts/'
+			'/owncloud/core/img/': 'http://localhost:9876/base/core/img/',
+			'/owncloud/core/css/': 'http://localhost:9876/base/core/css/',
+			'/owncloud/core/fonts/': 'http://localhost:9876/base/core/fonts/'
 		},
 
 		// test results reporter to use
@@ -259,7 +260,7 @@ module.exports = function(config) {
 		preprocessors: preprocessors,
 
 		coverageReporter: {
-			dir:'tests/karma-coverage',
+			dir:'tests/output/coverage',
 			reporters: [
 				{ type: 'html' },
 				{ type: 'cobertura' }

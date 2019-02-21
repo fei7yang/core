@@ -3,7 +3,7 @@
  * ownCloud
  *
  * @author Phil Davis <phil@jankaritech.com>
- * @copyright 2017 Phil Davis phil@jankaritech.com
+ * @copyright Copyright (c) 2017 Phil Davis phil@jankaritech.com
  *
  * This code is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License,
@@ -21,7 +21,7 @@
  */
 namespace TestHelpers;
 
-use GuzzleHttp\Stream\Stream;
+use GuzzleHttp\Message\ResponseInterface;
 
 /**
  * Helper for Downloads
@@ -31,7 +31,7 @@ use GuzzleHttp\Stream\Stream;
  */
 class DownloadHelper {
 	/**
-	 * 
+	 *
 	 * @param string $baseUrl URL of owncloud
 	 *                        e.g. http://localhost:8080
 	 *                        should include the subfolder
@@ -43,14 +43,15 @@ class DownloadHelper {
 	 * @param array  $headers
 	 * @param int    $davPathVersionToUse (1|2)
 	 * @param string $sourceIpAddress
-	 * @return \GuzzleHttp\Message\FutureResponse|\GuzzleHttp\Message\ResponseInterface|NULL
+	 *
+	 * @return ResponseInterface
 	 */
 	public static function download(
 		$baseUrl,
 		$user,
 		$password,
 		$fileName,
-		$headers = array(),
+		$headers = [],
 		$davPathVersionToUse = 1,
 		$sourceIpAddress = null
 	) {

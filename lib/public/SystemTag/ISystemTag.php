@@ -2,7 +2,7 @@
 /**
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -64,5 +64,12 @@ interface ISystemTag {
 	 */
 	public function isUserAssignable();
 
+	/**
+	 * Returns whether the tag can be assigned to objects by regular users
+	 *
+	 * @return bool true if editable, false otherwise
+	 *
+	 * @since 10.0.11
+	 */
+	public function isUserEditable();
 }
-

@@ -2,7 +2,7 @@
 /**
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -23,7 +23,9 @@ namespace OCP\Share;
 
 use OCP\Files\Node;
 
+use OCP\Files\NotFoundException;
 use OCP\Share\Exceptions\ShareNotFound;
+use OCP\Share\Exceptions\TransferSharesException;
 
 /**
  * Interface IManager
@@ -83,6 +85,7 @@ interface IManager {
 	 * @return IShare
 	 * @throws \InvalidArgumentException If $share is a link share or the $recipient does not match
 	 * @since 9.0.0
+	 * @deprecated 10.0.9 use updateShareForRecipient() instead
 	 */
 	public function moveShare(IShare $share, $recipientId);
 
@@ -112,11 +115,33 @@ interface IManager {
 	 */
 	public function getSharesBy($userId, $shareType, $path = null, $reshares = false, $limit = 50, $offset = 0);
 
+	/**
+	 * Transfer shares from oldOwner to newOwner. Both old and new owners are uid
+	 *
+	 * @param IShare $share
+	 * @param string $oldOwner - is the previous owner of the share, the uid string
+	 * @param string $newOwner - is the new owner of the share, the uid string
+	 * @param string $finalTarget - is the target folder where share has to be moved
+	 * @param null|bool $isChild - determine if the share is a child or not
+	 *
+	 * finalTarget is of the form "user1/files/transferred from admin on 20180509"
+	 *
+	 * TransferShareException would be thrown when:
+	 *  - oldOwner, newOwner does not exist.
+	 *  - oldOwner and newOwner are same
+	 * NotFoundException would be thrown when finalTarget does not exist in the file
+	 * system
+	 *
+	 * @throws TransferSharesException
+	 * @throws NotFoundException
+	 * @since 10.0.9
+	 */
+	public function transferShare(IShare $share, $oldOwner, $newOwner, $finalTarget, $isChild = null);
 
 	/**
 	 * Get shares shared with $userId for specified share types.
 	 * Filter by $node if provided
-	 * 
+	 *
 	 * @param string $userId
 	 * @param int[] $shareTypes - ref \OC\Share\Constants[]
 	 * @param Node|null $node
@@ -230,11 +255,38 @@ interface IManager {
 
 	/**
 	 * Is password on public link requires
+	 * NOTE: This method is deprecated and will fallback to the "shareApiLinkEnforcePasswordReadOnly"
 	 *
 	 * @return bool
 	 * @since 9.0.0
+	 * @see IManager::shareApiLinkEnforcePasswordReadOnly()
+	 * @deprecated
 	 */
 	public function shareApiLinkEnforcePassword();
+
+	/**
+	 * Is password enforced for read-only shares?
+	 *
+	 * @return bool true if password is enforced, false otherwise
+	 * @since 10.0.8
+	 */
+	public function shareApiLinkEnforcePasswordReadOnly();
+
+	/**
+	 * Is password enforced for read & write shares?
+	 *
+	 * @return bool true if password is enforced, false otherwise
+	 * @since 10.0.8
+	 */
+	public function shareApiLinkEnforcePasswordReadWrite();
+
+	/**
+	 * Is password enforced for write-only shares?
+	 *
+	 * @return bool true if password is enforced, false otherwise
+	 * @since 10.0.8
+	 */
+	public function shareApiLinkEnforcePasswordWriteOnly();
 
 	/**
 	 * Is default expire date enabled
@@ -298,4 +350,13 @@ interface IManager {
 	 */
 	public function outgoingServer2ServerSharesAllowed();
 
+	/**
+	 * Updates the share entry of the given recipient
+	 *
+	 * @param IShare $share
+	 * @param string $recipientId
+	 * @throws \InvalidArgumentException If $share is a link share or the $recipient does not match
+	 * @since 10.0.9
+	 */
+	public function updateShareForRecipient(IShare $share, $recipientId);
 }

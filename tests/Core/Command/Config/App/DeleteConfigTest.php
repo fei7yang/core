@@ -2,7 +2,7 @@
 /**
  * @author Joas Schilling <nickvergessen@owncloud.com>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -20,7 +20,6 @@
  */
 
 namespace Tests\Core\Command\Config\App;
-
 
 use OC\Core\Command\Config\App\DeleteConfig;
 use Test\TestCase;
@@ -49,7 +48,6 @@ class DeleteConfigTest extends TestCase {
 		/** @var \OCP\IConfig $config */
 		$this->command = new DeleteConfig($config);
 	}
-
 
 	public function deleteData() {
 		return [

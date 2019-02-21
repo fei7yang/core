@@ -5,7 +5,7 @@
  * @author Olivier Paroz <github@oparoz.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -23,7 +23,11 @@
  */
 namespace OC\Preview;
 
-class SVG extends Provider {
+use OCP\Files\File;
+use OCP\Files\FileInfo;
+use OCP\Preview\IProvider2;
+
+class SVG implements IProvider2 {
 	/**
 	 * {@inheritDoc}
 	 */
@@ -34,18 +38,20 @@ class SVG extends Provider {
 	/**
 	 * {@inheritDoc}
 	 */
-	public function getThumbnail($path, $maxX, $maxY, $scalingup, $fileview) {
+	public function getThumbnail(File $file, $maxX, $maxY, $scalingUp) {
 		try {
 			$svg = new \Imagick();
 			$svg->setBackgroundColor(new \ImagickPixel('transparent'));
 
-			$content = stream_get_contents($fileview->fopen($path, 'r'));
-			if (substr($content, 0, 5) !== '<?xml') {
+			$stream = $file->fopen('r');
+			$content = \stream_get_contents($stream);
+			if (\substr($content, 0, 5) !== '<?xml') {
 				$content = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>' . $content;
 			}
+			\fclose($stream);
 
 			// Do not parse SVG files with references
-			if (stripos($content, 'xlink:href') !== false) {
+			if (\stripos($content, 'xlink:href') !== false) {
 				return false;
 			}
 
@@ -66,5 +72,12 @@ class SVG extends Provider {
 			return $image;
 		}
 		return false;
+	}
+
+	/**
+	 * @inheritdoc
+	 */
+	public function isAvailable(FileInfo $file) {
+		return true;
 	}
 }

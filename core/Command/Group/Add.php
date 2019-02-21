@@ -2,7 +2,7 @@
 /**
  * @author Phil Davis <phil@jankaritech.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -24,7 +24,6 @@ namespace OC\Core\Command\Group;
 use OCP\IGroupManager;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Input\InputArgument;
 
@@ -43,11 +42,11 @@ class Add extends Command {
 	protected function configure() {
 		$this
 			->setName('group:add')
-			->setDescription('adds a group')
+			->setDescription('Adds a group.')
 			->addArgument(
 				'group',
 				InputArgument::REQUIRED,
-				'Name of the group'
+				'Name of the group.'
 			);
 	}
 

@@ -7,7 +7,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -26,7 +26,7 @@
 
 namespace OCA\Files_External\Tests\Storage;
 
-use \OC\Files\Storage\DAV;
+use OC\Files\Storage\DAV;
 
 /**
  * Class WebdavTest
@@ -36,13 +36,12 @@ use \OC\Files\Storage\DAV;
  * @package OCA\Files_External\Tests\Storage
  */
 class WebdavTest extends \Test\Files\Storage\Storage {
-
 	protected function setUp() {
 		parent::setUp();
 
 		$id = $this->getUniqueID();
 		$config = include('files_external/tests/config.webdav.php');
-		if ( ! is_array($config) or !$config['run']) {
+		if (! \is_array($config) or !$config['run']) {
 			$this->markTestSkipped('WebDAV backend not configured');
 		}
 		if (isset($config['wait'])) {

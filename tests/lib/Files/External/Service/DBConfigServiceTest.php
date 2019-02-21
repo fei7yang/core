@@ -3,7 +3,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  *
- * @copyright Copyright (c) 2016, ownCloud GmbH.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,7 +21,6 @@
  */
 
 namespace Test\Files\External\Service;
-
 
 use OC\Files\External\Service\DBConfigService;
 use OCP\IDBConnection;
@@ -89,7 +88,7 @@ class DBConfigServiceTest extends TestCase {
 		$this->dbConfig->addApplicable($id, DBConfigService::APPLICABLE_TYPE_GLOBAL, null);
 
 		$mount = $this->dbConfig->getMountById($id);
-		usort($mount['applicable'], function($m1, $m2) {
+		\usort($mount['applicable'], function ($m1, $m2) {
 			return $m1['type'] - $m2['type'];
 		});
 
@@ -117,7 +116,7 @@ class DBConfigServiceTest extends TestCase {
 		$this->dbConfig->removeMount($id);
 
 		$mount = $this->dbConfig->getMountById($id);
-		$this->assertEquals(null, $mount);
+		$this->assertNull($mount);
 	}
 
 	public function testRemoveApplicable() {

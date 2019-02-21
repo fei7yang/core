@@ -3,7 +3,7 @@
  * @author Joas Schilling <coding@schilljs.com>
  * @author Robin Appelman <icewind@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud GmbH.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -22,8 +22,8 @@
 
 namespace Test\Files\External;
 
-use OC\Files\Mount\Manager;
 use OC\Files\External\PersonalMount;
+use OC\Files\Mount\Manager;
 use Test\TestCase;
 
 class PersonalMountTest extends TestCase {

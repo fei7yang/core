@@ -2,7 +2,7 @@
 /**
  * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -23,6 +23,7 @@ namespace OCA\FederatedFileSharing\Tests;
 
 use OCA\FederatedFileSharing\AdminPanel;
 use OCA\FederatedFileSharing\FederatedShareProvider;
+use OCP\IConfig;
 
 /**
  * @package OCA\FederatedFileSharing\Tests
@@ -33,13 +34,16 @@ class AdminPanelTest extends \Test\TestCase {
 	private $panel;
 	/** @var  FederatedShareProvider */
 	private $shareProvider;
+	/** @var IConfig */
+	private $config;
 
 	public function setUp() {
 		parent::setUp();
 		$this->shareProvider = $this->getMockBuilder(FederatedShareProvider::class)
 			->disableOriginalConstructor()
 			->getMock();
-		$this->panel = new AdminPanel($this->shareProvider);
+		$this->config = $this->createMock(IConfig::class);
+		$this->panel = new AdminPanel($this->shareProvider, $this->config);
 	}
 
 	public function testGetSection() {
@@ -47,7 +51,7 @@ class AdminPanelTest extends \Test\TestCase {
 	}
 
 	public function testGetPriority() {
-		$this->assertTrue(is_integer($this->panel->getPriority()));
+		$this->assertInternalType('int', $this->panel->getPriority());
 	}
 
 	public function testGetPanel() {
@@ -55,5 +59,4 @@ class AdminPanelTest extends \Test\TestCase {
 		$this->shareProvider->expects($this->once())->method('isIncomingServer2serverShareEnabled')->willReturn(true);
 		$templateHtml = $this->panel->getPanel()->fetchPage();
 	}
-
 }

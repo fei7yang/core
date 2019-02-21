@@ -10,7 +10,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -29,14 +29,15 @@
 
 namespace OC;
 
-use OC\Repair\Apps;
-use OC\Repair\AvatarPermissions;
 use OC\Repair\CleanTags;
 use OC\Repair\Collation;
+use OC\Repair\DisableExtraThemes;
 use OC\Repair\DropOldJobs;
 use OC\Repair\OldGroupMembershipShares;
 use OC\Repair\RemoveGetETagEntries;
 use OC\Repair\RemoveRootShares;
+use OC\Repair\RepairOrphanedSubshare;
+use OC\Repair\RepairSubShares;
 use OC\Repair\SharePropagation;
 use OC\Repair\SqliteAutoincrement;
 use OC\Repair\DropOldTables;
@@ -44,20 +45,20 @@ use OC\Repair\FillETags;
 use OC\Repair\InnoDB;
 use OC\Repair\RepairMimeTypes;
 use OC\Repair\SearchLuceneTables;
-use OC\Repair\UpdateOutdatedOcsIds;
 use OC\Repair\RepairInvalidShares;
 use OC\Repair\RepairUnmergedShares;
 use OCP\AppFramework\QueryException;
 use OCP\Migration\IOutput;
 use OCP\Migration\IRepairStep;
-use Symfony\Component\EventDispatcher\EventDispatcher;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\GenericEvent;
 use OC\Repair\MoveAvatarOutsideHome;
+use OC\Repair\RepairMismatchFileCachePath;
 
-class Repair implements IOutput{
+class Repair implements IOutput {
 	/* @var IRepairStep[] */
 	private $repairSteps;
-	/** @var EventDispatcher */
+	/** @var EventDispatcherInterface */
 	private $dispatcher;
 	/** @var string */
 	private $currentStep;
@@ -66,9 +67,9 @@ class Repair implements IOutput{
 	 * Creates a new repair step runner
 	 *
 	 * @param IRepairStep[] $repairSteps array of RepairStep instances
-	 * @param EventDispatcher $dispatcher
+	 * @param EventDispatcherInterface $dispatcher
 	 */
-	public function __construct($repairSteps = [], EventDispatcher $dispatcher = null) {
+	public function __construct($repairSteps = [], EventDispatcherInterface $dispatcher = null) {
 		$this->repairSteps = $repairSteps;
 		$this->dispatcher = $dispatcher;
 	}
@@ -77,7 +78,7 @@ class Repair implements IOutput{
 	 * Run a series of repair steps for common problems
 	 */
 	public function run() {
-		if (count($this->repairSteps) === 0) {
+		if (\count($this->repairSteps) === 0) {
 			$this->emit('\OC\Repair', 'info', ['No repair steps available']);
 			return;
 		}
@@ -96,11 +97,11 @@ class Repair implements IOutput{
 	 * @throws \Exception
 	 */
 	public function addStep($repairStep) {
-		if (is_string($repairStep)) {
+		if (\is_string($repairStep)) {
 			try {
 				$s = \OC::$server->query($repairStep);
 			} catch (QueryException $e) {
-				if (class_exists($repairStep)) {
+				if (\class_exists($repairStep)) {
 					$s = new $repairStep();
 				} else {
 					throw new \Exception("Repair step '$repairStep' is unknown");
@@ -126,15 +127,21 @@ class Repair implements IOutput{
 	public static function getRepairSteps() {
 		return [
 			new RepairMimeTypes(\OC::$server->getConfig()),
+			new RepairMismatchFileCachePath(
+				\OC::$server->getDatabaseConnection(),
+				\OC::$server->getMimeTypeLoader(),
+				\OC::$server->getLogger(),
+				\OC::$server->getConfig()),
 			new FillETags(\OC::$server->getDatabaseConnection()),
 			new CleanTags(\OC::$server->getDatabaseConnection(), \OC::$server->getUserManager()),
 			new DropOldTables(\OC::$server->getDatabaseConnection()),
 			new DropOldJobs(\OC::$server->getJobList()),
 			new RemoveGetETagEntries(\OC::$server->getDatabaseConnection()),
-			new UpdateOutdatedOcsIds(\OC::$server->getConfig()),
 			new RepairInvalidShares(\OC::$server->getConfig(), \OC::$server->getDatabaseConnection()),
+			new RepairSubShares(
+				\OC::$server->getDatabaseConnection()
+			),
 			new SharePropagation(\OC::$server->getConfig()),
-			new AvatarPermissions(\OC::$server->getDatabaseConnection()),
 			new MoveAvatarOutsideHome(
 				\OC::$server->getConfig(),
 				\OC::$server->getDatabaseConnection(),
@@ -150,6 +157,11 @@ class Repair implements IOutput{
 				\OC::$server->getDatabaseConnection(),
 				\OC::$server->getUserManager(),
 				\OC::$server->getGroupManager()
+			),
+			new DisableExtraThemes(
+				\OC::$server->getAppManager(),
+				\OC::$server->getConfig(),
+				\OC::$server->getAppConfig()
 			),
 		];
 	}
@@ -178,15 +190,15 @@ class Repair implements IOutput{
 			new InnoDB(),
 			new Collation(\OC::$server->getConfig(), $connection),
 			new SqliteAutoincrement($connection),
+			new RepairOrphanedSubshare($connection),
 			new SearchLuceneTables(),
-			new Apps(\OC::$server->getAppManager(), \OC::$server->getEventDispatcher(), \OC::$server->getConfig(), new \OC_Defaults()),
 		];
 
 		//There is no need to delete all previews on every single update
 		//only 7.0.0 through 7.0.2 generated broken previews
 		$currentVersion = \OC::$server->getConfig()->getSystemValue('version');
-		if (version_compare($currentVersion, '7.0.0.0', '>=') &&
-			version_compare($currentVersion, '7.0.3.4', '<=')) {
+		if (\version_compare($currentVersion, '7.0.0.0', '>=') &&
+			\version_compare($currentVersion, '7.0.3.4', '<=')) {
 			$steps[] = new \OC\Repair\Preview();
 		}
 
@@ -199,7 +211,7 @@ class Repair implements IOutput{
 	 * @param array $arguments
 	 */
 	public function emit($scope, $method, array $arguments = []) {
-		if (!is_null($this->dispatcher)) {
+		if ($this->dispatcher !== null) {
 			$this->dispatcher->dispatch("$scope::$method",
 				new GenericEvent("$scope::$method", $arguments));
 		}
@@ -236,7 +248,7 @@ class Repair implements IOutput{
 	}
 
 	/**
-	 * @param int $max
+	 * emit signal
 	 */
 	public function finishProgress() {
 		// for now just emit as we did in the past

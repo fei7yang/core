@@ -2,7 +2,7 @@
 /**
  * @author Phil Davis <phil@jankaritech.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -42,18 +42,18 @@ class Delete extends Command {
 	protected function configure() {
 		$this
 			->setName('group:delete')
-			->setDescription('deletes the specified group')
+			->setDescription('Deletes the specified group.')
 			->addArgument(
 				'group',
 				InputArgument::REQUIRED,
-				'the group name'
+				'The group name.'
 			);
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output) {
 		$groupName = $input->getArgument('group');
 		$group = $this->groupManager->get($groupName);
-		if (is_null($group)) {
+		if ($group === null) {
 			$output->writeln('<error>Group does not exist</error>');
 			return 1;
 		}

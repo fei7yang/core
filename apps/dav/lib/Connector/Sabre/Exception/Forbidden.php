@@ -2,7 +2,7 @@
 /**
  * @author Joas Schilling <coding@schilljs.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -22,7 +22,6 @@
 namespace OCA\DAV\Connector\Sabre\Exception;
 
 class Forbidden extends \Sabre\DAV\Exception\Forbidden {
-
 	const NS_OWNCLOUD = 'http://owncloud.org/ns';
 
 	/**
@@ -48,17 +47,17 @@ class Forbidden extends \Sabre\DAV\Exception\Forbidden {
 	 * @param \DOMElement $errorNode
 	 * @return void
 	 */
-	public function serialize(\Sabre\DAV\Server $server,\DOMElement $errorNode) {
+	public function serialize(\Sabre\DAV\Server $server, \DOMElement $errorNode) {
 
 		// set ownCloud namespace
 		$errorNode->setAttribute('xmlns:o', self::NS_OWNCLOUD);
 
 		// adding the retry node
-		$error = $errorNode->ownerDocument->createElementNS('o:','o:retry', var_export($this->retry, true));
+		$error = $errorNode->ownerDocument->createElementNS('o:', 'o:retry', \var_export($this->retry, true));
 		$errorNode->appendChild($error);
 
 		// adding the message node
-		$error = $errorNode->ownerDocument->createElementNS('o:','o:reason', $this->getMessage());
+		$error = $errorNode->ownerDocument->createElementNS('o:', 'o:reason', $this->getMessage());
 		$errorNode->appendChild($error);
 	}
 }

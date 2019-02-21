@@ -4,7 +4,7 @@
  * @author Joas Schilling <coding@schilljs.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -27,7 +27,7 @@ use OCA\DAV\Capabilities;
 use OCA\DAV\CardDAV\ContactsManager;
 use OCA\DAV\CardDAV\SyncService;
 use OCA\DAV\HookManager;
-use \OCP\AppFramework\App;
+use OCP\AppFramework\App;
 use OCP\Contacts\IManager;
 use OCP\IUser;
 use Symfony\Component\EventDispatcher\GenericEvent;
@@ -39,7 +39,7 @@ class Application extends App {
 	 *
 	 * @param array $urlParams
 	 */
-	public function __construct (array $urlParams= []) {
+	public function __construct(array $urlParams= []) {
 		parent::__construct('dav', $urlParams);
 
 		/*
@@ -74,7 +74,7 @@ class Application extends App {
 		});
 
 		// carddav/caldav sync event setup
-		$listener = function($event) {
+		$listener = function ($event) {
 			if ($event instanceof GenericEvent) {
 				/** @var BirthdayService $b */
 				$b = $this->getContainer()->query(BirthdayService::class);
@@ -88,7 +88,7 @@ class Application extends App {
 
 		$dispatcher->addListener('\OCA\DAV\CardDAV\CardDavBackend::createCard', $listener);
 		$dispatcher->addListener('\OCA\DAV\CardDAV\CardDavBackend::updateCard', $listener);
-		$dispatcher->addListener('\OCA\DAV\CardDAV\CardDavBackend::deleteCard', function($event) {
+		$dispatcher->addListener('\OCA\DAV\CardDAV\CardDavBackend::deleteCard', function ($event) {
 			if ($event instanceof GenericEvent) {
 				/** @var BirthdayService $b */
 				$b = $this->getContainer()->query(BirthdayService::class);
@@ -103,5 +103,4 @@ class Application extends App {
 	public function getSyncService() {
 		return $this->getContainer()->query(SyncService::class);
 	}
-
 }

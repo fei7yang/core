@@ -2,7 +2,7 @@
 /**
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -19,9 +19,7 @@
  *
  */
 
-
 namespace OCA\DAV\Upload;
-
 
 use OC\Files\Mount\MountPoint;
 use OC\Files\Storage\Local;
@@ -67,9 +65,9 @@ class ChunkLocationProvider implements IMountProvider {
 		if ($chunkBaseDir === '') {
 			return [];
 		}
-		$cacheDir = rtrim($chunkBaseDir, '/') . '/' . $user->getUID();
-		if (!file_exists($cacheDir)) {
-			mkdir($cacheDir, 0770, true);
+		$cacheDir = \rtrim($chunkBaseDir, '/') . '/' . $user->getUID();
+		if (!\file_exists($cacheDir)) {
+			\mkdir($cacheDir, 0770, true);
 		}
 
 		return [

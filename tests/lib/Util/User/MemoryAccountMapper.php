@@ -2,7 +2,7 @@
 /**
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,14 +21,12 @@
 
 namespace Test\Util\User;
 
-
 use OC\User\Account;
 use OC\User\AccountMapper;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Db\Entity;
 
 class MemoryAccountMapper extends AccountMapper {
-
 	private static $accounts = [];
 	private static $counter = 1000;
 
@@ -37,7 +35,6 @@ class MemoryAccountMapper extends AccountMapper {
 	public function insert(Entity $entity) {
 		$entity->setId(self::$counter++);
 		self::$accounts[$entity->getId()] = $entity;
-
 		return $entity;
 	}
 
@@ -52,7 +49,7 @@ class MemoryAccountMapper extends AccountMapper {
 	}
 
 	public function getByEmail($email) {
-		$match = array_filter(self::$accounts, function (Account $a) use ($email) {
+		$match = \array_filter(self::$accounts, function (Account $a) use ($email) {
 			return $a->getEmail() === $email;
 		});
 
@@ -60,23 +57,26 @@ class MemoryAccountMapper extends AccountMapper {
 	}
 
 	public function getByUid($uid) {
-		$match = array_filter(self::$accounts, function (Account $a) use ($uid) {
-			return strtolower($a->getUserId()) === strtolower($uid);
+		$match = \array_filter(self::$accounts, function (Account $a) use ($uid) {
+			return \strtolower($a->getUserId()) === \strtolower($uid);
 		});
 		if (empty($match)) {
 			throw new DoesNotExistException('');
 		}
 
-		return array_values($match)[0];
+		return \array_values($match)[0];
 	}
 
 	public function getUserCount($hasLoggedIn) {
-		return count(self::$accounts);
+		return \count(self::$accounts);
 	}
 
 	public function search($fieldName, $pattern, $limit, $offset) {
-		$match = array_filter(self::$accounts, function (Account $a) use ($pattern) {
-			return stripos($a->getUserId(), $pattern);
+		if ($pattern === '') {
+			return self::$accounts;
+		}
+		$match = \array_filter(self::$accounts, function (Account $a) use ($pattern) {
+			return \stripos($a->getUserId(), $pattern);
 		});
 
 		return $match;

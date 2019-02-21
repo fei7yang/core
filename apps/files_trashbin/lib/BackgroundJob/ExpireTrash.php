@@ -5,7 +5,7 @@
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Victor Dubiniuk <dubiniuk@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -24,13 +24,12 @@
 
 namespace OCA\Files_Trashbin\BackgroundJob;
 
-use OCP\IConfig;
-use OCP\IUser;
-use OCP\IUserManager;
 use OCA\Files_Trashbin\AppInfo\Application;
 use OCA\Files_Trashbin\Expiration;
 use OCA\Files_Trashbin\Helper;
 use OCA\Files_Trashbin\Trashbin;
+use OCP\IUser;
+use OCP\IUserManager;
 
 class ExpireTrash extends \OC\BackgroundJob\TimedJob {
 
@@ -53,7 +52,7 @@ class ExpireTrash extends \OC\BackgroundJob\TimedJob {
 		// Run once per 30 minutes
 		$this->setInterval(60 * 30);
 
-		if (is_null($expiration) || is_null($userManager)) {
+		if ($expiration === null || $userManager === null) {
 			$this->fixDIForJobs();
 		} else {
 			$this->userManager = $userManager;
@@ -77,7 +76,7 @@ class ExpireTrash extends \OC\BackgroundJob\TimedJob {
 			return;
 		}
 
-		$this->userManager->callForSeenUsers(function(IUser $user) {
+		$this->userManager->callForSeenUsers(function (IUser $user) {
 			$uid = $user->getUID();
 			if (!$this->setupFS($uid)) {
 				return;

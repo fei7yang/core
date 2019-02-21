@@ -8,7 +8,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -31,7 +31,7 @@
 
 namespace OC\Files\Storage;
 
-class CommonTest extends \OC\Files\Storage\Common{
+class CommonTest extends \OC\Files\Storage\Common {
 	/**
 	 * underlying local storage used for missing functions
 	 * @var \OC\Files\Storage\Local
@@ -42,7 +42,7 @@ class CommonTest extends \OC\Files\Storage\Common{
 		$this->storage=new \OC\Files\Storage\Local($params);
 	}
 
-	public function getId(){
+	public function getId() {
 		return 'test::'.$this->storage->getId();
 	}
 	public function mkdir($path) {

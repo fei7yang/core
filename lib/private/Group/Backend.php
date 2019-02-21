@@ -4,7 +4,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -50,8 +50,8 @@ abstract class Backend implements \OCP\GroupInterface {
 	*/
 	public function getSupportedActions() {
 		$actions = 0;
-		foreach($this->possibleActions AS $action => $methodName) {
-			if(method_exists($this, $methodName)) {
+		foreach ($this->possibleActions as $action => $methodName) {
+			if (\method_exists($this, $methodName)) {
 				$actions |= $action;
 			}
 		}
@@ -80,7 +80,7 @@ abstract class Backend implements \OCP\GroupInterface {
 	 * Checks whether the user is member of a group or not.
 	 */
 	public function inGroup($uid, $gid) {
-		return in_array($gid, $this->getUserGroups($uid));
+		return \in_array($gid, $this->getUserGroups($uid));
 	}
 
 	/**
@@ -115,7 +115,7 @@ abstract class Backend implements \OCP\GroupInterface {
 	 * @return bool
 	 */
 	public function groupExists($gid) {
-		return in_array($gid, $this->getGroups($gid, 1));
+		return \in_array($gid, $this->getGroups($gid, 1));
 	}
 
 	/**

@@ -2,7 +2,7 @@
 /**
  * @author Lukas Reschke <lukas@statuscode.ch>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -49,17 +49,15 @@ class ScanFiles extends \OC\BackgroundJob\TimedJob {
 	/**
 	 * @param IConfig|null $config
 	 * @param IUserManager|null $userManager
-	 * @param IDBConnection|null $dbConnection
 	 * @param ILogger|null $logger
 	 */
 	public function __construct(IConfig $config = null,
 								IUserManager $userManager = null,
-								IDBConnection $dbConnection = null,
 								ILogger $logger = null) {
 		// Run once per 10 minutes
 		$this->setInterval(60 * 10);
 
-		if (is_null($userManager) || is_null($config)) {
+		if ($userManager === null || $config === null) {
 			$this->fixDIForJobs();
 		} else {
 			$this->config = $config;
@@ -98,7 +96,7 @@ class ScanFiles extends \OC\BackgroundJob\TimedJob {
 	protected function run($argument) {
 		$offset = $this->config->getAppValue('files', 'cronjob_scan_files', 0);
 		$users = $this->userManager->search('', self::USERS_PER_SESSION, $offset);
-		if (!count($users)) {
+		if (!\count($users)) {
 			// No users found, reset offset and retry
 			$offset = 0;
 			$users = $this->userManager->search('', self::USERS_PER_SESSION);

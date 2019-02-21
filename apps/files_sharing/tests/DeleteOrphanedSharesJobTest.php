@@ -4,7 +4,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -98,11 +98,11 @@ class DeleteOrphanedSharesJobTest extends \Test\TestCase {
 
 		$userManager = \OC::$server->getUserManager();
 		$user1 = $userManager->get($this->user1);
-		if($user1) {
+		if ($user1) {
 			$user1->delete();
 		}
 		$user2 = $userManager->get($this->user2);
-		if($user2) {
+		if ($user2) {
 			$user2->delete();
 		}
 
@@ -153,22 +153,4 @@ class DeleteOrphanedSharesJobTest extends \Test\TestCase {
 
 		$this->assertCount(0, $this->getShares(), 'Orphaned shares deleted');
 	}
-
-	public function testKeepNonFileShares() {
-		$this->loginAsUser($this->user1);
-
-		\OCP\Share::registerBackend('test', 'Test\Share\Backend');
-
-		$this->assertTrue(
-			\OCP\Share::shareItem('test', 'test.txt', \OCP\Share::SHARE_TYPE_USER, $this->user2, \OCP\Constants::PERMISSION_READ),
-			'Failed asserting that user 1 successfully shared something with user 2.'
-		);
-
-		$this->assertCount(1, $this->getShares());
-
-		$this->job->run([]);
-
-		$this->assertCount(1, $this->getShares(), 'Non-file shares kept');
-	}
 }
-

@@ -2,7 +2,7 @@
 /**
  * @author Phil Davis <phil@jankaritech.com>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -47,7 +47,6 @@ class DeleteTest extends TestCase {
 		/** @var \OCP\IGroupManager $groupManager */
 		$this->command = new Delete($groupManager);
 	}
-
 
 	public function validGroupLastSeen() {
 		return [

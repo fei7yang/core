@@ -2,7 +2,7 @@
 /**
  * @author Christoph Wurst <christoph@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -74,7 +74,7 @@ class TokenController extends Controller {
 	 * @return JSONResponse
 	 */
 	public function generateToken($user, $password, $name = 'unknown client') {
-		if (is_null($user) || is_null($password)) {
+		if ($user === null || $password === null) {
 			$response = new JSONResponse();
 			$response->setStatus(Http::STATUS_UNPROCESSABLE_ENTITY);
 			return $response;
@@ -99,5 +99,4 @@ class TokenController extends Controller {
 			'token' => $token,
 		];
 	}
-
 }

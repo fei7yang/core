@@ -8,7 +8,7 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -58,8 +58,8 @@ class L10NString implements JsonSerializable {
 		$translations = $this->l10n->getTranslations();
 
 		$text = $this->text;
-		if (array_key_exists($this->text, $translations)) {
-			if (is_array($translations[$this->text])) {
+		if (\array_key_exists($this->text, $translations)) {
+			if (\is_array($translations[$this->text])) {
 				$id = $this->l10n->computePlural($this->count);
 				$text = $translations[$this->text][$id];
 			} else {
@@ -68,10 +68,9 @@ class L10NString implements JsonSerializable {
 		}
 
 		// Replace %n first (won't interfere with vsprintf)
-		$text = str_replace('%n', $this->count, $text);
-		return vsprintf($text, $this->parameters);
+		$text = \str_replace('%n', $this->count, $text);
+		return \vsprintf($text, $this->parameters);
 	}
-
 
 	public function jsonSerialize() {
 		return $this->__toString();

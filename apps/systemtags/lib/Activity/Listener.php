@@ -3,7 +3,7 @@
  * @author Joas Schilling <coding@schilljs.com>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -101,13 +101,13 @@ class Listener {
 				$actor,
 				$this->prepareTagAsParameter($event->getTag()),
 			]);
-		} else if ($event->getEvent() === ManagerEvent::EVENT_UPDATE) {
+		} elseif ($event->getEvent() === ManagerEvent::EVENT_UPDATE) {
 			$activity->setSubject(Extension::UPDATE_TAG, [
 				$actor,
 				$this->prepareTagAsParameter($event->getTag()),
 				$this->prepareTagAsParameter($event->getTagBefore()),
 			]);
-		} else if ($event->getEvent() === ManagerEvent::EVENT_DELETE) {
+		} elseif ($event->getEvent() === ManagerEvent::EVENT_DELETE) {
 			$activity->setSubject(Extension::DELETE_TAG, [
 				$actor,
 				$this->prepareTagAsParameter($event->getTag()),
@@ -131,7 +131,7 @@ class Listener {
 	public function mapperEvent(MapperEvent $event) {
 		$tagIds = $event->getTags();
 		if ($event->getObjectType() !== 'files' ||empty($tagIds)
-			|| !in_array($event->getEvent(), [MapperEvent::EVENT_ASSIGN, MapperEvent::EVENT_UNASSIGN])
+			|| !\in_array($event->getEvent(), [MapperEvent::EVENT_ASSIGN, MapperEvent::EVENT_UNASSIGN])
 			|| !$this->appManager->isInstalled('activity')) {
 			// System tags not for files, no tags, not (un-)assigning or no activity-app enabled (save the energy)
 			return;
@@ -159,16 +159,15 @@ class Listener {
 		foreach ($mounts as $mount) {
 			$owner = $mount->getUser()->getUID();
 			$ownerFolder = $this->rootFolder->getUserFolder($owner);
-			$nodes = $ownerFolder->getById($event->getObjectId());
-			if (!empty($nodes)) {
-				/** @var Node $node */
-				$node = array_shift($nodes);
+			$nodes = $ownerFolder->getById($event->getObjectId(), true);
+			$node = $nodes[0] ?? null;
+			if ($node) {
 				$path = $node->getPath();
-				if (strpos($path, '/' . $owner . '/files/') === 0) {
-					$path = substr($path, strlen('/' . $owner . '/files'));
+				if (\strpos($path, '/' . $owner . '/files/') === 0) {
+					$path = \substr($path, \strlen('/' . $owner . '/files'));
 				}
 				// Get all users that have access to the mount point
-				$users = array_merge($users, Share::getUsersSharingFile($path, $owner, true, true));
+				$users = \array_merge($users, $this->getUsersSharingFile($path, $owner));
 			}
 		}
 
@@ -199,7 +198,7 @@ class Listener {
 						$path,
 						$this->prepareTagAsParameter($tag),
 					]);
-				} else if ($event->getEvent() === MapperEvent::EVENT_UNASSIGN) {
+				} elseif ($event->getEvent() === MapperEvent::EVENT_UNASSIGN) {
 					$activity->setSubject(Extension::UNASSIGN_TAG, [
 						$actor,
 						$path,
@@ -219,10 +218,16 @@ class Listener {
 	protected function prepareTagAsParameter(ISystemTag $tag) {
 		if (!$tag->isUserVisible()) {
 			return '{{{' . $tag->getName() . '|||invisible}}}';
-		} else if (!$tag->isUserAssignable()) {
+		} elseif (!$tag->isUserAssignable()) {
 			return '{{{' . $tag->getName() . '|||not-assignable}}}';
+		} elseif (!$tag->isUserEditable() && $tag->isUserAssignable()) {
+			return '{{{' . $tag->getName() . '|||not-editable}}}';
 		} else {
 			return '{{{' . $tag->getName() . '|||assignable}}}';
 		}
+	}
+
+	public function getUsersSharingFile($path, $owner) {
+		return Share::getUsersSharingFile($path, $owner, true, true);
 	}
 }

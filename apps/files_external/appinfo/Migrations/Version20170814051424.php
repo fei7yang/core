@@ -3,7 +3,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Philipp Schaffrath <pschaffrath@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -24,8 +24,8 @@ namespace OCA\Files_External\Migrations;
 
 use OC\Files\External\Service\GlobalStoragesService;
 use OC\Files\External\Service\LegacyStoragesService;
-use OCP\Migration\ISimpleMigration;
 use OCP\Migration\IOutput;
+use OCP\Migration\ISimpleMigration;
 
 /**
  * migrate mount.json mounts into the database

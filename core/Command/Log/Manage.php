@@ -4,7 +4,7 @@
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -27,12 +27,10 @@ use \OCP\IConfig;
 
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class Manage extends Command {
-
 	const DEFAULT_BACKEND = 'owncloud';
 	const DEFAULT_LOG_LEVEL = 2;
 	const DEFAULT_TIMEZONE = 'UTC';
@@ -81,7 +79,7 @@ class Manage extends Command {
 
 		$level = $input->getOption('level');
 		if ($level !== null) {
-			if (is_numeric($level)) {
+			if (\is_numeric($level)) {
 				$levelNum = $level;
 				// sanity check
 				$this->convertLevelNumber($levelNum);
@@ -118,7 +116,7 @@ class Manage extends Command {
 	 * @throws \InvalidArgumentException
 	 */
 	protected function validateBackend($backend) {
-		if (!class_exists('OC\\Log\\'.ucfirst($backend))) {
+		if (!\class_exists('OC\\Log\\'.\ucfirst($backend))) {
 			throw new \InvalidArgumentException('Invalid backend');
 		}
 	}
@@ -137,7 +135,7 @@ class Manage extends Command {
 	 * @throws \InvalidArgumentException
 	 */
 	protected function convertLevelString($level) {
-		$level = strtolower($level);
+		$level = \strtolower($level);
 		switch ($level) {
 		case 'debug':
 			return 0;
@@ -176,4 +174,3 @@ class Manage extends Command {
 		throw new \InvalidArgumentException('Invalid log level number');
 	}
 }
-

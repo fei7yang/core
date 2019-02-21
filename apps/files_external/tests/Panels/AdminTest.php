@@ -2,7 +2,7 @@
 /**
  * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -62,7 +62,7 @@ class AdminTest extends \Test\TestCase {
 	}
 
 	public function testGetPriority() {
-		$this->assertTrue(is_integer($this->panel->getPriority()));
+		$this->assertInternalType('int', $this->panel->getPriority());
 		$this->assertTrue($this->panel->getPriority() > -100);
 		$this->assertTrue($this->panel->getPriority() < 100);
 	}
@@ -74,5 +74,4 @@ class AdminTest extends \Test\TestCase {
 		$templateHtml = $this->panel->getPanel()->fetchPage();
 		$this->assertContains('<h2 class="app-name">External Storage</h2>', $templateHtml);
 	}
-
 }

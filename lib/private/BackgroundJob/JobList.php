@@ -5,7 +5,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -32,27 +32,29 @@ use OCP\AutoloadNotAllowedException;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IConfig;
 use OCP\IDBConnection;
+use OCP\ILogger;
 
 class JobList implements IJobList {
 
 	/** @var IDBConnection */
 	protected $connection;
-
 	/**@var IConfig */
 	protected $config;
-
 	/**@var ITimeFactory */
 	protected $timeFactory;
+	/** @var ILogger  */
+	protected $logger;
 
 	/**
 	 * @param IDBConnection $connection
 	 * @param IConfig $config
 	 * @param ITimeFactory $timeFactory
 	 */
-	public function __construct(IDBConnection $connection, IConfig $config, ITimeFactory $timeFactory) {
+	public function __construct(IDBConnection $connection, IConfig $config, ITimeFactory $timeFactory, ILogger $logger) {
 		$this->connection = $connection;
 		$this->config = $config;
 		$this->timeFactory = $timeFactory;
+		$this->logger = $logger;
 	}
 
 	/**
@@ -62,13 +64,13 @@ class JobList implements IJobList {
 	public function add($job, $argument = null) {
 		if (!$this->has($job, $argument)) {
 			if ($job instanceof IJob) {
-				$class = get_class($job);
+				$class = \get_class($job);
 			} else {
 				$class = $job;
 			}
 
-			$argument = json_encode($argument);
-			if (strlen($argument) > 4000) {
+			$argument = \json_encode($argument);
+			if (\strlen($argument) > 4000) {
 				throw new \InvalidArgumentException('Background job arguments can\'t exceed 4000 characters (json encoded)');
 			}
 
@@ -90,7 +92,7 @@ class JobList implements IJobList {
 	 */
 	public function remove($job, $argument = null) {
 		if ($job instanceof IJob) {
-			$class = get_class($job);
+			$class = \get_class($job);
 		} else {
 			$class = $job;
 		}
@@ -98,8 +100,8 @@ class JobList implements IJobList {
 		$query = $this->connection->getQueryBuilder();
 		$query->delete('jobs')
 			->where($query->expr()->eq('class', $query->createNamedParameter($class)));
-		if (!is_null($argument)) {
-			$argument = json_encode($argument);
+		if ($argument !== null) {
+			$argument = \json_encode($argument);
 			$query->andWhere($query->expr()->eq('argument', $query->createNamedParameter($argument)));
 		}
 		$query->execute();
@@ -108,7 +110,7 @@ class JobList implements IJobList {
 	/**
 	 * @param int $id
 	 */
-	protected function removeById($id) {
+	public function removeById($id) {
 		$query = $this->connection->getQueryBuilder();
 		$query->delete('jobs')
 			->where($query->expr()->eq('id', $query->createNamedParameter($id, IQueryBuilder::PARAM_INT)));
@@ -124,11 +126,11 @@ class JobList implements IJobList {
 	 */
 	public function has($job, $argument) {
 		if ($job instanceof IJob) {
-			$class = get_class($job);
+			$class = \get_class($job);
 		} else {
 			$class = $job;
 		}
-		$argument = json_encode($argument);
+		$argument = \json_encode($argument);
 
 		$query = $this->connection->getQueryBuilder();
 		$query->select('id')
@@ -250,7 +252,8 @@ class JobList implements IJobList {
 				/** @var IJob $job */
 				$job = \OC::$server->query($row['class']);
 			} catch (QueryException $e) {
-				if (class_exists($row['class'])) {
+				$this->logger->logException($e, ['app' => 'core']);
+				if (\class_exists($row['class'])) {
 					$class = $row['class'];
 					$job = new $class();
 				} else {
@@ -261,7 +264,7 @@ class JobList implements IJobList {
 
 			$job->setId($row['id']);
 			$job->setLastRun($row['last_run']);
-			$job->setArgument(json_decode($row['argument'], true));
+			$job->setArgument(\json_decode($row['argument'], true));
 			return $job;
 		} catch (AutoloadNotAllowedException $e) {
 			// job is from a disabled app, ignore
@@ -305,14 +308,12 @@ class JobList implements IJobList {
 	}
 
 	/**
-	 * set the lastRun of $job to now
-	 *
-	 * @param IJob $job
+	 * @inheritdoc
 	 */
 	public function setLastRun($job) {
 		$query = $this->connection->getQueryBuilder();
 		$query->update('jobs')
-			->set('last_run', $query->createNamedParameter(time(), IQueryBuilder::PARAM_INT))
+			->set('last_run', $query->createNamedParameter(\time(), IQueryBuilder::PARAM_INT))
 			->where($query->expr()->eq('id', $query->createNamedParameter($job->getId(), IQueryBuilder::PARAM_INT)));
 		$query->execute();
 	}
@@ -323,5 +324,25 @@ class JobList implements IJobList {
 			->set('execution_duration', $query->createNamedParameter($timeTaken, IQueryBuilder::PARAM_INT))
 			->where($query->expr()->eq('id', $query->createNamedParameter($job->getId(), IQueryBuilder::PARAM_INT)));
 		$query->execute();
+	}
+
+	/**
+	 * @inheritdoc
+	 */
+	public function listJobs(\Closure $callback) {
+		$query = $this->connection->getQueryBuilder();
+		$query->select('*')
+			->from('jobs');
+		$result = $query->execute();
+
+		while ($row = $result->fetch()) {
+			$job = $this->buildJob($row);
+			if ($job) {
+				if ($callback($job) === false) {
+					break;
+				}
+			}
+		}
+		$result->closeCursor();
 	}
 }

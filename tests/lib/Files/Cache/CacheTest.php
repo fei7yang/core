@@ -8,14 +8,13 @@
 
 namespace Test\Files\Cache;
 
-
 use OC\Files\Cache\Cache;
 use OC\Files\Storage\Temporary;
 use Test\TestCase;
 
 class LongId extends Temporary {
 	public function getId() {
-		return 'long:' . str_repeat('foo', 50) . parent::getId();
+		return 'long:' . \str_repeat('foo', 50) . parent::getId();
 	}
 }
 
@@ -124,7 +123,7 @@ class CacheTest extends TestCase {
 		$this->cache->put($file3, $fileData['foo']);
 
 		$content = $this->cache->getFolderContents($folder);
-		$this->assertEquals(count($content), 2);
+		$this->assertEquals(\count($content), 2);
 		foreach ($content as $cachedData) {
 			$data = $fileData[$cachedData['name']];
 			foreach ($data as $name => $value) {
@@ -159,7 +158,7 @@ class CacheTest extends TestCase {
 		$folders = ['folder', 'folder/subfolder', 'folder/sub2', 'folder/sub2/sub3'];
 		$files = ['folder/foo.txt', 'folder/bar.txt', 'folder/subfolder/asd.txt', 'folder/sub2/qwerty.txt', 'folder/sub2/sub3/foo.txt'];
 
-		foreach($folders as $folder){
+		foreach ($folders as $folder) {
 			$this->cache->put($folder, $folderData);
 		}
 		foreach ($files as $file) {
@@ -173,7 +172,6 @@ class CacheTest extends TestCase {
 	}
 
 	public function folderDataProvider() {
-
 		return [
 			['folder'],
 			// that was too easy, try something harder
@@ -201,7 +199,7 @@ class CacheTest extends TestCase {
 		$this->cache->put($file3, $fileData['foo']);
 
 		$content = $this->cache->getFolderContents($file1);
-		$this->assertEquals(count($content), 2);
+		$this->assertEquals(\count($content), 2);
 		foreach ($content as $cachedData) {
 			$data = $fileData[$cachedData['name']];
 		}
@@ -257,7 +255,7 @@ class CacheTest extends TestCase {
 		$this->assertFalse($this->cache->inCache($dir2));
 	}
 
-	function testStatus() {
+	public function testStatus() {
 		$this->assertEquals(Cache::NOT_FOUND, $this->cache->getStatus('foo'));
 		$this->cache->put('foo', ['size' => -1]);
 		$this->assertEquals(Cache::PARTIAL, $this->cache->getStatus('foo'));
@@ -280,7 +278,6 @@ class CacheTest extends TestCase {
 	 * @param $fileName
 	 */
 	public function testPutWithAllKindOfQuotes($fileName) {
-
 		$this->assertEquals(Cache::NOT_FOUND, $this->cache->get($fileName));
 		$this->cache->put($fileName, ['size' => 20, 'mtime' => 25, 'mimetype' => 'foo/file', 'etag' => $fileName]);
 
@@ -289,36 +286,42 @@ class CacheTest extends TestCase {
 		$this->assertEquals($fileName, $cacheEntry['path']);
 	}
 
-	function testSearch() {
+	public function testSearch() {
 		$file1 = 'folder';
 		$file2 = 'folder/foobar';
 		$file3 = 'folder/foo';
+		$file4 = 'folder/f[o.o%ba-r';
 		$data1 = ['size' => 100, 'mtime' => 50, 'mimetype' => 'foo/folder'];
 		$fileData = [];
 		$fileData['foobar'] = ['size' => 1000, 'mtime' => 20, 'mimetype' => 'foo/file'];
 		$fileData['foo'] = ['size' => 20, 'mtime' => 25, 'mimetype' => 'foo/file'];
+		$fileData['f[o.o%ba-r'] = ['size' => 20, 'mtime' => 25, 'mimetype' => 'foo/file'];
 
 		$this->cache->put($file1, $data1);
 		$this->cache->put($file2, $fileData['foobar']);
 		$this->cache->put($file3, $fileData['foo']);
+		$this->cache->put($file4, $fileData['f[o.o%ba-r']);
 
-		$this->assertEquals(2, count($this->cache->search('%foo%')));
-		$this->assertEquals(1, count($this->cache->search('foo')));
-		$this->assertEquals(1, count($this->cache->search('%folder%')));
-		$this->assertEquals(1, count($this->cache->search('folder%')));
-		$this->assertEquals(3, count($this->cache->search('%')));
+		$this->assertCount(2, $this->cache->search('%foo%'), "expected 2 when searching for '%foo%'");
+		$this->assertCount(1, $this->cache->search('foo'), "expected 1 when searching for 'foo'");
+		$this->assertCount(1, $this->cache->search('%folder%'), "expected 1 when searching for '%folder%'");
+		$this->assertCount(1, $this->cache->search('folder%'), "expected 1 when searching for 'folder%'");
+		$this->assertCount(4, $this->cache->search('%'), "expected 4 when searching for '%'");
 
 		// case insensitive search should match the same files
-		$this->assertEquals(2, count($this->cache->search('%Foo%')));
-		$this->assertEquals(1, count($this->cache->search('Foo')));
-		$this->assertEquals(1, count($this->cache->search('%Folder%')));
-		$this->assertEquals(1, count($this->cache->search('Folder%')));
+		$this->assertCount(2, $this->cache->search('%Foo%'), "expected 2 when searching for '%Foo%'");
+		$this->assertCount(1, $this->cache->search('Foo'), "expected 1 when searching for 'Foo'");
+		$this->assertCount(1, $this->cache->search('%Folder%'), "expected 1 when searching for '%Folder%'");
+		$this->assertCount(1, $this->cache->search('Folder%'), "expected 1 when searching for 'Folder%'");
 
-		$this->assertEquals(3, count($this->cache->searchByMime('foo')));
-		$this->assertEquals(2, count($this->cache->searchByMime('foo/file')));
+		$this->assertCount(4, $this->cache->searchByMime('foo'), "expected 4 when searching for mime 'foo'");
+		$this->assertCount(3, $this->cache->searchByMime('foo/file'), "expected 3 when searching for mime 'foo/file'");
+
+		// oracle uses regexp,
+		$this->assertCount(1, $this->cache->search('f[o.o%ba-r'), "expected 1 when searching for 'f[o.o%ba-r'");
 	}
 
-	function testSearchByTag() {
+	public function testSearchByTag() {
 		$userId = $this->getUniqueId('user');
 		\OC::$server->getUserManager()->createUser($userId, $userId);
 		$this->loginAsUser($userId);
@@ -341,7 +344,7 @@ class CacheTest extends TestCase {
 		$id4 = $this->cache->put($file4, $fileData['foo2']);
 		$id5 = $this->cache->put($file5, $fileData['foo3']);
 
-		$tagManager = \OC::$server->getTagManager()->load('files', null, null, $userId);
+		$tagManager = \OC::$server->getTagManager()->load('files', [], null, $userId);
 		$this->assertTrue($tagManager->tagAs($id1, 'tag1'));
 		$this->assertTrue($tagManager->tagAs($id1, 'tag2'));
 		$this->assertTrue($tagManager->tagAs($id2, 'tag2'));
@@ -351,9 +354,11 @@ class CacheTest extends TestCase {
 		// use tag name
 		$results = $this->cache->searchByTag('tag1', $userId);
 
-		$this->assertEquals(2, count($results));
+		$this->assertCount(2, $results);
 
-		usort($results, function($value1, $value2) { return $value1['name'] >= $value2['name']; });
+		\usort($results, function ($value1, $value2) {
+			return $value1['name'] >= $value2['name'];
+		});
 
 		$this->assertEquals('folder', $results[0]['name']);
 		$this->assertEquals('foo', $results[1]['name']);
@@ -361,11 +366,15 @@ class CacheTest extends TestCase {
 		// use tag id
 		$tags = $tagManager->getTagsForUser($userId);
 		$this->assertNotEmpty($tags);
-		$tags = array_filter($tags, function($tag) { return $tag->getName() === 'tag2'; });
-		$results = $this->cache->searchByTag(current($tags)->getId(), $userId);
-		$this->assertEquals(3, count($results));
+		$tags = \array_filter($tags, function ($tag) {
+			return $tag->getName() === 'tag2';
+		});
+		$results = $this->cache->searchByTag(\current($tags)->getId(), $userId);
+		$this->assertCount(3, $results);
 
-		usort($results, function($value1, $value2) { return $value1['name'] >= $value2['name']; });
+		\usort($results, function ($value1, $value2) {
+			return $value1['name'] >= $value2['name'];
+		});
 
 		$this->assertEquals('folder', $results[0]['name']);
 		$this->assertEquals('foo2', $results[1]['name']);
@@ -376,10 +385,12 @@ class CacheTest extends TestCase {
 
 		$this->logout();
 		$user = \OC::$server->getUserManager()->get($userId);
-		if ($user !== null) { $user->delete(); }
+		if ($user !== null) {
+			$user->delete();
+		}
 	}
 
-	function testMove() {
+	public function testMove() {
 		$file1 = 'folder';
 		$file2 = 'folder/bar';
 		$file3 = 'folder/foo';
@@ -423,7 +434,7 @@ class CacheTest extends TestCase {
 		$this->assertFalse($this->cache2->inCache('folder/foobar/2'));
 	}
 
-	function testGetIncomplete() {
+	public function testGetIncomplete() {
 		$file1 = 'folder1';
 		$file2 = 'folder2';
 		$file3 = 'folder3';
@@ -440,23 +451,12 @@ class CacheTest extends TestCase {
 		$this->assertEquals($file3, $this->cache->getIncomplete());
 	}
 
-	function testNonExisting() {
+	public function testNonExisting() {
 		$this->assertFalse($this->cache->get('foo.txt'));
 		$this->assertEquals([], $this->cache->getFolderContents('foo'));
 	}
 
-	function testGetById() {
-		$storageId = $this->storage->getId();
-		$data = ['size' => 1000, 'mtime' => 20, 'mimetype' => 'foo/file'];
-		$id = $this->cache->put('foo', $data);
-
-		if (strlen($storageId) > 64) {
-			$storageId = md5($storageId);
-		}
-		$this->assertEquals([$storageId, 'foo'], Cache::getById($id));
-	}
-
-	function testStorageMTime() {
+	public function testStorageMTime() {
 		$data = ['size' => 1000, 'mtime' => 20, 'mimetype' => 'foo/file'];
 		$this->cache->put('foo', $data);
 		$cachedData = $this->cache->get('foo');
@@ -473,13 +473,12 @@ class CacheTest extends TestCase {
 		$this->assertEquals(25, $cachedData['mtime']);
 	}
 
-	function testLongId() {
+	public function testLongId() {
 		$storage = new LongId([]);
 		$cache = $storage->getCache();
-		$storageId = $storage->getId();
 		$data = ['size' => 1000, 'mtime' => 20, 'mimetype' => 'foo/file'];
 		$id = $cache->put('foo', $data);
-		$this->assertEquals([md5($storageId), 'foo'], Cache::getById($id));
+		$this->assertEquals('foo', $cache->getPathById($id));
 	}
 
 	/**
@@ -525,15 +524,14 @@ class CacheTest extends TestCase {
 		$this->assertGreaterThan(0, $cacheMock->put('folder/' . $folderWith00F6, $data));
 
 		// this is our bug, we have two different hashes with the same name (Schön)
-		$this->assertEquals(2, count($cacheMock->getFolderContents('folder')));
+		$this->assertCount(2, $cacheMock->getFolderContents('folder'));
 	}
 
 	/**
 	 * this test shows that there is no bug if we use the normalizer
 	 */
 	public function testWithNormalizer() {
-
-		if (!class_exists('Patchwork\PHP\Shim\Normalizer')) {
+		if (!\class_exists('Patchwork\PHP\Shim\Normalizer')) {
 			$this->markTestSkipped('The 3rdparty Normalizer extension is not available.');
 			return;
 		}
@@ -565,10 +563,10 @@ class CacheTest extends TestCase {
 		$this->assertGreaterThan(0, $this->cache->put('folder/' . $folderWith00F6, $data));
 
 		// at this point we should have only one folder named "Schön"
-		$this->assertEquals(1, count($this->cache->getFolderContents('folder')));
+		$this->assertCount(1, $this->cache->getFolderContents('folder'));
 	}
 
-	function bogusPathNamesProvider() {
+	public function bogusPathNamesProvider() {
 		return [
 			['/bogus.txt', 'bogus.txt'],
 			['//bogus.txt', 'bogus.txt'],
@@ -663,6 +661,15 @@ class CacheTest extends TestCase {
 			$this->assertFalse($this->cache->inCache($name . 'asd/' . $child));
 			$this->assertTrue($this->cache->inCache('other/' . $child));
 		}
+	}
+
+	public function testUpdateClearsCacheColumn() {
+		$data = ['size' => 100, 'mtime' => 50, 'mimetype' => 'text/plain', 'checksum' => 'abc'];
+		$this->cache->put('somefile.txt', $data);
+
+		$this->cache->update($this->cache->getId('somefile.txt'), ['mtime' => 0,'checksum' => '']);
+		$entry = $this->cache->get('somefile.txt');
+		$this->assertEmpty($entry['checksum']);
 	}
 
 	protected function tearDown() {

@@ -5,7 +5,7 @@
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -24,9 +24,9 @@
 
 namespace OCA\Provisioning_API\Tests;
 
+use OCP\IGroupManager;
 use OCP\IUser;
 use OCP\IUserManager;
-use OCP\IGroupManager;
 
 abstract class TestCase extends \Test\TestCase {
 
@@ -59,11 +59,11 @@ abstract class TestCase extends \Test\TestCase {
 			$this->users[] = $user;
 			$users[] = $user;
 		}
-		return count($users) == 1 ? reset($users) : $users;
+		return \count($users) == 1 ? \reset($users) : $users;
 	}
 
 	protected function tearDown() {
-		foreach($this->users as $user) {
+		foreach ($this->users as $user) {
 			$user->delete();
 		}
 

@@ -6,7 +6,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -51,8 +51,8 @@ class CachingRouter extends Router {
 	 * @return string
 	 */
 	public function generate($name, $parameters = [], $absolute = false) {
-		asort($parameters);
-		$key = $this->context->getHost() . '#' . $this->context->getBaseUrl() . $name . sha1(json_encode($parameters)) . intval($absolute);
+		\asort($parameters);
+		$key = $this->context->getHost() . '#' . $this->context->getBaseUrl() . $name . \sha1(\json_encode($parameters)) . \intval($absolute);
 		$cachedKey = $this->cache->get($key);
 		if ($cachedKey) {
 			return $cachedKey;

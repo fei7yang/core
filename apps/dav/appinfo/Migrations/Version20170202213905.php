@@ -1,8 +1,8 @@
 <?php
 /**
- * @author Victor Dubiniuk <dubiniuk@owncloud.com>
+ * @author Viktar Dubiniuk <dubiniuk@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,13 +21,12 @@
 
 namespace OCA\DAV\Migrations;
 
-use \OCP\DB\QueryBuilder\IQueryBuilder;
+use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\Files\Node;
 use OCP\IDBConnection;
 use OCP\IUser;
 use OCP\IUserManager;
 use OCP\Migration\ISqlMigration;
-
 
 /*
  * Resolve userid/propertypath into fileid
@@ -76,7 +75,7 @@ class Version20170202213905 implements ISqlMigration {
 		while ($row = $selectResult->fetch()) {
 			try {
 				$sql = $this->getRepairEntrySql($qb, $row);
-				if (!is_null($sql)) {
+				if ($sql !== null) {
 					$this->statements[] = $sql;
 				}
 			} catch (\Exception $e) {
@@ -128,7 +127,7 @@ class Version20170202213905 implements ISqlMigration {
 	 * @param string $propertyPath
 	 * @return IQueryBuilder
 	 */
-	private function getRepairQuery(IQueryBuilder $qb, $fileId, $userId, $propertyPath){
+	private function getRepairQuery(IQueryBuilder $qb, $fileId, $userId, $propertyPath) {
 		return $qb->resetQueryParts()
 			->update('properties')
 			->set(

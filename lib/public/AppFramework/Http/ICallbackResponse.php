@@ -4,7 +4,7 @@
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Morris Jobke <hey@morrisjobke.de>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -23,7 +23,6 @@
 
 namespace OCP\AppFramework\Http;
 
-
 /**
  * Interface ICallbackResponse
  *
@@ -38,6 +37,5 @@ interface ICallbackResponse {
 	 * @param IOutput $output a small wrapper that handles output
 	 * @since 8.1.0
 	 */
-	function callback(IOutput $output);
-
+	public function callback(IOutput $output);
 }

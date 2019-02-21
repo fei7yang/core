@@ -4,7 +4,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -25,6 +25,8 @@ namespace OCA\DAV\Tests\unit\Connector\Sabre;
 use OCA\DAV\Connector\Sabre\CopyEtagHeaderPlugin;
 use Sabre\DAV\Server;
 use Test\TestCase;
+use OCA\DAV\Connector\Sabre\File;
+use Sabre\DAV\Tree;
 
 /**
  * Copyright (c) 2015 Vincent Petry <pvince81@owncloud.com>
@@ -48,7 +50,7 @@ class CopyEtagHeaderPluginTest extends TestCase {
 	}
 
 	public function testCopyEtag() {
-		$request = new \Sabre\Http\Request();
+		$request = new \Sabre\Http\Request('', '');
 		$response = new \Sabre\Http\Response();
 		$response->setHeader('Etag', 'abcd');
 
@@ -58,7 +60,7 @@ class CopyEtagHeaderPluginTest extends TestCase {
 	}
 
 	public function testNoopWhenEmpty() {
-		$request = new \Sabre\Http\Request();
+		$request = new \Sabre\Http\Request('', '');
 		$response = new \Sabre\Http\Response();
 
 		$this->plugin->afterMethod($request, $response);
@@ -67,13 +69,13 @@ class CopyEtagHeaderPluginTest extends TestCase {
 	}
 
 	public function testAfterMove() {
-		$node = $this->getMockBuilder('OCA\DAV\Connector\Sabre\File')
+		$node = $this->getMockBuilder(File::class)
 			->disableOriginalConstructor()
 			->getMock();
 		$node->expects($this->once())
 			->method('getETag')
 			->willReturn('123456');
-		$tree = $this->getMockBuilder('Sabre\DAV\Tree')
+		$tree = $this->getMockBuilder(Tree::class)
 			->disableOriginalConstructor()
 			->getMock();
 		$tree->expects($this->once())

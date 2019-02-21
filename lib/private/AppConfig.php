@@ -10,7 +10,7 @@
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -29,6 +29,7 @@
 
 namespace OC;
 
+use OCP\Events\EventEmitterTrait;
 use OCP\IAppConfig;
 use OCP\IDBConnection;
 
@@ -37,6 +38,7 @@ use OCP\IDBConnection;
  * database.
  */
 class AppConfig implements IAppConfig {
+	use EventEmitterTrait;
 	/** @var \OCP\IDBConnection $conn */
 	protected $conn;
 
@@ -100,8 +102,8 @@ class AppConfig implements IAppConfig {
 	}
 
 	public function getSortedKeys($data) {
-		$keys = array_keys($data);
-		sort($keys);
+		$keys = \array_keys($data);
+		\sort($keys);
 		return $keys;
 	}
 
@@ -148,51 +150,61 @@ class AppConfig implements IAppConfig {
 	 * @return bool True if the value was inserted or updated, false if the value was the same
 	 */
 	public function setValue($app, $key, $value) {
-		if (!$this->hasKey($app, $key)) {
-			$inserted = (bool) $this->conn->insertIfNotExist('*PREFIX*appconfig', [
-				'appid' => $app,
-				'configkey' => $key,
-				'configvalue' => $value,
-			], [
-				'appid',
-				'configkey',
-			]);
+		return $this->emittingCall(function (&$afterArray) use (&$app, &$key, &$value) {
+			if (!$this->hasKey($app, $key)) {
+				$inserted = (bool) $this->conn->insertIfNotExist('*PREFIX*appconfig', [
+					'appid' => $app,
+					'configkey' => $key,
+					'configvalue' => $value,
+				], [
+					'appid',
+					'configkey',
+				]);
 
-			if ($inserted) {
-				if (!isset($this->cache[$app])) {
-					$this->cache[$app] = [];
+				if ($inserted) {
+					if (!isset($this->cache[$app])) {
+						$this->cache[$app] = [];
+					}
+
+					$this->cache[$app][$key] = $value;
+					return true;
 				}
-
-				$this->cache[$app][$key] = $value;
-				return true;
 			}
-		}
 
-		$sql = $this->conn->getQueryBuilder();
-		$sql->update('appconfig')
-			->set('configvalue', $sql->createParameter('configvalue'))
-			->where($sql->expr()->eq('appid', $sql->createParameter('app')))
-			->andWhere($sql->expr()->eq('configkey', $sql->createParameter('configkey')))
-			->setParameter('configvalue', $value)
-			->setParameter('app', $app)
-			->setParameter('configkey', $key);
+			$sql = $this->conn->getQueryBuilder();
+			$sql->update('appconfig')
+				->set('configvalue', $sql->createParameter('configvalue'))
+				->where($sql->expr()->eq('appid', $sql->createParameter('app')))
+				->andWhere($sql->expr()->eq('configkey', $sql->createParameter('configkey')))
+				->setParameter('configvalue', $value)
+				->setParameter('app', $app)
+				->setParameter('configkey', $key);
 
-		/*
-		 * Only limit to the existing value for non-Oracle DBs:
-		 * http://docs.oracle.com/cd/E11882_01/server.112/e26088/conditions002.htm#i1033286
-		 * > Large objects (LOBs) are not supported in comparison conditions.
-		 */
-		if (!($this->conn instanceof \OC\DB\OracleConnection)) {
-			// Only update the value when it is not the same
-			$sql->andWhere($sql->expr()->neq('configvalue', $sql->createParameter('configvalue')))
-				->setParameter('configvalue', $value);
-		}
+			/*
+			 * Only limit to the existing value for non-Oracle DBs:
+			 * http://docs.oracle.com/cd/E11882_01/server.112/e26088/conditions002.htm#i1033286
+			 * > Large objects (LOBs) are not supported in comparison conditions.
+			 */
+			if (!($this->conn instanceof \OC\DB\OracleConnection)) {
+				// Only update the value when it is not the same
+				$sql->andWhere($sql->expr()->neq('configvalue', $sql->createParameter('configvalue')))
+					->setParameter('configvalue', $value);
+			}
 
-		$changedRow = (bool) $sql->execute();
+			if (isset($this->cache[$app], $this->cache[$app][$key])) {
+				$afterArray['update'] = true;
+				$afterArray['oldvalue'] = $this->cache[$app][$key];
+			}
 
-		$this->cache[$app][$key] = $value;
+			$changedRow = (bool) $sql->execute();
 
-		return $changedRow;
+			$this->cache[$app][$key] = $value;
+
+			return $changedRow;
+		}, [
+			'before' => ['key' => $key, 'value' => $value, 'app' => $app],
+			'after' => ['key' => $key, 'value' => $value, 'app' => $app, 'update' => false, 'oldvalue' => null]
+		], 'appconfig', 'setvalue');
 	}
 
 	/**
@@ -203,17 +215,23 @@ class AppConfig implements IAppConfig {
 	 * @return boolean|null
 	 */
 	public function deleteKey($app, $key) {
-		$this->loadConfigValues();
+		$this->emittingCall(function () use (&$app, &$key) {
+			$this->loadConfigValues();
 
-		$sql = $this->conn->getQueryBuilder();
-		$sql->delete('appconfig')
-			->where($sql->expr()->eq('appid', $sql->createParameter('app')))
-			->andWhere($sql->expr()->eq('configkey', $sql->createParameter('configkey')))
-			->setParameter('app', $app)
-			->setParameter('configkey', $key);
-		$sql->execute();
+			$sql = $this->conn->getQueryBuilder();
+			$sql->delete('appconfig')
+				->where($sql->expr()->eq('appid', $sql->createParameter('app')))
+				->andWhere($sql->expr()->eq('configkey', $sql->createParameter('configkey')))
+				->setParameter('app', $app)
+				->setParameter('configkey', $key);
+			$sql->execute();
 
-		unset($this->cache[$app][$key]);
+			unset($this->cache[$app][$key]);
+			return true;
+		}, [
+			'before' => ['app' => $app, 'key' => $key],
+			'after' => ['app' => $app, 'key' => $key]
+		], 'appconfig', 'deletevalue');
 	}
 
 	/**
@@ -225,15 +243,21 @@ class AppConfig implements IAppConfig {
 	 * Removes all keys in appconfig belonging to the app.
 	 */
 	public function deleteApp($app) {
-		$this->loadConfigValues();
+		$this->emittingCall(function () use (&$app) {
+			$this->loadConfigValues();
 
-		$sql = $this->conn->getQueryBuilder();
-		$sql->delete('appconfig')
-			->where($sql->expr()->eq('appid', $sql->createParameter('app')))
-			->setParameter('app', $app);
-		$sql->execute();
+			$sql = $this->conn->getQueryBuilder();
+			$sql->delete('appconfig')
+				->where($sql->expr()->eq('appid', $sql->createParameter('app')))
+				->setParameter('app', $app);
+			$sql->execute();
 
-		unset($this->cache[$app]);
+			unset($this->cache[$app]);
+			return true;
+		}, [
+			'before' => ['app' => $app],
+			'after' => ['app' => $app]
+		], 'appconfig', 'deleteapp');
 	}
 
 	/**
@@ -252,12 +276,12 @@ class AppConfig implements IAppConfig {
 			return $this->getAppValues($app);
 		} else {
 			$appIds = $this->getApps();
-			$values = array_map(function($appId) use ($key) {
+			$values = \array_map(function ($appId) use ($key) {
 				return isset($this->cache[$appId][$key]) ? $this->cache[$appId][$key] : null;
 			}, $appIds);
-			$result = array_combine($appIds, $values);
+			$result = \array_combine($appIds, $values);
 
-			return array_filter($result);
+			return \array_filter($result);
 		}
 	}
 
@@ -283,6 +307,13 @@ class AppConfig implements IAppConfig {
 				$this->cache[$row['appid']] = [];
 			}
 
+			// check if installed_version matches the pattern
+			// one_or_more_digits-dot-one_or_more_digits-any-other-characters
+			if ($row['configkey'] === 'installed_version'
+				&& \preg_match('/\d+\.\d+.*$/', $row['configvalue']) !== 1
+			) {
+				$row['configvalue'] = '0.0.1';
+			}
 			$this->cache[$row['appid']][$row['configkey']] = $row['configvalue'];
 		}
 		$result->closeCursor();

@@ -5,7 +5,7 @@
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -57,6 +57,7 @@ class Capabilities implements ICapability {
 				'preferredUploadType' => 'SHA1'
 			],
 			'files' => [
+				'privateLinks' => true,
 				'bigfilechunking' => true,
 				'blacklisted_files' => $this->config->getSystemValue('blacklisted_files', ['.htaccess']),
 			],

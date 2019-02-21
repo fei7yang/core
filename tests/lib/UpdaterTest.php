@@ -3,7 +3,7 @@
  * @author Lukas Reschke <lukas@owncloud.com>
  * @author Victor Dubiniuk <dubiniuk@owncloud.com>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -22,10 +22,10 @@
 
 namespace Test;
 
+use OC\IntegrityCheck\Checker;
 use OC\Updater;
 use OCP\IConfig;
 use OCP\ILogger;
-use OC\IntegrityCheck\Checker;
 
 class UpdaterTest extends TestCase {
 	/** @var IConfig | \PHPUnit_Framework_MockObject_MockObject */

@@ -5,7 +5,7 @@
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -25,7 +25,6 @@
 namespace OC\OCS;
 
 class Config {
-
 	public static function apiConfig() {
 		$xml['version'] = '1.7';
 		$xml['website'] = 'ownCloud';
@@ -34,5 +33,4 @@ class Config {
 		$xml['ssl'] = 'false';
 		return new Result($xml);
 	}
-
 }

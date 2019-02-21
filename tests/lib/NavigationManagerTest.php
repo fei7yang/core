@@ -3,7 +3,7 @@
  * ownCloud
  *
  * @author Joas Schilling
- * @copyright 2015 Joas Schilling nickvergessen@owncloud.com
+ * @copyright Copyright (c) 2015 Joas Schilling nickvergessen@owncloud.com
  *
  * This file is licensed under the Affero General Public License version 3 or
  * later.
@@ -16,6 +16,7 @@ use OC\NavigationManager;
 use OCP\App\IAppManager;
 use OCP\IGroupManager;
 use OCP\IL10N;
+use OCP\ISubAdminManager;
 use OCP\IURLGenerator;
 use OCP\IUser;
 use OCP\IUserSession;
@@ -82,7 +83,7 @@ class NavigationManagerTest extends TestCase {
 		$this->navigationManager->add($entry);
 
 		$navigationEntries = $this->navigationManager->getAll();
-		$this->assertEquals(1, sizeof($navigationEntries), 'Expected that 1 navigation entry exists');
+		$this->assertCount(1, $navigationEntries, 'Expected that 1 navigation entry exists');
 		$this->assertEquals($expectedEntry, $navigationEntries[0]);
 
 		$this->navigationManager->clear();
@@ -110,12 +111,12 @@ class NavigationManagerTest extends TestCase {
 
 		$navigationEntries = $this->navigationManager->getAll();
 		$this->assertEquals(1, $testAddClosureNumberOfCalls, 'Expected that the closure is called by getAll()');
-		$this->assertEquals(1, sizeof($navigationEntries), 'Expected that 1 navigation entry exists');
+		$this->assertCount(1, $navigationEntries, 'Expected that 1 navigation entry exists');
 		$this->assertEquals($expectedEntry, $navigationEntries[0]);
 
 		$navigationEntries = $this->navigationManager->getAll();
 		$this->assertEquals(1, $testAddClosureNumberOfCalls, 'Expected that the closure is only called once for getAll()');
-		$this->assertEquals(1, sizeof($navigationEntries), 'Expected that 1 navigation entry exists');
+		$this->assertCount(1, $navigationEntries, 'Expected that 1 navigation entry exists');
 		$this->assertEquals($expectedEntry, $navigationEntries[0]);
 
 		$this->navigationManager->clear();
@@ -168,31 +169,38 @@ class NavigationManagerTest extends TestCase {
 	/**
 	 * @dataProvider providesNavigationConfig
 	 */
-	public function testWithAppManager($expected, $config, $isAdmin = false) {
-
+	public function testWithAppManager($expected, $config, $isAdmin = false, $isSubAdmin = false) {
 		$appManager = $this->createMock(IAppManager::class);
 		$urlGenerator = $this->createMock(IURLGenerator::class);
 		$l10nFac = $this->createMock(IFactory::class);
 		$userSession = $this->createMock(IUserSession::class);
 		$groupManager = $this->createMock(IGroupManager::class);
 		$l = $this->createMock(IL10N::class);
-		$l->expects($this->any())->method('t')->willReturnCallback(function($text, $parameters = []) {
-			return vsprintf($text, $parameters);
+		$l->expects($this->any())->method('t')->willReturnCallback(function ($text, $parameters = []) {
+			return \vsprintf($text, $parameters);
 		});
 
 		$appManager->expects($this->once())->method('getInstalledApps')->willReturn(['test']);
 		$appManager->expects($this->once())->method('getAppInfo')->with('test')->willReturn($config);
-		$l10nFac->expects($this->exactly(count($expected)))->method('get')->with('test')->willReturn($l);
-		$urlGenerator->expects($this->any())->method('imagePath')->willReturnCallback(function($appName, $file) {
+		$l10nFac->expects($this->exactly(\count($expected)))->method('get')->with('test')->willReturn($l);
+		$urlGenerator->expects($this->any())->method('imagePath')->willReturnCallback(function ($appName, $file) {
 			return "/apps/$appName/img/$file";
 		});
-		$urlGenerator->expects($this->exactly(count($expected)))->method('linkToRoute')->willReturnCallback(function($route) {
-			return "/apps/test/";
-		});
+		if (isset($config['navigation']['static'])) {
+			$urlGenerator->expects($this->never())->method('linkToRoute')->willReturn('/apps/test/');
+			$urlGenerator->expects($this->once())->method('linkTo')->willReturn('link-to-static');
+		} else {
+			$urlGenerator->expects($this->exactly(\count($expected)))->method('linkToRoute')->willReturn('/apps/test/');
+			$urlGenerator->expects($this->never())->method('linkTo')->willReturn('link-to-static');
+		}
+
 		$user = $this->createMock(IUser::class);
 		$user->expects($this->any())->method('getUID')->willReturn('user001');
 		$userSession->expects($this->any())->method('getUser')->willReturn($user);
+		$subAdminManager = $this->createMock(ISubAdminManager::class);
+		$subAdminManager->expects($this->any())->method('isSubAdmin')->willReturn($isSubAdmin);
 		$groupManager->expects($this->any())->method('isAdmin')->willReturn($isAdmin);
+		$groupManager->expects($this->any())->method('getSubAdmin')->willReturn($subAdminManager);
 
 		$navigationManager = new NavigationManager($appManager, $urlGenerator, $l10nFac, $userSession, $groupManager);
 
@@ -218,7 +226,63 @@ class NavigationManagerTest extends TestCase {
 				'name' => 'Test',
 				'active' => false
 			]], ['navigation' => ['@attributes' => ['role' => 'admin'], 'route' => 'test.page.index']], true],
-			'admin' => [[], ['navigation' => ['@attributes' => ['role' => 'admin'], 'route' => 'test.page.index']]]
+			'admin' => [[], ['navigation' => ['@attributes' => ['role' => 'admin'], 'route' => 'test.page.index']]],
+			'with static' => [[[
+				'id' => 'test',
+				'order' => 100,
+				'href' => 'link-to-static',
+				'icon' => '/apps/test/img/app.svg',
+				'name' => 'Test',
+				'active' => false
+			]], ['navigation' => ['static' => 'static.html']]],
+			'testAdminSubadmin' => [[[
+				'id' => 'test',
+				'order' => 100,
+				'href' => '/apps/test/',
+				'icon' => '/apps/test/img/app.svg',
+				'name' => 'Test',
+				'active' => false
+			]], ['navigation' => ['@attributes' => ['role' => 'admin,sub-admin'], 'route' => 'test.page.index']], true, true],
+			'testAdminSubadminWithSpaceAtAdmin' => [[[
+				'id' => 'test',
+				'order' => 100,
+				'href' => '/apps/test/',
+				'icon' => '/apps/test/img/app.svg',
+				'name' => 'Test',
+				'active' => false
+			]], ['navigation' => ['@attributes' => ['role' => '  admin   ,sub-admin'], 'route' => 'test.page.index']], true, true],
+			'testAdminSubadminWithSpaceAtSubAdmin' => [[[
+				'id' => 'test',
+				'order' => 100,
+				'href' => '/apps/test/',
+				'icon' => '/apps/test/img/app.svg',
+				'name' => 'Test',
+				'active' => false
+			]], ['navigation' => ['@attributes' => ['role' => 'admin,   sub-admin  '], 'route' => 'test.page.index']], true, true],
+			'testSubadmin' => [[[
+				'id' => 'test',
+				'order' => 100,
+				'href' => '/apps/test/',
+				'icon' => '/apps/test/img/app.svg',
+				'name' => 'Test',
+				'active' => false
+			]], ['navigation' => ['@attributes' => ['role' => 'sub-admin'], 'route' => 'test.page.index']], false, true],
+			'testAdmin' => [[[
+				'id' => 'test',
+				'order' => 100,
+				'href' => '/apps/test/',
+				'icon' => '/apps/test/img/app.svg',
+				'name' => 'Test',
+				'active' => false
+			]], ['navigation' => ['@attributes' => ['role' => 'admin'], 'route' => 'test.page.index']], true],
+			'testAdminWithSpace' => [[[
+				'id' => 'test',
+				'order' => 100,
+				'href' => '/apps/test/',
+				'icon' => '/apps/test/img/app.svg',
+				'name' => 'Test',
+				'active' => false
+			]], ['navigation' => ['@attributes' => ['role' => '   admin   '], 'route' => 'test.page.index']], true]
 		];
 	}
 }

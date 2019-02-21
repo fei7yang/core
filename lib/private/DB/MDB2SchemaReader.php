@@ -9,7 +9,7 @@
  * @author Victor Dubiniuk <dubiniuk@owncloud.com>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -55,9 +55,9 @@ class MDB2SchemaReader {
 	 * @return Schema
 	 */
 	public function loadSchemaFromFile($file, Schema $schema) {
-		$loadEntities = libxml_disable_entity_loader(false);
-		$xml = simplexml_load_file($file);
-		libxml_disable_entity_loader($loadEntities);
+		$loadEntities = \libxml_disable_entity_loader(false);
+		$xml = \simplexml_load_file($file);
+		\libxml_disable_entity_loader($loadEntities);
 		foreach ($xml->children() as $child) {
 			/**
 			 * @var \SimpleXMLElement $child
@@ -93,7 +93,7 @@ class MDB2SchemaReader {
 			switch ($child->getName()) {
 				case 'name':
 					$name = (string)$child;
-					$name = str_replace('*dbprefix*', $this->DBTABLEPREFIX, $name);
+					$name = \str_replace('*dbprefix*', $this->DBTABLEPREFIX, $name);
 					$name = $this->platform->quoteIdentifier($name);
 					$table = $schema->createTable($name);
 					break;
@@ -102,7 +102,7 @@ class MDB2SchemaReader {
 				case 'charset':
 					break;
 				case 'declaration':
-					if (is_null($table)) {
+					if ($table === null) {
 						throw new \DomainException('Table declaration before table name');
 					}
 					$this->loadDeclaration($table, $child);
@@ -145,6 +145,7 @@ class MDB2SchemaReader {
 	 */
 	private function loadField($table, $xml) {
 		$options = ['notnull' => false];
+		$primary = null;
 		foreach ($xml->children() as $child) {
 			/**
 			 * @var \SimpleXMLElement $child
@@ -197,7 +198,6 @@ class MDB2SchemaReader {
 					break;
 				case 'primary':
 					$primary = $this->asBool($child);
-					$options['primary'] = $primary;
 					break;
 				case 'precision':
 					$precision = (string)$child;
@@ -212,7 +212,7 @@ class MDB2SchemaReader {
 
 			}
 		}
-		if (isset($name) && isset($type)) {
+		if (isset($name, $type)) {
 			if (isset($options['default']) && empty($options['default'])) {
 				if (empty($options['notnull']) || !$options['notnull']) {
 					unset($options['default']);
@@ -236,7 +236,7 @@ class MDB2SchemaReader {
 				$length = $options['length'];
 				if ($length < 4) {
 					$type = 'smallint';
-				} else if ($length > 4) {
+				} elseif ($length > 4) {
 					$type = 'bigint';
 				}
 			}
@@ -246,11 +246,11 @@ class MDB2SchemaReader {
 			if (!empty($options['autoincrement'])
 				&& !empty($options['notnull'])
 			) {
-				$options['primary'] = true;
+				$primary = true;
 			}
 
 			$table->addColumn($name, $type, $options);
-			if (!empty($options['primary']) && $options['primary']) {
+			if ($primary) {
 				$table->setPrimaryKey([$name]);
 			}
 		}
@@ -316,7 +316,7 @@ class MDB2SchemaReader {
 				}
 			}
 		} else {
-			throw new \DomainException('Empty index definition: ' . $name . ' options:' . print_r($fields, true));
+			throw new \DomainException('Empty index definition: ' . $name . ' options:' . \print_r($fields, true));
 		}
 	}
 
@@ -333,5 +333,4 @@ class MDB2SchemaReader {
 		}
 		return (bool)$result;
 	}
-
 }

@@ -2,7 +2,7 @@
 /**
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -56,7 +56,7 @@ class ConvertMysqlToMB4 extends Command {
 	protected function configure() {
 		$this
 			->setName('db:convert-mysql-charset')
-			->setDescription('Convert charset of MySQL/MariaDB to use utf8mb4');
+			->setDescription('Convert charset of MySQL/MariaDB to use utf8mb4.');
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output) {

@@ -4,7 +4,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -55,9 +55,7 @@ class TagList implements Element {
 	 * @return array
 	 */
 	public function getTags() {
-
 		return $this->tags;
-
 	}
 
 	/**
@@ -81,7 +79,7 @@ class TagList implements Element {
 	 * @param Reader $reader
 	 * @return mixed
 	 */
-	static function xmlDeserialize(Reader $reader) {
+	public static function xmlDeserialize(Reader $reader) {
 		$tags = [];
 
 		$tree = $reader->parseInnerTree();
@@ -115,8 +113,7 @@ class TagList implements Element {
 	 * @param Writer $writer
 	 * @return void
 	 */
-	function xmlSerialize(Writer $writer) {
-
+	public function xmlSerialize(Writer $writer) {
 		foreach ($this->tags as $tag) {
 			$writer->writeElement('{' . self::NS_OWNCLOUD . '}tag', $tag);
 		}

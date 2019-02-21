@@ -5,7 +5,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Thomas Tanghus <thomas@tanghus.net>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -29,9 +29,7 @@
 
 namespace OCP\AppFramework;
 
-use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Response;
-
 
 /**
  * Middleware is used to provide hooks before or after controller methods and
@@ -42,7 +40,6 @@ use OCP\AppFramework\Http\Response;
  */
 abstract class Middleware {
 
-
 	/**
 	 * This is being run in normal order before the controller is being
 	 * called which allows several modifications and checks
@@ -52,10 +49,8 @@ abstract class Middleware {
 	 *                           the controller
 	 * @since 6.0.0
 	 */
-	public function beforeController($controller, $methodName){
-
+	public function beforeController($controller, $methodName) {
 	}
-
 
 	/**
 	 * This is being run when either the beforeController method or the
@@ -72,10 +67,9 @@ abstract class Middleware {
 	 * @return Response a Response object in case that the exception was handled
 	 * @since 6.0.0
 	 */
-	public function afterException($controller, $methodName, \Exception $exception){
+	public function afterException($controller, $methodName, \Exception $exception) {
 		throw $exception;
 	}
-
 
 	/**
 	 * This is being run after a successful controllermethod call and allows
@@ -88,10 +82,9 @@ abstract class Middleware {
 	 * @return Response a Response object
 	 * @since 6.0.0
 	 */
-	public function afterController($controller, $methodName, Response $response){
+	public function afterController($controller, $methodName, Response $response) {
 		return $response;
 	}
-
 
 	/**
 	 * This is being run after the response object has been rendered and
@@ -104,8 +97,7 @@ abstract class Middleware {
 	 * @return string the output that should be printed
 	 * @since 6.0.0
 	 */
-	public function beforeOutput($controller, $methodName, $output){
+	public function beforeOutput($controller, $methodName, $output) {
 		return $output;
 	}
-
 }

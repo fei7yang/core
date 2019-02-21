@@ -2,7 +2,7 @@
 /**
  * @author Morris Jobke <hey@morrisjobke.de>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -60,8 +60,8 @@ class RemoveGetETagEntriesTest extends TestCase {
 		$entries = $stmt->fetchAll(\PDO::FETCH_NUM);
 
 		$this->assertCount(2, $entries, 'Asserts that two entries are returned as we have inserted two');
-		foreach($entries as $entry) {
-			$this->assertTrue(in_array($entry, $data), 'Asserts that the entries are the ones from the test data set');
+		foreach ($entries as $entry) {
+			$this->assertContains($entry, $data, 'Asserts that the entries are the ones from the test data set');
 		}
 
 		/** @var IOutput | \PHPUnit_Framework_MockObject_MockObject $outputMock */

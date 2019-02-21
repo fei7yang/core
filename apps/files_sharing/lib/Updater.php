@@ -5,7 +5,7 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -29,7 +29,7 @@ class Updater {
 	/**
 	 * @param array $params
 	 */
-	static public function renameHook($params) {
+	public static function renameHook($params) {
 		self::renameChildren($params['oldpath'], $params['newpath']);
 		self::moveShareToShare($params['newpath']);
 	}
@@ -44,7 +44,7 @@ class Updater {
 	 *
 	 * @param string $path
 	 */
-	static private function moveShareToShare($path) {
+	private static function moveShareToShare($path) {
 		$userFolder = \OC::$server->getUserFolder();
 
 		// If the user folder can't be constructed (e.g. link share) just return.
@@ -57,7 +57,7 @@ class Updater {
 		$shareManager = \OC::$server->getShareManager();
 
 		$shares = $shareManager->getSharesBy($userFolder->getOwner()->getUID(), \OCP\Share::SHARE_TYPE_USER, $src, false, -1);
-		$shares = array_merge($shares, $shareManager->getSharesBy($userFolder->getOwner()->getUID(), \OCP\Share::SHARE_TYPE_GROUP, $src, false, -1));
+		$shares = \array_merge($shares, $shareManager->getSharesBy($userFolder->getOwner()->getUID(), \OCP\Share::SHARE_TYPE_GROUP, $src, false, -1));
 
 		// If the path we move is not a share we don't care
 		if (empty($shares)) {
@@ -68,16 +68,21 @@ class Updater {
 		$mountManager = \OC::$server->getMountManager();
 		$dstMount = $mountManager->find($src->getPath());
 		if (!($dstMount instanceof \OCA\Files_Sharing\SharedMount)) {
-			return;
+			// expected OC\Files\Mount\MountPoint
+			$newOwner = $dstMount->getStorage()->getOwner('');
+		} else {
+			$newOwner = $dstMount->getShare()->getShareOwner();
 		}
-
-		$newOwner = $dstMount->getShare()->getShareOwner();
 
 		//Ownership is moved over
 		foreach ($shares as $share) {
 			/** @var \OCP\Share\IShare $share */
-			$share->setShareOwner($newOwner);
-			$shareManager->updateShare($share);
+			if ($share->getSharedWith() !== $newOwner) {
+				$share->setShareOwner($newOwner);
+				$shareManager->updateShare($share);
+			} else {
+				$shareManager->deleteShare($share);
+			}
 		}
 	}
 
@@ -87,8 +92,7 @@ class Updater {
 	 * @param string $oldPath old path relative to data/user/files
 	 * @param string $newPath new path relative to data/user/files
 	 */
-	static private function renameChildren($oldPath, $newPath) {
-
+	private static function renameChildren($oldPath, $newPath) {
 		$absNewPath =  \OC\Files\Filesystem::normalizePath('/' . \OCP\User::getUser() . '/files/' . $newPath);
 		$absOldPath =  \OC\Files\Filesystem::normalizePath('/' . \OCP\User::getUser() . '/files/' . $oldPath);
 
@@ -97,10 +101,9 @@ class Updater {
 		foreach ($mountedShares as $mount) {
 			if ($mount->getStorage()->instanceOfStorage('OCA\Files_Sharing\ISharedStorage')) {
 				$mountPoint = $mount->getMountPoint();
-				$target = str_replace($absOldPath, $absNewPath, $mountPoint);
+				$target = \str_replace($absOldPath, $absNewPath, $mountPoint);
 				$mount->moveMount($target);
 			}
 		}
 	}
-
 }

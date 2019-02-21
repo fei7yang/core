@@ -2,7 +2,7 @@
 /**
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -36,7 +36,7 @@ class MapStatusCodeTest extends \Test\TestCase {
 	public function providesStatusCodes() {
 		return [
 			[Http::STATUS_OK, 100],
-			[Http::STATUS_BAD_REQUEST, 104],
+			[Http::STATUS_FORBIDDEN, 104],
 			[Http::STATUS_BAD_REQUEST, 1000],
 			[201, 201],
 		];

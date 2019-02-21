@@ -3,7 +3,7 @@
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,7 +21,6 @@
  */
 namespace OC;
 
-
 use OCP\Capabilities\ICapability;
 
 class CapabilitiesManager {
@@ -33,18 +32,18 @@ class CapabilitiesManager {
 
 	/**
 	 * Get an array of al the capabilities that are registered at this manager
-     *
+	 *
 	 * @throws \InvalidArgumentException
 	 * @return array
 	 */
 	public function getCapabilities() {
 		$capabilities = [];
-		foreach($this->capabilities as $capability) {
+		foreach ($this->capabilities as $capability) {
 			$c = $capability();
 			if ($c instanceof ICapability) {
-				$capabilities = array_replace_recursive($capabilities, $c->getCapabilities());
+				$capabilities = \array_replace_recursive($capabilities, $c->getCapabilities());
 			} else {
-				throw new \InvalidArgumentException('The given Capability (' . get_class($c) . ') does not implement the ICapability interface');
+				throw new \InvalidArgumentException('The given Capability (' . \get_class($c) . ') does not implement the ICapability interface');
 			}
 		}
 
@@ -60,6 +59,6 @@ class CapabilitiesManager {
 	 * @param \Closure $callable
 	 */
 	public function registerCapability(\Closure $callable) {
-		array_push($this->capabilities, $callable);
+		\array_push($this->capabilities, $callable);
 	}
 }

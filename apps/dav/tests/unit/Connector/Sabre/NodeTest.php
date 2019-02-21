@@ -6,7 +6,7 @@
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -24,6 +24,13 @@
  */
 
 namespace OCA\DAV\Tests\unit\Connector\Sabre;
+
+use OCP\Files\Storage\IStorage;
+use OC\Files\View;
+use OC\Files\FileInfo;
+use OCP\Share\IShare;
+use OCP\Share\IManager;
+use OCP\Files\Mount\IMountPoint;
 
 /**
  * Class NodeTest
@@ -50,7 +57,7 @@ class NodeTest extends \Test\TestCase {
 	 * @dataProvider davPermissionsProvider
 	 */
 	public function testDavPermissions($permissions, $type, $shared, $mounted, $expected) {
-		$info = $this->getMockBuilder('\OC\Files\FileInfo')
+		$info = $this->getMockBuilder(FileInfo::class)
 			->disableOriginalConstructor()
 			->setMethods(['getPermissions', 'isShared', 'isMounted', 'getType'])
 			->getMock();
@@ -66,7 +73,7 @@ class NodeTest extends \Test\TestCase {
 		$info->expects($this->any())
 			->method('getType')
 			->will($this->returnValue($type));
-		$view = $this->createMock('\OC\Files\View');
+		$view = $this->createMock(View::class);
 
 		$node = new  \OCA\DAV\Connector\Sabre\File($view, $info);
 		$this->assertEquals($expected, $node->getDavPermissions());
@@ -116,13 +123,13 @@ class NodeTest extends \Test\TestCase {
 	 * @dataProvider sharePermissionsProvider
 	 */
 	public function testSharePermissions($type, $user, $permissions, $expected) {
-		$storage = $this->createMock('\OCP\Files\Storage');
+		$storage = $this->createMock(IStorage::class);
 		$storage->method('getPermissions')->willReturn($permissions);
 
-		$mountpoint = $this->createMock('\OCP\Files\Mount\IMountPoint');
+		$mountpoint = $this->createMock(IMountPoint::class);
 		$mountpoint->method('getMountPoint')->willReturn('myPath');
-		$shareManager = $this->getMockBuilder('OCP\Share\IManager')->disableOriginalConstructor()->getMock();
-		$share = $this->getMockBuilder('OCP\Share\IShare')->disableOriginalConstructor()->getMock();
+		$shareManager = $this->getMockBuilder(IManager::class)->disableOriginalConstructor()->getMock();
+		$share = $this->getMockBuilder(IShare::class)->disableOriginalConstructor()->getMock();
 
 		if ($user === null) {
 			$shareManager->expects($this->never())->method('getShareByToken');
@@ -133,7 +140,7 @@ class NodeTest extends \Test\TestCase {
 			$share->expects($this->once())->method('getPermissions')->willReturn($permissions);
 		}
 
-		$info = $this->getMockBuilder('\OC\Files\FileInfo')
+		$info = $this->getMockBuilder(FileInfo::class)
 			->disableOriginalConstructor()
 			->setMethods(['getStorage', 'getType', 'getMountPoint'])
 			->getMock();
@@ -142,7 +149,7 @@ class NodeTest extends \Test\TestCase {
 		$info->method('getType')->willReturn($type);
 		$info->method('getMountPoint')->willReturn($mountpoint);
 
-		$view = $this->createMock('\OC\Files\View');
+		$view = $this->createMock(View::class);
 
 		$node = new  \OCA\DAV\Connector\Sabre\File($view, $info);
 		$this->invokePrivate($node, 'shareManager', [$shareManager]);
@@ -163,14 +170,14 @@ class NodeTest extends \Test\TestCase {
 	 * @dataProvider fileIdProvider
 	 */
 	public function testFileId($instanceid, $numericid, $fullid) {
-		$info = $this->getMockBuilder('\OC\Files\FileInfo')
+		$info = $this->getMockBuilder(FileInfo::class)
 			->disableOriginalConstructor()
 			->setMethods(['getId'])
 			->getMock();
 		$info->expects($this->any())
 			->method('getId')
 			->will($this->returnValue($numericid));
-		$view = $this->createMock('\OC\Files\View');
+		$view = $this->createMock(View::class);
 
 		\OC::$server->getSystemConfig()->setValue('instanceid', $instanceid);
 
@@ -181,7 +188,7 @@ class NodeTest extends \Test\TestCase {
 
 		// Check the contract that the full id must satisfy. This is technically
 		// redundant and verifies only that our test cases are sane.
-		preg_match('/^(\d*)(.*)$/', $node->getFileId(), $matches);
+		\preg_match('/^(\d*)(.*)$/', $node->getFileId(), $matches);
 		$this->assertEquals($numericid, (int)$matches[1]);
 		$this->assertEquals($instanceid, $matches[2]);
 	}

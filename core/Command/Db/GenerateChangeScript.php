@@ -3,7 +3,7 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -31,18 +31,17 @@ class GenerateChangeScript extends Command {
 	protected function configure() {
 		$this
 			->setName('db:generate-change-script')
-			->setDescription('generates the change script from the current connected db to db_structure.xml')
+			->setDescription('Generates the change script from the current connected db to db_structure.xml.')
 			->addArgument(
 				'schema-xml',
 				InputArgument::OPTIONAL,
-				'the schema xml to be used as target schema',
+				'The XML schema to be used as the target schema.',
 				\OC::$SERVERROOT . '/db_structure.xml'
 			)
 		;
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output) {
-
 		$file = $input->getArgument('schema-xml');
 
 		$schemaManager = new \OC\DB\MDB2SchemaManager(\OC::$server->getDatabaseConnection());
@@ -53,6 +52,5 @@ class GenerateChangeScript extends Command {
 		} catch (\Exception $e) {
 			$output->writeln('Failed to update database structure ('.$e.')');
 		}
-
 	}
 }

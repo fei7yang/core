@@ -3,7 +3,7 @@
  * @author Bernhard Posselt <dev@bernhard-posselt.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -20,9 +20,7 @@
  *
  */
 
-
 namespace OCP\AppFramework\Utility;
-
 
 /**
  * Needed to mock calls to time()
@@ -35,5 +33,4 @@ interface ITimeFactory {
 	 * @since 8.0.0
 	 */
 	public function getTime();
-
 }

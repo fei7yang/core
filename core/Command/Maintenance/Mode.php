@@ -3,7 +3,7 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author scolebrook <scolebrook@mac.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -42,18 +42,18 @@ class Mode extends Command {
 	protected function configure() {
 		$this
 			->setName('maintenance:mode')
-			->setDescription('set maintenance mode')
+			->setDescription('Set maintenance mode.')
 			->addOption(
 				'on',
 				null,
 				InputOption::VALUE_NONE,
-				'enable maintenance mode'
+				'Enable maintenance mode.'
 			)
 			->addOption(
 				'off',
 				null,
 				InputOption::VALUE_NONE,
-				'disable maintenance mode'
+				'Disable maintenance mode.'
 			);
 	}
 

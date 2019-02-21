@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015
+ * Copyright (c) 2018, ownCloud GmbH
  *
  * This file is licensed under the Affero General Public License version 3
  * or later.
@@ -12,10 +12,20 @@
 
 	function modelToSelection(model) {
 		var data = model.toJSON();
-		if (!OC.isUserAdmin() && !data.canAssign) {
-			data.locked = true;
+		if (!OC.isUserAdmin()) {
+			/**
+			 * If tag cannot be assigned just lock it.
+			 * Static tags need to be locked if they do not belong to the groups
+			 */
+			if (!data.canAssign || (isStaticTag(data) && !data.editableInGroup)) {
+				data.locked = true;
+			}
 		}
 		return data;
+	}
+
+	function isStaticTag(data) {
+		return data.userEditable === false && data.userAssignable === true;
 	}
 
 	/**

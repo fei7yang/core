@@ -2,7 +2,7 @@
 /**
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -133,5 +133,5 @@ abstract class StorageAdapter extends \OC\Files\Storage\Common {
 	 * @throws StorageNotAvailableException if the storage is temporarily not available
 	 * @since 10.0
 	 */
-	abstract public function touch($path, $mtime = NULL);
+	abstract public function touch($path, $mtime = null);
 }

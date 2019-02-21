@@ -2,7 +2,7 @@
 * ownCloud
 *
 * @author Vincent Petry
-* @copyright 2015 Vincent Petry <pvince81@owncloud.com>
+* @copyright Copyright (c) 2015 Vincent Petry <pvince81@owncloud.com>
 *
 * This library is free software; you can redistribute it and/or
 * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
@@ -70,7 +70,7 @@ describe('OCA.Files.FileActionsMenu tests', function() {
 		fileActions.setDefault('all', 'Testdefault');
 
 		var fileData = {
-			id: 18,
+			id: '18',
 			type: 'file',
 			name: 'testName.txt',
 			mimetype: 'text/plain',
@@ -228,7 +228,7 @@ describe('OCA.Files.FileActionsMenu tests', function() {
 		it('redirects to download URL when clicking download', function() {
 			var redirectStub = sinon.stub(OC, 'redirect');
 			var fileData = {
-				id: 18,
+				id: '18',
 				type: 'file',
 				name: 'testName.txt',
 				mimetype: 'text/plain',
@@ -260,7 +260,7 @@ describe('OCA.Files.FileActionsMenu tests', function() {
 		it('takes the file\'s path into account when clicking download', function() {
 			var redirectStub = sinon.stub(OC, 'redirect');
 			var fileData = {
-				id: 18,
+				id: '18',
 				type: 'file',
 				name: 'testName.txt',
 				path: '/anotherpath/there',
@@ -292,7 +292,7 @@ describe('OCA.Files.FileActionsMenu tests', function() {
 		it('deletes file when clicking delete', function() {
 			var deleteStub = sinon.stub(fileList, 'do_delete');
 			var fileData = {
-				id: 18,
+				id: '18',
 				type: 'file',
 				name: 'testName.txt',
 				path: '/somepath/dir',

@@ -673,8 +673,6 @@ MountConfigListView.prototype = _.extend({
 		// into the data-configurations attribute of the select
 		this._allBackends = this.$el.find('.selectBackend').data('configurations');
 		this._allAuthMechanisms = this.$el.find('#addMountPoint .authentication').data('mechanisms');
-
-		this._initEvents();
 	},
 
 	/**
@@ -779,6 +777,41 @@ MountConfigListView.prototype = _.extend({
 	},
 
 	/**
+	 * Execute the target callback when all the deferred objects have been
+	 * finished, either resolved or rejected
+	 *
+	 * @param {Deferred[]} deferreds array with all the deferred objects to check
+	 * this will usually be a list of ajax requests, but other deferred
+	 * objects can be included
+	 * @param {callback} callback the callback to be executed after all the
+	 * deferred object have finished
+	 */
+	_executeCallbackWhenFinished: function(deferreds, callback) {
+		var self = this;
+
+		$.when.apply($, deferreds).always(function() {
+			var pendingDeferreds = [];
+
+			// some deferred objects can still be pending to be resolved
+			// or rejected. Get all of those which are still pending so we can
+			// make another call
+			if (deferreds.length > 0) {
+				for (i = 0 ; i < deferreds.length ; i++) {
+					if (deferreds[i].state() === 'pending') {
+						pendingDeferreds.push(deferreds[i]);
+					}
+				}
+			}
+
+			if (pendingDeferreds.length > 0) {
+				self._executeCallbackWhenFinished(pendingDeferreds, callback);
+			} else {
+				callback();
+			}
+		});
+	},
+
+	/**
 	 * Configure the storage config with a new authentication mechanism
 	 *
 	 * @param {jQuery} $tr config row
@@ -809,10 +842,25 @@ MountConfigListView.prototype = _.extend({
 	newStorage: function(storageConfig, onCompletion) {
 		var mountPoint = storageConfig.mountPoint;
 		var backend = this._allBackends[storageConfig.backend];
+		var isInvalidAuth = false;
+
+		if (!backend) {
+			backend = {
+				name: 'Unknown backend: ' + storageConfig.backend,
+				invalid: true
+			};
+		}
+		if (backend && storageConfig.authMechanism && !this._allAuthMechanisms[storageConfig.authMechanism]) {
+			// mark invalid to prevent editing
+			backend.invalid = true;
+			isInvalidAuth = true;
+		}
 
 		// FIXME: Replace with a proper Handlebar template
 		var $tr = this.$el.find('tr#addMountPoint');
-		this.$el.find('tbody').append($tr.clone());
+		var $trCloned = $tr.clone();
+		$trCloned.find('td.mountPoint input').removeAttr('disabled');
+		this.$el.find('tbody').append($trCloned);
 
 		$tr.data('storageConfig', storageConfig);
 		$tr.show();
@@ -820,7 +868,6 @@ MountConfigListView.prototype = _.extend({
 		$tr.find('td.mountOptionsToggle').removeClass('hidden');
 		$tr.find('td').last().removeAttr('style');
 		$tr.removeAttr('id');
-		$tr.find('select#selectBackend');
 		addSelect2($tr.find('.applicableUsers'), this._userListLimit);
 
 		if (storageConfig.id) {
@@ -834,6 +881,26 @@ MountConfigListView.prototype = _.extend({
 		$tr.find('.mountPoint input').val(mountPoint);
 		$tr.addClass(backend.identifier);
 		$tr.find('.backend').data('identifier', backend.identifier);
+
+		if (backend.invalid || isInvalidAuth) {
+			$tr.addClass('invalid');
+			$tr.find('[name=mountPoint]').prop('disabled', true);
+			$tr.find('.applicable,.mountOptionsToggle').empty();
+			this.updateStatus($tr, false, 'Unknown backend: ' + backend.name);
+			if (isInvalidAuth) {
+				$tr.find('td.authentication').append('<span class="error-invalid">' +
+					t('files_external', 'Unknown auth backend "{b}"', {b: storageConfig.authMechanism}) +
+					'</span>'
+				);
+			}
+
+			$tr.find('td.configuration').append('<span class="error-invalid">' +
+				t('files_external', 'Please make sure that the app that provides this backend is installed and enabled') +
+				'</span>'
+			);
+
+			return $tr;
+		}
 
 		var selectAuthMechanism = $('<select class="selectAuthMechanism"></select>');
 		var neededVisibility = (this._isPersonal) ? StorageConfig.Visibility.PERSONAL : StorageConfig.Visibility.ADMIN;
@@ -908,10 +975,11 @@ MountConfigListView.prototype = _.extend({
 	 */
 	loadStorages: function() {
 		var self = this;
+		var ajaxRequests = [];
 
 		if (this._isPersonal) {
 			// load userglobal storages
-			$.ajax({
+			var fixedStoragesRequest = $.ajax({
 				type: 'GET',
 				url: OC.generateUrl('apps/files_external/userglobalstorages'),
 				data: {'testOnly' : true},
@@ -939,7 +1007,7 @@ MountConfigListView.prototype = _.extend({
 
 						// disable any other inputs
 						$tr.find('.mountOptionsToggle, .remove').empty();
-						$tr.find('input:not(.user_provided), select:not(.user_provided)').attr('disabled', 'disabled');
+						$tr.find('input:not(.user_provided), select:not(.user_provided)').prop('disabled', true);
 
 						if (isUserGlobal) {
 							$tr.find('.configuration').find(':not(.user_provided)').remove();
@@ -949,14 +1017,14 @@ MountConfigListView.prototype = _.extend({
 						}
 					});
 					onCompletion.resolve();
-					$("#body-settings").trigger("mountConfigLoaded");
 				}
 			});
+			ajaxRequests.push(fixedStoragesRequest);
 		}
 
 		var url = this._storageConfigClass.prototype._url;
 
-		$.ajax({
+		var changeableStoragesRequest = $.ajax({
 			type: 'GET',
 			url: OC.generateUrl(url),
 			contentType: 'application/json',
@@ -970,8 +1038,12 @@ MountConfigListView.prototype = _.extend({
 					self.recheckStorageConfig($tr);
 				});
 				onCompletion.resolve();
-				$("#body-settings").trigger("mountConfigLoaded");
 			}
+		});
+		ajaxRequests.push(changeableStoragesRequest);
+
+		this._executeCallbackWhenFinished(ajaxRequests, function() {
+			$('#body-settings').trigger('mountConfigLoaded');
 		});
 	},
 
@@ -1004,7 +1076,7 @@ MountConfigListView.prototype = _.extend({
 
 		var trimmedPlaceholder = placeholder.value;
 		if (placeholder.type === MountConfigListView.ParameterTypes.PASSWORD) {
-			newElement = $('<input type="password" class="'+classes.join(' ')+'" data-parameter="'+parameter+'" placeholder="'+ trimmedPlaceholder+'" />');
+			newElement = $('<input type="password" class="'+classes.join(' ')+'" data-parameter="'+parameter+'" placeholder="'+ trimmedPlaceholder+'" autocomplete="off" />');
 		} else if (placeholder.type === MountConfigListView.ParameterTypes.BOOLEAN) {
 			var checkboxId = _.uniqueId('checkbox_');
 			newElement = $('<div><label><input type="checkbox" id="'+checkboxId+'" class="'+classes.join(' ')+'" data-parameter="'+parameter+'" />'+ trimmedPlaceholder+'</label></div>');
@@ -1314,6 +1386,11 @@ $(document).ready(function() {
 		encryptionEnabled: encryptionEnabled,
 		allowUserMountSharing: (parseInt($('#allowUserMountSharing').val(), 10) === 1)
 	});
+
+	// init the mountConfigListView events after the storages are loaded
+	$('#body-settings').on('mountConfigLoaded', function() {
+		mountConfigListView._initEvents();
+	});
 	mountConfigListView.loadStorages();
 
 	// TODO: move this into its own View class
@@ -1452,7 +1529,17 @@ OCA.External.Settings.OAuth2.getAuthUrl = function (backendUrl, data) {
 						OC.dialogs.alert('Auth URL not set',
 							t('files_external', 'No URL provided by backend ' + data['backend_id'])
 						);
+						$tr.trigger('oauth_step1_finished', [{
+							success: false,
+							tr: $tr,
+							data: data
+						}]);
 					} else {
+						$tr.trigger('oauth_step1_finished', [{
+							success: true,
+							tr: $tr,
+							data: data
+						}]);
 						window.location = result.data.url;
 					}
 				});
@@ -1460,6 +1547,11 @@ OCA.External.Settings.OAuth2.getAuthUrl = function (backendUrl, data) {
 				OC.dialogs.alert(result.data.message,
 					t('files_external', 'Error getting OAuth2 URL for ' + data['backend_id'])
 				);
+				$tr.trigger('oauth_step1_finished', [{
+					success: false,
+					tr: $tr,
+					data: data
+				}]);
 			}
 		}
 	);
@@ -1496,7 +1588,7 @@ OCA.External.Settings.OAuth2.verifyCode = function (backendUrl, data) {
 				OCA.External.Settings.mountConfig.saveStorageConfig($tr, function(status) {
 					if (status) {
 						$tr.find('.configuration input.auth-param')
-							.attr('disabled', 'disabled')
+							.prop('disabled', true)
 							.addClass('disabled-success')
 					}
 					deferredObject.resolve(status);

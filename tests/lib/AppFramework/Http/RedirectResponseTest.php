@@ -4,7 +4,7 @@
  * ownCloud - App Framework
  *
  * @author Bernhard Posselt
- * @copyright 2012 Bernhard Posselt <dev@bernhard-posselt.com>
+ * @copyright Copyright (c) 2012 Bernhard Posselt <dev@bernhard-posselt.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
@@ -21,12 +21,10 @@
  *
  */
 
-
 namespace Test\AppFramework\Http;
 
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\RedirectResponse;
-
 
 class RedirectResponseTest extends \Test\TestCase {
 
@@ -35,23 +33,19 @@ class RedirectResponseTest extends \Test\TestCase {
 	 */
 	protected $response;
 
-	protected function setUp(){
+	protected function setUp() {
 		parent::setUp();
 		$this->response = new RedirectResponse('/url');
 	}
 
-
 	public function testHeaders() {
 		$headers = $this->response->getHeaders();
 		$this->assertEquals('/url', $headers['Location']);
-		$this->assertEquals(Http::STATUS_SEE_OTHER, 
+		$this->assertEquals(Http::STATUS_SEE_OTHER,
 			$this->response->getStatus());
 	}
 
-
-	public function testGetRedirectUrl(){
+	public function testGetRedirectUrl() {
 		$this->assertEquals('/url', $this->response->getRedirectUrl());
 	}
-
-
 }

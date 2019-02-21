@@ -5,7 +5,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -34,7 +34,7 @@ $data = [];
 try {
 	$files = \OCA\Files_Trashbin\Helper::getTrashFiles($dir, \OCP\User::getUser(), $sortAttribute, $sortDirection);
 } catch (Exception $e) {
-	header("HTTP/1.0 404 Not Found");
+	\header("HTTP/1.0 404 Not Found");
 	exit();
 }
 
@@ -45,4 +45,3 @@ $data['directory'] = $dir;
 $data['files'] = \OCA\Files_Trashbin\Helper::formatFileInfos($files);
 
 OCP\JSON::success(['data' => $data]);
-

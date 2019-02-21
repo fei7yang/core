@@ -2,7 +2,7 @@
 /**
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -36,13 +36,13 @@ class PostgreSqlMigrator extends Migrator {
 			// fix default value in brackets - pg 9.4 is returning a negative default value in ()
 			// see https://github.com/doctrine/dbal/issues/2427
 			foreach ($tableDiff->changedColumns as $column) {
-				$column->changedProperties = array_filter($column->changedProperties, function ($changedProperties) use ($column) {
+				$column->changedProperties = \array_filter($column->changedProperties, function ($changedProperties) use ($column) {
 					if ($changedProperties !== 'default') {
 						return true;
 					}
 					$fromDefault = $column->fromColumn->getDefault();
 					$toDefault = $column->column->getDefault();
-					$fromDefault = trim($fromDefault, "()");
+					$fromDefault = \trim($fromDefault, "()");
 
 					// by intention usage of !=
 					return $fromDefault != $toDefault;

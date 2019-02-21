@@ -2,7 +2,7 @@
 /**
  * @author Roeland Jago Douma <roeland@famdouma.nl>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,7 +21,7 @@
 
 namespace Test\Files\Type;
 
-use \OC\Files\Type\Detection;
+use OC\Files\Type\Detection;
 use org\bovigo\vfs\vfsStream;
 
 class DetectionTest extends \Test\TestCase {
@@ -78,7 +78,14 @@ class DetectionTest extends \Test\TestCase {
 		$this->assertEquals('image/png', $this->detection->detectPath('.hidden/foo.png'));
 		$this->assertEquals('image/png', $this->detection->detectPath('test.jpg/foo.png'));
 		$this->assertEquals('application/octet-stream', $this->detection->detectPath('.png'));
+		$this->assertEquals('application/x-sharedlib', $this->detection->detectPath('test.so'));
+		$this->assertEquals('application/x-sharedlib', $this->detection->detectPath('test.so.0.0.1'));
+		$this->assertEquals('application/x-sharedlib', $this->detection->detectPath('test.1.2.so.0.0.1'));
+		$this->assertEquals('application/x-sharedlib', $this->detection->detectPath('test.1.2.so.1'));
+		$this->assertEquals('application/x-sharedlib', $this->detection->detectPath('foo.so.'));
 		$this->assertEquals('application/octet-stream', $this->detection->detectPath('foo'));
+		$this->assertEquals('application/octet-stream', $this->detection->detectPath('foo.somany'));
+		$this->assertEquals('application/octet-stream', $this->detection->detectPath('foo.so*'));
 		$this->assertEquals('application/octet-stream', $this->detection->detectPath(''));
 	}
 
@@ -93,7 +100,7 @@ class DetectionTest extends \Test\TestCase {
 		$mimetypealiases_dist = vfsStream::newFile('mimetypealiases.dist.json')->at($confDir);
 
 		//Empty alias file
-		$mimetypealiases_dist->setContent(json_encode([], JSON_FORCE_OBJECT));
+		$mimetypealiases_dist->setContent(\json_encode([], JSON_FORCE_OBJECT));
 
 		//Mock UrlGenerator
 		$urlGenerator = $this->getMockBuilder('\OCP\IURLGenerator')
@@ -109,7 +116,6 @@ class DetectionTest extends \Test\TestCase {
 		$detection = new Detection($urlGenerator, $confDir->url(), $confDir->url());
 		$mimeType = $detection->mimeTypeIcon('dir');
 		$this->assertEquals('folder.svg', $mimeType);
-
 
 		/*
 		 * Test dir-shareed mimetype
@@ -128,7 +134,6 @@ class DetectionTest extends \Test\TestCase {
 		$detection = new Detection($urlGenerator, $confDir->url(), $confDir->url());
 		$mimeType = $detection->mimeTypeIcon('dir-shared');
 		$this->assertEquals('folder-shared.svg', $mimeType);
-
 
 		/*
 		 * Test dir external
@@ -149,7 +154,6 @@ class DetectionTest extends \Test\TestCase {
 		$mimeType = $detection->mimeTypeIcon('dir-external');
 		$this->assertEquals('folder-external.svg', $mimeType);
 
-
 		/*
 		 * Test complete mimetype
 		 */
@@ -169,7 +173,6 @@ class DetectionTest extends \Test\TestCase {
 		$mimeType = $detection->mimeTypeIcon('my-type');
 		$this->assertEquals('my-type.svg', $mimeType);
 
-
 		/*
 		 * Test subtype
 		 */
@@ -187,7 +190,7 @@ class DetectionTest extends \Test\TestCase {
 				[$this->equalTo('core'), $this->equalTo('filetypes/my.svg')]
 			)
 			->will($this->returnCallback(
-				function($appName, $file) {
+				function ($appName, $file) {
 					if ($file === 'filetypes/my.svg') {
 						return 'my.svg';
 					}
@@ -198,7 +201,6 @@ class DetectionTest extends \Test\TestCase {
 		$detection = new Detection($urlGenerator, $confDir->url(), $confDir->url());
 		$mimeType = $detection->mimeTypeIcon('my-type');
 		$this->assertEquals('my.svg', $mimeType);
-
 
 		/*
 		 * Test default mimetype
@@ -218,7 +220,7 @@ class DetectionTest extends \Test\TestCase {
 				[$this->equalTo('core'), $this->equalTo('filetypes/file.svg')]
 			)
 			->will($this->returnCallback(
-				function($appName, $file) {
+				function ($appName, $file) {
 					if ($file === 'filetypes/file.svg') {
 						return 'file.svg';
 					}
@@ -251,14 +253,12 @@ class DetectionTest extends \Test\TestCase {
 		$mimeType = $detection->mimeTypeIcon('foo-bar');
 		$this->assertEquals('foo-bar.svg', $mimeType);
 
-
-
 		/*
 		 * Test aliases
 		 */
 
 		//Put alias
-		$mimetypealiases_dist->setContent(json_encode(['foo' => 'foobar/baz'], JSON_FORCE_OBJECT));
+		$mimetypealiases_dist->setContent(\json_encode(['foo' => 'foobar/baz'], JSON_FORCE_OBJECT));
 
 		//Mock UrlGenerator
 		$urlGenerator = $this->getMockBuilder('\OCP\IURLGenerator')

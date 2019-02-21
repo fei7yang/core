@@ -14,10 +14,9 @@ OC.L10N.register(
     "Crop is not square" : "Potongan ora kotak",
     "%s password reset" : "%s sandi direset",
     "Couldn't send reset email. Please contact your administrator." : "Ora iso ngirim reset email. Tulung celuk administratormu.",
-    "Couldn't send mail to following users: %s " : "Ora iso ngirim email kanggo pengguna: %s",
     "Preparing update" : "Nyiapne penganyaran",
     "[%d / %d]: %s" : "[%d / %d]: %s",
     "Repair error: " : "Kesalahan ndandhani:",
     "Edit" : "Ngganti"
 },
-"nplurals=2; plural=(n != 1);");
+"nplurals=1; plural=0;");

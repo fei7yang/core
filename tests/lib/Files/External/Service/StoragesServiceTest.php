@@ -5,7 +5,7 @@
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud GmbH.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -24,12 +24,14 @@
 namespace Test\Files\External\Service;
 
 use OC\Files\Cache\Storage;
-use OC\Files\Filesystem;
-use OC\Files\External\StorageConfig;
 use OC\Files\External\Service\StoragesService;
-
-use OCP\Files\External\NotFoundException;
+use OC\Files\External\StorageConfig;
+use OC\Files\Filesystem;
+use OCP\Files\External\Auth\InvalidAuth;
+use OCP\Files\External\Backend\Backend;
+use OCP\Files\External\Backend\InvalidBackend;
 use OCP\Files\External\IStoragesBackendService;
+use OCP\Files\External\NotFoundException;
 use Test\TestCase;
 
 /**
@@ -67,6 +69,11 @@ abstract class StoragesServiceTest extends TestCase {
 	 */
 	protected $mountCache;
 
+	/**
+	 * @var Backend[]
+	 */
+	protected $backends;
+
 	public function setUp() {
 		parent::setUp();
 		$this->dbConfig = new CleaningDBConfig(\OC::$server->getDatabaseConnection(), \OC::$server->getCrypto());
@@ -99,8 +106,8 @@ abstract class StoragesServiceTest extends TestCase {
 			}));
 		$this->backendService->method('getAuthMechanismsByScheme')
 			->will($this->returnCallback(function ($schemes) use ($authMechanisms) {
-				return array_filter($authMechanisms, function ($authMech) use ($schemes) {
-					return in_array($authMech->getScheme(), $schemes, true);
+				return \array_filter($authMechanisms, function ($authMech) use ($schemes) {
+					return \in_array($authMech->getScheme(), $schemes, true);
 				});
 			}));
 		$this->backendService->method('getAuthMechanisms')
@@ -108,30 +115,33 @@ abstract class StoragesServiceTest extends TestCase {
 
 		$sftpBackend = $this->getBackendMock('\OCA\Files_External\Lib\Backend\SFTP', '\OCA\Files_External\Lib\Storage\SFTP');
 		$dummyBackend = $this->getBackendMock('\Test\Files\External\Backend\DummyBackend', '\Test\Files\External\Backend\DummyStorage');
-		$backends = [
+		$this->backends = [
 			'identifier:\OCA\Files_External\Lib\Backend\SMB' => $this->getBackendMock('\OCA\Files_External\Lib\Backend\SMB', '\OCA\Files_External\Lib\Storage\SMB'),
 			'identifier:\OCA\Files_External\Lib\Backend\SFTP' => $sftpBackend,
 			'identifier:\Test\Files\External\Backend\DummyBackend' => $dummyBackend,
 			'identifier:sftp_alias' => $sftpBackend,
 		];
 		$this->backendService->method('getBackend')
-			->will($this->returnCallback(function ($backendClass) use ($backends) {
-				if (isset($backends[$backendClass])) {
-					return $backends[$backendClass];
+			->will($this->returnCallback(function ($backendClass) {
+				if (isset($this->backends[$backendClass])) {
+					return $this->backends[$backendClass];
 				}
 				return null;
 			}));
 		$this->backendService->method('getBackends')
-			->will($this->returnValue($backends));
+			->will($this->returnCallback(function () {
+				// in case they changed
+				return $this->backends;
+			}));
 
 		\OCP\Util::connectHook(
 			Filesystem::CLASSNAME,
 			Filesystem::signal_create_mount,
-			get_class($this), 'createHookCallback');
+			\get_class($this), 'createHookCallback');
 		\OCP\Util::connectHook(
 			Filesystem::CLASSNAME,
 			Filesystem::signal_delete_mount,
-			get_class($this), 'deleteHookCallback');
+			\get_class($this), 'deleteHookCallback');
 
 		$containerMock = $this->createMock('\OCP\AppFramework\IAppContainer');
 		$containerMock->method('query')
@@ -221,7 +231,6 @@ abstract class StoragesServiceTest extends TestCase {
 		}
 		return $storage;
 	}
-
 
 	/**
 	 * @expectedException \OCP\Files\External\NotFoundException
@@ -349,27 +358,28 @@ abstract class StoragesServiceTest extends TestCase {
 	}
 
 	/**
-	 * @expectedException \InvalidArgumentException
 	 */
 	public function testCreateStorageInvalidClass() {
-		$this->service->createStorage(
+		$storageConfig = $this->service->createStorage(
 			'mount',
 			'identifier:\OC\Not\A\Backend',
 			'identifier:\Auth\Mechanism',
 			[]
 		);
+
+		$this->assertInstanceOf(InvalidBackend::class, $storageConfig->getBackend());
 	}
 
 	/**
-	 * @expectedException \InvalidArgumentException
 	 */
 	public function testCreateStorageInvalidAuthMechanismClass() {
-		$this->service->createStorage(
+		$storageConfig = $this->service->createStorage(
 			'mount',
 			'identifier:\OCA\Files_External\Lib\Backend\SMB',
 			'identifier:\Not\An\Auth\Mechanism',
 			[]
 		);
+		$this->assertInstanceOf(InvalidAuth::class, $storageConfig->getAuthMechanism());
 	}
 
 	public function testGetStoragesBackendNotVisible() {
@@ -485,5 +495,29 @@ abstract class StoragesServiceTest extends TestCase {
 		$this->assertEquals('/mountpoint2', $savedStorage->getMountPoint());
 		$this->assertEquals($newAuthMechanism, $savedStorage->getAuthMechanism());
 		$this->assertEquals('password2', $savedStorage->getBackendOption('password'));
+	}
+
+	/**
+	 * @expectedException OCP\Files\External\NotFoundException
+	 */
+	public function testCannotEditInvalidBackend() {
+		$backend = $this->backendService->getBackend('identifier:\Test\Files\External\Backend\DummyBackend');
+		$authMechanism = $this->backendService->getAuthMechanism('identifier:\Auth\Mechanism');
+
+		$storage = new StorageConfig();
+		$storage->setMountPoint('mountpoint');
+		$storage->setBackend($backend);
+		$storage->setAuthMechanism($authMechanism);
+		$storage->setBackendOptions(['password' => 'testPassword']);
+
+		$savedStorage = $this->service->addStorage($storage);
+
+		// make it invalid
+		$this->backends['identifier:\Test\Files\External\Backend\DummyBackend'] = new InvalidBackend('identifier:\Test\Files\External\Backend\DummyBackend');
+
+		$updatedStorage = new StorageConfig($savedStorage->getId());
+		$updatedStorage->setBackendOptions(['password' => 'password2']);
+
+		$this->service->updateStorage($updatedStorage);
 	}
 }

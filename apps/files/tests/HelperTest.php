@@ -7,7 +7,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -24,13 +24,10 @@
  *
  */
 
-use OCA\Files\Tests;
-
 /**
  * Class Helper
  */
 class HelperTest extends \Test\TestCase {
-
 	private function makeFileInfo($name, $size, $mtime, $isDir = false) {
 		return new \OC\Files\FileInfo(
 			'/' . $name,
@@ -52,16 +49,16 @@ class HelperTest extends \Test\TestCase {
 	 */
 	private function getTestFileList() {
 		return [
-			self::makeFileInfo('a.txt', 4, 2.3 * pow(10, 9)),
+			self::makeFileInfo('a.txt', 4, 2.3 * \pow(10, 9)),
 			self::makeFileInfo('q.txt', 5, 150),
 			self::makeFileInfo('subdir2', 87, 128, true),
-			self::makeFileInfo('b.txt', 2.2 * pow(10, 9), 800),
+			self::makeFileInfo('b.txt', 2.2 * \pow(10, 9), 800),
 			self::makeFileInfo('o.txt', 12, 100),
 			self::makeFileInfo('subdir', 88, 125, true),
 		];
 	}
 
-	function sortDataProvider() {
+	public function sortDataProvider() {
 		return [
 			[
 				'name',
@@ -111,5 +108,4 @@ class HelperTest extends \Test\TestCase {
 			$fileNames
 		);
 	}
-
 }

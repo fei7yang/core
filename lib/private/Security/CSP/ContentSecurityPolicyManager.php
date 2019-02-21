@@ -2,7 +2,7 @@
 /**
  * @author Lukas Reschke <lukas@statuscode.ch>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -42,7 +42,7 @@ class ContentSecurityPolicyManager implements IContentSecurityPolicyManager {
 	 */
 	public function getDefaultPolicy() {
 		$defaultPolicy = new \OC\Security\CSP\ContentSecurityPolicy();
-		foreach($this->policies as $policy) {
+		foreach ($this->policies as $policy) {
 			$defaultPolicy = $this->mergePolicies($defaultPolicy, $policy);
 		}
 		return $defaultPolicy;
@@ -57,13 +57,13 @@ class ContentSecurityPolicyManager implements IContentSecurityPolicyManager {
 	 */
 	public function mergePolicies(ContentSecurityPolicy $defaultPolicy,
 								  EmptyContentSecurityPolicy $originalPolicy) {
-		foreach((object)(array)$originalPolicy as $name => $value) {
-			$setter = 'set'.ucfirst($name);
-			if(is_array($value)) {
-				$getter = 'get'.ucfirst($name);
-				$currentValues = is_array($defaultPolicy->$getter()) ? $defaultPolicy->$getter() : [];
-				$defaultPolicy->$setter(array_values(array_unique(array_merge($currentValues, $value))));
-			} elseif (is_bool($value)) {
+		foreach ((object)(array)$originalPolicy as $name => $value) {
+			$setter = 'set'.\ucfirst($name);
+			if (\is_array($value)) {
+				$getter = 'get'.\ucfirst($name);
+				$currentValues = \is_array($defaultPolicy->$getter()) ? $defaultPolicy->$getter() : [];
+				$defaultPolicy->$setter(\array_values(\array_unique(\array_merge($currentValues, $value))));
+			} elseif (\is_bool($value)) {
 				$defaultPolicy->$setter($value);
 			}
 		}

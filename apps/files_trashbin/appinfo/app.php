@@ -8,7 +8,7 @@
  * @author Victor Dubiniuk <dubiniuk@owncloud.com>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -28,7 +28,7 @@
 // register hooks
 \OCA\Files_Trashbin\Trashbin::registerHooks();
 
-if (class_exists('OCA\Files\App')) {
+if (\class_exists('OCA\Files\App')) {
 	\OCA\Files\App::getNavigationManager()->add(function () {
 		$l = \OC::$server->getL10N('files_trashbin');
 		return [
@@ -39,4 +39,7 @@ if (class_exists('OCA\Files\App')) {
 			'name' => $l->t('Deleted files'),
 		];
 	});
+
+	$app = new \OCA\Files_Trashbin\AppInfo\Application();
+	$app->registerListeners();
 }

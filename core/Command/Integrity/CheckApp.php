@@ -3,7 +3,7 @@
  * @author Carla Schroder <carla@owncloud.com>
  * @author Victor Dubiniuk <dubiniuk@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -52,9 +52,9 @@ class CheckApp extends Base {
 		parent::configure();
 		$this
 			->setName('integrity:check-app')
-			->setDescription('Check integrity of an app using a signature.')
-			->addArgument('appid', null, InputArgument::REQUIRED, 'Application to check')
-			->addOption('path', null, InputOption::VALUE_OPTIONAL, 'Path to application. If none is given it will be guessed.');
+			->setDescription('Check the integrity of an app using a signature.')
+			->addArgument('appid', null, InputArgument::REQUIRED, 'Application to check.')
+			->addOption('path', null, InputOption::VALUE_OPTIONAL, 'Path to the application. If none is given it will be guessed.');
 	}
 
 	/**
@@ -62,12 +62,11 @@ class CheckApp extends Base {
 	 */
 	protected function execute(InputInterface $input, OutputInterface $output) {
 		$appid = $input->getArgument('appid');
-		$path = strval($input->getOption('path'));
+		$path = \strval($input->getOption('path'));
 		$result = $this->checker->verifyAppSignature($appid, $path);
 		$this->writeArrayInOutputFormat($input, $output, $result);
-		if (count($result)>0){
+		if (\count($result)>0) {
 			return 1;
 		}
 	}
-
 }

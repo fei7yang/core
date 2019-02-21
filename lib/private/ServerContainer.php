@@ -2,7 +2,7 @@
 /**
  * @author Joas Schilling <coding@schilljs.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -20,7 +20,6 @@
  */
 
 namespace OC;
-
 
 use OC\AppFramework\DependencyInjection\DIContainer;
 use OC\AppFramework\Utility\SimpleContainer;
@@ -73,9 +72,9 @@ class ServerContainer extends SimpleContainer {
 
 		// In case the service starts with OCA\ we try to find the service in
 		// the apps container first.
-		if (strrpos($name, 'OCA\\', -strlen($name)) !== false && substr_count($name, '\\') >= 2) {
-			$segments = explode('\\', $name);
-			$appContainer = $this->getAppContainer(strtolower($segments[1]));
+		if (\strrpos($name, 'OCA\\', -\strlen($name)) !== false && \substr_count($name, '\\') >= 2) {
+			$segments = \explode('\\', $name);
+			$appContainer = $this->getAppContainer(\strtolower($segments[1]));
 			try {
 				return $appContainer->query($name);
 			} catch (QueryException $e) {

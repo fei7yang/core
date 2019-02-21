@@ -4,7 +4,7 @@
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -69,7 +69,7 @@ class StoragesBackendService implements IStoragesBackendService {
 		if ($this->config->getAppValue('files_external', 'allow_user_mounting', 'yes') !== 'yes') {
 			$this->userMountingAllowed = false;
 		}
-		$this->userMountingBackends = explode(',',
+		$this->userMountingBackends = \explode(',',
 			$this->config->getAppValue('files_external', 'user_mounting_backends', '')
 		);
 
@@ -183,7 +183,7 @@ class StoragesBackendService implements IStoragesBackendService {
 	 * @return Backend[]
 	 */
 	public function getAvailableBackends() {
-		return array_filter($this->getBackends(), function($backend) {
+		return \array_filter($this->getBackends(), function ($backend) {
 			return !($backend->checkDependencies());
 		});
 	}
@@ -222,8 +222,8 @@ class StoragesBackendService implements IStoragesBackendService {
 	 * @return AuthMechanism[]
 	 */
 	public function getAuthMechanismsByScheme(array $schemes) {
-		return array_filter($this->getAuthMechanisms(), function($authMech) use ($schemes) {
-			return in_array($authMech->getScheme(), $schemes, true);
+		return \array_filter($this->getAuthMechanisms(), function ($authMech) use ($schemes) {
+			return \in_array($authMech->getScheme(), $schemes, true);
 		});
 	}
 
@@ -254,7 +254,7 @@ class StoragesBackendService implements IStoragesBackendService {
 	 */
 	protected function isAllowedUserBackend(Backend $backend) {
 		if ($this->userMountingAllowed &&
-			array_intersect($backend->getIdentifierAliases(), $this->userMountingBackends)
+			\array_intersect($backend->getIdentifierAliases(), $this->userMountingBackends)
 		) {
 			return true;
 		}

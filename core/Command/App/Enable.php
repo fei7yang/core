@@ -5,7 +5,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -47,17 +47,17 @@ class Enable extends Command {
 	protected function configure() {
 		$this
 			->setName('app:enable')
-			->setDescription('enable an app')
+			->setDescription('Enable an app.')
 			->addArgument(
 				'app-id',
 				InputArgument::REQUIRED,
-				'enable the specified app'
+				'Enable the specified app.'
 			)
 			->addOption(
 				'groups',
 				'g',
 				InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY,
-				'enable the app only for a list of groups'
+				'Enable the app only for a specific list of groups.'
 			)
 		;
 	}
@@ -76,8 +76,9 @@ class Enable extends Command {
 			$output->writeln($appId . ' enabled');
 		} else {
 			\OC_App::enable($appId, $groups);
-			$output->writeln($appId . ' enabled for groups: ' . implode(', ', $groups));
+			$output->writeln($appId . ' enabled for groups: ' . \implode(', ', $groups));
 		}
+
 		return 0;
 	}
 }

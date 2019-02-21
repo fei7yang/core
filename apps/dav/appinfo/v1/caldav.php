@@ -7,7 +7,7 @@
  * @author Thomas Citharel <tcit@tcit.fr>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -26,8 +26,8 @@
 
 // Backends
 use OCA\DAV\CalDAV\CalDavBackend;
-use OCA\DAV\Connector\LegacyDAVACL;
 use OCA\DAV\CalDAV\CalendarRoot;
+use OCA\DAV\Connector\LegacyDAVACL;
 use OCA\DAV\Connector\Sabre\Auth;
 use OCA\DAV\Connector\Sabre\ExceptionLoggerPlugin;
 use OCA\DAV\Connector\Sabre\MaintenancePlugin;
@@ -38,6 +38,7 @@ $authBackend = new Auth(
 	\OC::$server->getUserSession(),
 	\OC::$server->getRequest(),
 	\OC::$server->getTwoFactorAuthManager(),
+	\OC::$server->getAccountModuleManager(),
 	'principals/'
 );
 $principalBackend = new Principal(
@@ -45,10 +46,13 @@ $principalBackend = new Principal(
 	\OC::$server->getGroupManager(),
 	'principals/'
 );
+$groupPrincipalBackend = new \OCA\DAV\DAV\GroupPrincipalBackend(
+	\OC::$server->getGroupManager()
+);
 $db = \OC::$server->getDatabaseConnection();
 $config = \OC::$server->getConfig();
 $random = \OC::$server->getSecureRandom();
-$calDavBackend = new CalDavBackend($db, $principalBackend, $config, $random, true);
+$calDavBackend = new CalDavBackend($db, $principalBackend, $groupPrincipalBackend, $random, true);
 
 $debugging = \OC::$server->getConfig()->getSystemValue('debug', false);
 
@@ -71,7 +75,7 @@ $server->setBaseUri($baseuri);
 
 // Add plugins
 $server->addPlugin(new MaintenancePlugin());
-$server->addPlugin(new \Sabre\DAV\Auth\Plugin($authBackend, 'ownCloud'));
+$server->addPlugin(new \Sabre\DAV\Auth\Plugin($authBackend));
 $server->addPlugin(new \Sabre\CalDAV\Plugin());
 
 $server->addPlugin(new LegacyDAVACL());
@@ -82,7 +86,7 @@ if ($debugging) {
 $server->addPlugin(new \Sabre\DAV\Sync\Plugin());
 $server->addPlugin(new \Sabre\CalDAV\ICSExportPlugin());
 $server->addPlugin(new \OCA\DAV\CalDAV\Schedule\Plugin());
-$server->addPlugin(new OCA\DAV\CalDAV\Schedule\IMipPlugin( \OC::$server->getMailer(), \OC::$server->getLogger()));
+$server->addPlugin(new OCA\DAV\CalDAV\Schedule\IMipPlugin(\OC::$server->getMailer(), \OC::$server->getLogger(), \OC::$server->getRequest()));
 $server->addPlugin(new ExceptionLoggerPlugin('caldav', \OC::$server->getLogger()));
 
 // And off we go!

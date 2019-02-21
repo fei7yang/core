@@ -5,7 +5,7 @@
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -28,6 +28,7 @@ use OC\App\CodeChecker\CodeChecker;
 use OC\App\CodeChecker\EmptyCheck;
 use OC\App\CodeChecker\InfoChecker;
 use OC\App\InfoParser;
+use OCP\App\IAppManager;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -39,38 +40,42 @@ class CheckCode extends Command {
 	/** @var InfoParser */
 	private $infoParser;
 
+	/** @var IAppManager */
+	private $appManager;
+
 	protected $checkers = [
 		'private' => '\OC\App\CodeChecker\PrivateCheck',
 		'deprecation' => '\OC\App\CodeChecker\DeprecationCheck',
 		'strong-comparison' => '\OC\App\CodeChecker\StrongComparisonCheck',
 	];
 
-	public function __construct(InfoParser $infoParser) {
+	public function __construct(InfoParser $infoParser, IAppManager $appManager) {
 		parent::__construct();
 		$this->infoParser = $infoParser;
+		$this->appManager = $appManager;
 	}
 
 	protected function configure() {
 		$this
 			->setName('app:check-code')
-			->setDescription('check code to be compliant')
+			->setDescription('Check code compliance.')
 			->addArgument(
 				'app-id',
 				InputArgument::REQUIRED,
-				'check the specified app'
+				'Check the specified app.'
 			)
 			->addOption(
 				'checker',
 				'c',
 				InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY,
-				'enable the specified checker(s)',
+				'Enable the specified checker(s).',
 				[ 'private', 'deprecation', 'strong-comparison' ]
 			)
 			->addOption(
 				'--skip-validate-info',
 				null,
 				InputOption::VALUE_NONE,
-				'skips the info.xml/version check'
+				'Skip the info.xml/version check.'
 			);
 	}
 
@@ -88,86 +93,86 @@ class CheckCode extends Command {
 
 		$codeChecker = new CodeChecker($checkList);
 
-		$codeChecker->listen('CodeChecker', 'analyseFileBegin', function($params) use ($output) {
-			if(OutputInterface::VERBOSITY_VERBOSE <= $output->getVerbosity()) {
+		$codeChecker->listen('CodeChecker', 'analyseFileBegin', function ($params) use ($output) {
+			if (OutputInterface::VERBOSITY_VERBOSE <= $output->getVerbosity()) {
 				$output->writeln("<info>Analysing {$params}</info>");
 			}
 		});
-		$codeChecker->listen('CodeChecker', 'analyseFileFinished', function($filename, $errors) use ($output) {
-			$count = count($errors);
+		$codeChecker->listen('CodeChecker', 'analyseFileFinished', function ($filename, $errors) use ($output) {
+			$count = \count($errors);
 
 			// show filename if the verbosity is low, but there are errors in a file
-			if($count > 0 && OutputInterface::VERBOSITY_VERBOSE > $output->getVerbosity()) {
+			if ($count > 0 && OutputInterface::VERBOSITY_VERBOSE > $output->getVerbosity()) {
 				$output->writeln("<info>Analysing {$filename}</info>");
 			}
 
 			// show error count if there are errors present or the verbosity is high
-			if($count > 0 || OutputInterface::VERBOSITY_VERBOSE <= $output->getVerbosity()) {
+			if ($count > 0 || OutputInterface::VERBOSITY_VERBOSE <= $output->getVerbosity()) {
 				$output->writeln(" {$count} errors");
 			}
-			usort($errors, function($a, $b) {
+			\usort($errors, function ($a, $b) {
 				return $a['line'] >$b['line'];
 			});
 
-			foreach($errors as $p) {
-				$line = sprintf("%' 4d", $p['line']);
+			foreach ($errors as $p) {
+				$line = \sprintf("%' 4d", $p['line']);
 				$output->writeln("    <error>line $line: {$p['disallowedToken']} - {$p['reason']}</error>");
 			}
 		});
 		$errors = $codeChecker->analyse($appId);
 
-		if(!$input->getOption('skip-validate-info')) {
-			$infoChecker = new InfoChecker($this->infoParser);
+		if (!$input->getOption('skip-validate-info')) {
+			$infoChecker = new InfoChecker($this->infoParser, $this->appManager);
 
-			$infoChecker->listen('InfoChecker', 'mandatoryFieldMissing', function($key) use ($output) {
+			$infoChecker->listen('InfoChecker', 'invalidAppInfo', function ($appId) use ($output) {
+				$output->writeln("<error>$appId has invalid XML in appinfo.xml</error>");
+			});
+
+			$infoChecker->listen('InfoChecker', 'mandatoryFieldMissing', function ($key) use ($output) {
 				$output->writeln("<error>Mandatory field missing: $key</error>");
 			});
 
-			$infoChecker->listen('InfoChecker', 'deprecatedFieldFound', function($key, $value) use ($output) {
-				if($value === [] || is_null($value) || $value === '') {
+			$infoChecker->listen('InfoChecker', 'deprecatedFieldFound', function ($key, $value) use ($output) {
+				if ($value === [] || $value === null || $value === '') {
 					$output->writeln("<info>Deprecated field available: $key</info>");
 				} else {
 					$output->writeln("<info>Deprecated field available: $key => $value</info>");
 				}
 			});
 
-			$infoChecker->listen('InfoChecker', 'missingRequirement', function($minMax) use ($output) {
-				$output->writeln("<comment>ownCloud $minMax version requirement missing (will be an error in ownCloud 11 and later)</comment>");
+			$infoChecker->listen('InfoChecker', 'missingRequirement', function ($minMax) use ($output) {
+				$output->writeln("<error>ownCloud $minMax version requirement missing</error>");
 			});
 
-			$infoChecker->listen('InfoChecker', 'duplicateRequirement', function($minMax) use ($output) {
-				$output->writeln("<error>Duplicate $minMax ownCloud version requirement found</error>");
-			});
-
-			$infoChecker->listen('InfoChecker', 'differentVersions', function($versionFile, $infoXML) use ($output) {
+			$infoChecker->listen('InfoChecker', 'differentVersions', function ($versionFile, $infoXML) use ($output) {
 				$output->writeln("<error>Different versions provided (appinfo/version: $versionFile - appinfo/info.xml: $infoXML)</error>");
 			});
 
-			$infoChecker->listen('InfoChecker', 'sameVersions', function($path) use ($output) {
+			$infoChecker->listen('InfoChecker', 'sameVersions', function ($path) use ($output) {
 				$output->writeln("<info>Version file isn't needed anymore and can be safely removed ($path)</info>");
 			});
 
-			$infoChecker->listen('InfoChecker', 'migrateVersion', function($version) use ($output) {
+			$infoChecker->listen('InfoChecker', 'migrateVersion', function ($version) use ($output) {
 				$output->writeln("<info>Migrate the app version to appinfo/info.xml (add <version>$version</version> to appinfo/info.xml and remove appinfo/version)</info>");
 			});
 
-			if(OutputInterface::VERBOSITY_VERBOSE <= $output->getVerbosity()) {
-				$infoChecker->listen('InfoChecker', 'mandatoryFieldFound', function($key, $value) use ($output) {
+			if (OutputInterface::VERBOSITY_VERBOSE <= $output->getVerbosity()) {
+				$infoChecker->listen('InfoChecker', 'mandatoryFieldFound', function ($key, $value) use ($output) {
 					$output->writeln("<info>Mandatory field available: $key => $value</info>");
 				});
 
-				$infoChecker->listen('InfoChecker', 'optionalFieldFound', function($key, $value) use ($output) {
+				$infoChecker->listen('InfoChecker', 'optionalFieldFound', function ($key, $value) use ($output) {
 					$output->writeln("<info>Optional field available: $key => $value</info>");
 				});
 
-				$infoChecker->listen('InfoChecker', 'unusedFieldFound', function($key, $value) use ($output) {
+				$infoChecker->listen('InfoChecker', 'unusedFieldFound', function ($key, $value) use ($output) {
 					$output->writeln("<info>Unused field available: $key => $value</info>");
 				});
 			}
 
 			$infoErrors = $infoChecker->analyse($appId);
 
-			$errors = array_merge($errors, $infoErrors);
+			$errors = \array_merge($errors, $infoErrors);
 		}
 
 		$this->analyseUpdateFile($appId, $output);
@@ -186,13 +191,13 @@ class CheckCode extends Command {
 	 * @param $output
 	 */
 	private function analyseUpdateFile($appId, OutputInterface $output) {
-		$appPath = \OC_App::getAppPath($appId);
+		$appPath = $this->appManager->getAppPath($appId);
 		if ($appPath === false) {
 			throw new \RuntimeException("No app with given id <$appId> known.");
 		}
 
 		$updatePhp = $appPath . '/appinfo/update.php';
-		if (file_exists($updatePhp)) {
+		if (\file_exists($updatePhp)) {
 			$output->writeln("<info>Deprecated file found: $updatePhp - please use repair steps</info>");
 		}
 	}

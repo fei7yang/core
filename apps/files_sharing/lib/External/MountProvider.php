@@ -2,7 +2,7 @@
 /**
  * @author Robin Appelman <icewind@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -52,7 +52,7 @@ class MountProvider implements IMountProvider {
 		$managerProvider = $this->managerProvider;
 		$manager = $managerProvider();
 		$data['manager'] = $manager;
-		$mountPoint = '/' . $user->getUID() . '/files/' . ltrim($data['mountpoint'], '/');
+		$mountPoint = '/' . $user->getUID() . '/files/' . \ltrim($data['mountpoint'], '/');
 		$data['mountpoint'] = $mountPoint;
 		$data['certificateManager'] = \OC::$server->getCertificateManager($user->getUID());
 		return new Mount(self::STORAGE, $mountPoint, $data, $manager, $storageFactory);

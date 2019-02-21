@@ -5,7 +5,7 @@
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -41,7 +41,7 @@ class PersonalMount extends MountPoint implements MoveableMount {
 	/**
 	 * @param IUserStoragesService $storagesService
 	 * @param int $storageId
-	 * @param \OCP\Files\Storage $storage
+	 * @param \OCP\Files\Storage\IStorage $storage
 	 * @param string $mountpoint
 	 * @param array $arguments (optional) configuration for the storage backend
 	 * @param \OCP\Files\Storage\IStorageFactory $loader
@@ -70,7 +70,7 @@ class PersonalMount extends MountPoint implements MoveableMount {
 	public function moveMount($target) {
 		$storage = $this->storagesService->getStorage($this->numericStorageId);
 		// remove "/$user/files" prefix
-		$targetParts = explode('/', trim($target, '/'), 3);
+		$targetParts = \explode('/', \trim($target, '/'), 3);
 		$storage->setMountPoint($targetParts[2]);
 		$this->storagesService->updateStorage($storage);
 		$this->setMountPoint($target);
@@ -89,7 +89,7 @@ class PersonalMount extends MountPoint implements MoveableMount {
 
 	/**
 	 * Returns true
-	 * 
+	 *
 	 * @param string $target unused
 	 * @return bool true
 	 */

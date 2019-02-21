@@ -4,7 +4,7 @@
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -24,7 +24,6 @@
 namespace OCA\Files_Sharing\API;
 
 use OC\Files\Filesystem;
-use OCA\FederatedFileSharing\DiscoveryManager;
 use OCA\Files_Sharing\External\Manager;
 use Symfony\Component\EventDispatcher\GenericEvent;
 
@@ -135,7 +134,7 @@ class Remote {
 		$share['mtime'] = $info->getMtime();
 		$share['permissions'] = $info->getPermissions();
 		$share['type'] = $info->getType();
-		$share['file_id'] = $info->getId();
+		$share['file_id'] = \strval($info->getId());
 
 		return $share;
 	}
@@ -143,7 +142,7 @@ class Remote {
 	/**
 	 * List accepted remote shares
 	 *
-	 * @param array $params 
+	 * @param array $params
 	 * @return \OC_OCS_Result
 	 */
 	public static function getShares($params) {
@@ -158,7 +157,7 @@ class Remote {
 
 		$shares = $externalManager->getAcceptedShares();
 
-		$shares = array_map('self::extendShareInfo', $shares);
+		$shares = \array_map('self::extendShareInfo', $shares);
 	
 		return new \OC_OCS_Result($shares);
 	}

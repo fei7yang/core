@@ -4,7 +4,7 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Robin Appelman <icewind@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -53,12 +53,12 @@ class Certificate implements ICertificate {
 
 		// If string starts with "file://" ignore the certificate
 		$query = 'file://';
-		if(strtolower(substr($data, 0, strlen($query))) === $query) {
+		if (\strtolower(\substr($data, 0, \strlen($query))) === $query) {
 			throw new \Exception('Certificate could not get parsed.');
 		}
 
-		$info = openssl_x509_parse($data);
-		if(!is_array($info)) {
+		$info = \openssl_x509_parse($data);
+		if (!\is_array($info)) {
 			throw new \Exception('Certificate could not get parsed.');
 		}
 

@@ -4,7 +4,7 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -22,7 +22,6 @@
  */
 
 namespace OC\Repair;
-
 
 use OCP\IDBConnection;
 use OCP\Migration\IOutput;
@@ -57,9 +56,9 @@ class DropOldTables implements IRepairStep {
 	 */
 	public function run(IOutput $output) {
 		$tables = $this->oldDatabaseTables();
-		$output->startProgress(count($tables));
+		$output->startProgress(\count($tables));
 		foreach ($this->oldDatabaseTables() as $tableName) {
-			if ($this->connection->tableExists($tableName)){
+			if ($this->connection->tableExists($tableName)) {
 				$this->connection->dropTable($tableName);
 			}
 			$output->advance(1, "Drop old database table: $tableName");

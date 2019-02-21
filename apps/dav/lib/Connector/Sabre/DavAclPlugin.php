@@ -3,7 +3,7 @@
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -39,13 +39,13 @@ class DavAclPlugin extends \Sabre\DAVACL\Plugin {
 		$this->allowUnauthenticatedAccess = false;
 	}
 
-	function checkPrivileges($uri, $privileges, $recursion = self::R_PARENT, $throwExceptions = true) {
+	public function checkPrivileges($uri, $privileges, $recursion = self::R_PARENT, $throwExceptions = true) {
 		$access = parent::checkPrivileges($uri, $privileges, $recursion, false);
-		if($access === false && $throwExceptions) {
+		if ($access === false && $throwExceptions) {
 			/** @var INode $node */
 			$node = $this->server->tree->getNodeForPath($uri);
 
-			switch(get_class($node)) {
+			switch (\get_class($node)) {
 				case 'OCA\DAV\CardDAV\AddressBook':
 					$type = 'Addressbook';
 					break;
@@ -54,7 +54,7 @@ class DavAclPlugin extends \Sabre\DAVACL\Plugin {
 					break;
 			}
 			throw new NotFound(
-				sprintf(
+				\sprintf(
 					"%s with name '%s' could not be found",
 					$type,
 					$node->getName()

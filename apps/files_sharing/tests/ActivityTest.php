@@ -5,7 +5,7 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -59,15 +59,14 @@ class ActivityTest extends TestCase {
 	public function testGetDefaultTypes($method, $expectedResult) {
 		$result = $this->activity->getDefaultTypes($method);
 
-		if (is_array($expectedResult)) {
-			$this->assertSame(count($expectedResult), count($result));
+		if (\is_array($expectedResult)) {
+			$this->assertCount(\count($expectedResult), $result);
 			foreach ($expectedResult as $key => $expected) {
 				$this->assertSame($expected, $result[$key]);
 			}
 		} else {
 			$this->assertSame($expectedResult, $result);
 		}
-
 	}
 
 	public function dataTestGetDefaultType() {
@@ -76,5 +75,4 @@ class ActivityTest extends TestCase {
 			['stream', [\OCA\Files_Sharing\Activity::TYPE_SHARED, \OCA\Files_Sharing\Activity::TYPE_REMOTE_SHARE, \OCA\Files_Sharing\Activity::TYPE_PUBLIC_LINKS]],
 		];
 	}
-
 }

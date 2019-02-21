@@ -5,7 +5,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,7 +21,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
-
 
 namespace OCA\Files;
 
@@ -46,8 +45,12 @@ class App {
 
 	public static function extendJsConfig($array) {
 		$maxChunkSize = (int)(\OC::$server->getConfig()->getAppValue('files', 'max_chunk_size', (10 * 1024 * 1024)));
+		$uploadStallTimeout = (int)(\OC::$server->getConfig()->getAppValue('files', 'upload_stall_timeout', 60)); // in seconds
+		$uploadStallRetries = (int)(\OC::$server->getConfig()->getAppValue('files', 'upload_stall_retries', 100));
 		$array['array']['oc_appconfig']['files'] = [
-			'max_chunk_size' => $maxChunkSize
+			'max_chunk_size' => $maxChunkSize,
+			'upload_stall_timeout' => $uploadStallTimeout,
+			'upload_stall_retries' => $uploadStallRetries
 		];
 	}
 }

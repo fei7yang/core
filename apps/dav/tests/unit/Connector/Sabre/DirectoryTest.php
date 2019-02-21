@@ -5,7 +5,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -24,12 +24,12 @@
 
 namespace OCA\DAV\Tests\Unit\Connector\Sabre;
 
-use OCP\Files\ForbiddenException;
 use OC\Files\FileInfo;
 use OCA\DAV\Connector\Sabre\Directory;
+use OCP\Files\FileContentNotAllowedException;
+use OCP\Files\ForbiddenException;
 
 class TestDoubleFileView extends \OC\Files\View {
-
 	private $updatables;
 	private $deletables;
 	private $canRename;
@@ -60,7 +60,6 @@ class TestDoubleFileView extends \OC\Files\View {
 		return $path;
 	}
 }
-
 
 /**
  * @group DB
@@ -208,7 +207,7 @@ class DirectoryTest extends \Test\TestCase {
 		$dir = new Directory($this->view, $this->info);
 		$nodes = $dir->getChildren();
 
-		$this->assertEquals(2, count($nodes));
+		$this->assertCount(2, $nodes);
 
 		// calling a second time just returns the cached values,
 		// does not call getDirectoryContents again
@@ -358,13 +357,13 @@ class DirectoryTest extends \Test\TestCase {
 		$this->moveTest($source, $destination, $updatables, $deletables);
 	}
 
-	function moveFailedInvalidCharsProvider() {
+	public function moveFailedInvalidCharsProvider() {
 		return [
 			['a/b', 'a/*', ['a' => true, 'a/b' => true, 'a/c*' => false], []],
 		];
 	}
 
-	function moveFailedProvider() {
+	public function moveFailedProvider() {
 		return [
 			['a/b', 'a/c', ['a' => false, 'a/b' => false, 'a/c' => false], []],
 			['a/b', 'b/b', ['a' => false, 'a/b' => false, 'b' => false, 'b/b' => false], []],
@@ -375,7 +374,7 @@ class DirectoryTest extends \Test\TestCase {
 		];
 	}
 
-	function moveSuccessProvider() {
+	public function moveSuccessProvider() {
 		return [
 			['a/b', 'b/b', ['a' => true, 'a/b' => true, 'b' => true, 'b/b' => false], ['a/b' => true]],
 			// older files with special chars can still be renamed to valid names
@@ -392,7 +391,7 @@ class DirectoryTest extends \Test\TestCase {
 		$view = new TestDoubleFileView($updatables, $deletables);
 
 		$sourceInfo = new FileInfo($source, null, null, [], null);
-		$targetInfo = new FileInfo(dirname($destination), null, null, [], null);
+		$targetInfo = new FileInfo(\dirname($destination), null, null, [], null);
 
 		$sourceNode = new Directory($view, $sourceInfo);
 		$targetNode = $this->getMockBuilder(Directory::class)
@@ -400,9 +399,9 @@ class DirectoryTest extends \Test\TestCase {
 			->setConstructorArgs([$view, $targetInfo])
 			->getMock();
 		$targetNode->expects($this->any())->method('childExists')
-			->with(basename($destination))
+			->with(\basename($destination))
 			->willReturn(false);
-		$this->assertTrue($targetNode->moveInto(basename($destination), $source, $sourceNode));
+		$this->assertTrue($targetNode->moveInto(\basename($destination), $source, $sourceNode));
 	}
 
 	/**
@@ -418,7 +417,7 @@ class DirectoryTest extends \Test\TestCase {
 		$view = new TestDoubleFileView($updatables, $deletables);
 
 		$sourceInfo = new FileInfo($source, null, null, [], null);
-		$targetInfo = new FileInfo(dirname($destination), null, null, [], null);
+		$targetInfo = new FileInfo(\dirname($destination), null, null, [], null);
 
 		$sourceNode = new Directory($view, $sourceInfo);
 		$targetNode = $this->getMockBuilder(Directory::class)
@@ -426,9 +425,36 @@ class DirectoryTest extends \Test\TestCase {
 			->setConstructorArgs([$view, $targetInfo])
 			->getMock();
 		$targetNode->expects($this->once())->method('childExists')
-			->with(basename($destination))
+			->with(\basename($destination))
 			->willReturn(true);
 
-		$targetNode->moveInto(basename($destination), $source, $sourceNode);
+		$targetNode->moveInto(\basename($destination), $source, $sourceNode);
+	}
+
+	/**
+	 * A test to throw ExcludeForbiddenException
+	 *
+	 * @expectedException \OCP\Files\FileContentNotAllowedException
+	 * @expectedExceptionMessage The message already logged
+	 */
+	public function testFailCreateFile() {
+		//$this->invokePrivate();
+		$previous = new FileContentNotAllowedException('The message already logged', false);
+		$this->view->expects($this->any())
+			->method('isCreatable')
+			->willThrowException(new FileContentNotAllowedException('The message already logged', false, $previous));
+		$dir = $this->getDir();
+		$dir->createFile('foobar.txt', 'hello foo bar');
+	}
+
+	/**
+	 * @expectedException \Sabre\DAV\Exception\Forbidden
+	 */
+	public function testCreateFileForbidden() {
+		$this->view->expects($this->any())
+			->method('isCreatable')
+			->willThrowException(new \Sabre\DAV\Exception\Forbidden());
+		$dir = $this->getDir();
+		$dir->createFile('foobar.txt', 'hello foo bar');
 	}
 }

@@ -2,7 +2,7 @@
 /**
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,10 +21,11 @@
 namespace OCA\DAV\CalDAV\Schedule;
 
 use OCP\ILogger;
+use OCP\IRequest;
 use OCP\Mail\IMailer;
-use Sabre\DAV;
-use Sabre\VObject\ITip;
 use Sabre\CalDAV\Schedule\IMipPlugin as SabreIMipPlugin;
+use Sabre\VObject\ITip;
+
 /**
  * iMIP handler.
  *
@@ -47,15 +48,21 @@ class IMipPlugin extends SabreIMipPlugin {
 	/** @var ILogger */
 	private $logger;
 
+	/** @var IRequest */
+	private $request;
+
 	/**
 	 * Creates the email handler.
 	 *
 	 * @param IMailer $mailer
+	 * @param ILogger $logger
+	 * @param IRequest $request
 	 */
-	function __construct(IMailer $mailer, ILogger $logger) {
+	public function __construct(IMailer $mailer, ILogger $logger, IRequest $request) {
 		parent::__construct('');
 		$this->mailer = $mailer;
 		$this->logger = $logger;
+		$this->request = $request;
 	}
 
 	/**
@@ -64,7 +71,12 @@ class IMipPlugin extends SabreIMipPlugin {
 	 * @param ITip\Message $iTipMessage
 	 * @return void
 	 */
-	function schedule(ITip\Message $iTipMessage) {
+	public function schedule(ITip\Message $iTipMessage) {
+
+		// Not sending any emails if OC-CalDav-Import header is set
+		if ($this->request->getHeader('OC-CalDav-Import') !== null) {
+			return;
+		}
 
 		// Not sending any emails if the system considers the update
 		// insignificant.
@@ -77,30 +89,31 @@ class IMipPlugin extends SabreIMipPlugin {
 
 		$summary = $iTipMessage->message->VEVENT->SUMMARY;
 
-		if (parse_url($iTipMessage->sender, PHP_URL_SCHEME) !== 'mailto') {
+		if (\parse_url($iTipMessage->sender, PHP_URL_SCHEME) !== 'mailto') {
 			return;
 		}
 
-		if (parse_url($iTipMessage->recipient, PHP_URL_SCHEME) !== 'mailto') {
+		if (\parse_url($iTipMessage->recipient, PHP_URL_SCHEME) !== 'mailto') {
 			return;
 		}
 
-		$sender = substr($iTipMessage->sender, 7);
-		$recipient = substr($iTipMessage->recipient, 7);
+		$sender = \substr($iTipMessage->sender, 7);
+		$recipient = \substr($iTipMessage->recipient, 7);
 
-		$senderName = ($iTipMessage->senderName) ? $iTipMessage->senderName : null;
-		$recipientName = ($iTipMessage->recipientName) ? $iTipMessage->recipientName : null;
+		$senderName = $iTipMessage->senderName ?: null;
+		$recipientName = $iTipMessage->recipientName ?: null;
 
 		$subject = 'SabreDAV iTIP message';
-		switch (strtoupper($iTipMessage->method)) {
-			case 'REPLY' :
+		switch (\strtoupper($iTipMessage->method)) {
+			case 'REPLY':
 				$subject = 'Re: ' . $summary;
 				break;
-			case 'REQUEST' :
+			case 'REQUEST':
 				$subject = $summary;
 				break;
-			case 'CANCEL' :
+			case 'CANCEL':
 				$subject = 'Cancelled: ' . $summary;
+				$iTipMessage->message->VEVENT->STATUS = 'CANCELLED';
 				break;
 		}
 
@@ -114,15 +127,14 @@ class IMipPlugin extends SabreIMipPlugin {
 			->setBody($iTipMessage->message->serialize(), $contentType);
 		try {
 			$failed = $this->mailer->send($message);
+			$iTipMessage->scheduleStatus = '1.1; Scheduling message is sent via iMip';
 			if ($failed) {
-				$this->logger->error('Unable to deliver message to {failed}', ['app' => 'dav', 'failed' =>  implode(', ', $failed)]);
+				$this->logger->error('Unable to deliver message to {failed}', ['app' => 'dav', 'failed' =>  \implode(', ', $failed)]);
 				$iTipMessage->scheduleStatus = '5.0; EMail delivery failed';
 			}
-			$iTipMessage->scheduleStatus = '1.1; Scheduling message is sent via iMip';
-		} catch(\Exception $ex) {
+		} catch (\Exception $ex) {
 			$this->logger->logException($ex, ['app' => 'dav']);
 			$iTipMessage->scheduleStatus = '5.0; EMail delivery failed';
 		}
 	}
-
 }

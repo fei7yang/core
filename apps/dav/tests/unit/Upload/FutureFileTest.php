@@ -4,7 +4,7 @@
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -23,7 +23,6 @@
 namespace OCA\DAV\Tests\unit\Upload;
 
 class FutureFileTest extends \Test\TestCase {
-
 	public function testGetContentType() {
 		$f = $this->mockFutureFile();
 		$this->assertEquals('application/octet-stream', $f->getContentType());
@@ -52,7 +51,7 @@ class FutureFileTest extends \Test\TestCase {
 	public function testGet() {
 		$f = $this->mockFutureFile();
 		$stream = $f->get();
-		$this->assertTrue(is_resource($stream));
+		$this->assertInternalType('resource', $stream);
 	}
 
 	public function testDelete() {
@@ -108,4 +107,3 @@ class FutureFileTest extends \Test\TestCase {
 		return new \OCA\DAV\Upload\FutureFile($d, 'foo.txt');
 	}
 }
-

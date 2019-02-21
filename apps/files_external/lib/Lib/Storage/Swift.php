@@ -15,7 +15,7 @@
  * @author Tim Dettrick <t.dettrick@uq.edu.au>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -34,15 +34,14 @@
 
 namespace OCA\Files_External\Lib\Storage;
 
-use Guzzle\Http\Url;
 use Guzzle\Http\Exception\ClientErrorResponseException;
+use Guzzle\Http\Url;
 use Icewind\Streams\IteratorDirectory;
 use OpenCloud;
 use OpenCloud\Common\Exceptions;
+use OpenCloud\ObjectStore\Resource\DataObject;
 use OpenCloud\OpenStack;
 use OpenCloud\Rackspace;
-use OpenCloud\ObjectStore\Resource\DataObject;
-use OpenCloud\ObjectStore\Exception;
 
 class Swift extends \OCP\Files\Storage\StorageAdapter {
 
@@ -81,17 +80,20 @@ class Swift extends \OCP\Files\Storage\StorageAdapter {
 	 */
 	private $objectCache;
 
+	/** @var string  */
+	private $id;
+
 	/**
 	 * @param string $path
 	 */
 	private function normalizePath($path) {
-		$path = trim($path, '/');
+		$path = \trim($path, '/');
 
 		if (!$path) {
 			$path = '.';
 		}
 
-		$path = str_replace('#', '%23', $path);
+		$path = \str_replace('#', '%23', $path);
 
 		return $path;
 	}
@@ -112,7 +114,7 @@ class Swift extends \OCP\Files\Storage\StorageAdapter {
 	 * that one will be returned.
 	 *
 	 * @param string $path
-	 * @return \OpenCloud\OpenStack\ObjectStorage\Resource\DataObject|bool object
+	 * @return DataObject | bool object
 	 * or false if the object did not exist
 	 */
 	private function fetchObject($path) {
@@ -157,11 +159,11 @@ class Swift extends \OCP\Files\Storage\StorageAdapter {
 			throw new \Exception("API Key or password, Username, Bucket and Region have to be configured.");
 		}
 
-		$this->id = 'swift::' . $params['user'] . md5($params['bucket']);
+		$this->id = 'swift::' . $params['user'] . \md5($params['bucket']);
 
 		$bucketUrl = Url::factory($params['bucket']);
 		if ($bucketUrl->isAbsolute()) {
-			$this->bucket = end(($bucketUrl->getPathSegments()));
+			$this->bucket = \end(($bucketUrl->getPathSegments()));
 			$params['endpoint_url'] = $bucketUrl->addPath('..')->normalizePath();
 		} else {
 			$this->bucket = $params['bucket'];
@@ -225,7 +227,7 @@ class Swift extends \OCP\Files\Storage\StorageAdapter {
 		}
 
 		$dh = $this->opendir($path);
-		while ($file = readdir($dh)) {
+		while ($file = \readdir($dh)) {
 			if (\OC\Files\Filesystem::isIgnoredDir($file)) {
 				continue;
 			}
@@ -257,7 +259,7 @@ class Swift extends \OCP\Files\Storage\StorageAdapter {
 			$path .= '/';
 		}
 
-		$path = str_replace('%23', '#', $path); // the prefix is sent as a query param, so revert the encoding of #
+		$path = \str_replace('%23', '#', $path); // the prefix is sent as a query param, so revert the encoding of #
 
 		try {
 			$files = [];
@@ -269,8 +271,8 @@ class Swift extends \OCP\Files\Storage\StorageAdapter {
 
 			/** @var OpenCloud\ObjectStore\Resource\DataObject $object */
 			foreach ($objects as $object) {
-				$file = basename($object->getName());
-				if ($file !== basename($path)) {
+				$file = \basename($object->getName());
+				if ($file !== \basename($path)) {
 					$files[] = $file;
 				}
 			}
@@ -280,7 +282,6 @@ class Swift extends \OCP\Files\Storage\StorageAdapter {
 			\OCP\Util::writeLog('files_external', $e->getMessage(), \OCP\Util::ERROR);
 			return false;
 		}
-
 	}
 
 	public function stat($path) {
@@ -288,7 +289,7 @@ class Swift extends \OCP\Files\Storage\StorageAdapter {
 
 		if ($path === '.') {
 			$path = '';
-		} else if ($this->is_dir($path)) {
+		} elseif ($this->is_dir($path)) {
 			$path .= '/';
 		}
 
@@ -316,13 +317,13 @@ class Swift extends \OCP\Files\Storage\StorageAdapter {
 		}
 
 		if (!empty($mtime)) {
-			$mtime = floor($mtime);
+			$mtime = \floor($mtime);
 		}
 
 		$stat = [];
 		$stat['size'] = (int)$object->getContentLength();
 		$stat['mtime'] = $mtime;
-		$stat['atime'] = time();
+		$stat['atime'] = \time();
 		return $stat;
 	}
 
@@ -377,8 +378,8 @@ class Swift extends \OCP\Files\Storage\StorageAdapter {
 							->get($c->getUrl($path)));
 					$streamInterface->rewind();
 					$stream = $streamInterface->getStream();
-					stream_context_set_option($stream, 'swift','content', $streamInterface);
-					if(!strrpos($streamInterface
+					\stream_context_set_option($stream, 'swift', 'content', $streamInterface);
+					if (!\strrpos($streamInterface
 						->getMetaData('wrapper_data')[0], '404 Not Found')) {
 						return $stream;
 					}
@@ -399,8 +400,8 @@ class Swift extends \OCP\Files\Storage\StorageAdapter {
 			case 'x+':
 			case 'c':
 			case 'c+':
-				if (strrpos($path, '.') !== false) {
-					$ext = substr($path, strrpos($path, '.'));
+				if (\strrpos($path, '.') !== false) {
+					$ext = \substr($path, \strrpos($path, '.'));
 				} else {
 					$ext = '';
 				}
@@ -413,22 +414,22 @@ class Swift extends \OCP\Files\Storage\StorageAdapter {
 						return false;
 					}
 					$source = $this->fopen($path, 'r');
-					file_put_contents($tmpFile, $source);
+					\file_put_contents($tmpFile, $source);
 					// Seek to end if required
 					if ($mode[0] === 'a') {
-						fseek($tmpFile, 0, SEEK_END);
+						\fseek($tmpFile, 0, SEEK_END);
 					}
 				}
 				self::$tmpFiles[$tmpFile] = $path;
 
-				return fopen('close://' . $tmpFile, $mode);
+				return \fopen('close://' . $tmpFile, $mode);
 		}
 	}
 
 	public function touch($path, $mtime = null) {
 		$path = $this->normalizePath($path);
-		if (is_null($mtime)) {
-			$mtime = time();
+		if ($mtime === null) {
+			$mtime = \time();
 		}
 		$metadata = ['timestamp' => $mtime];
 		if ($this->file_exists($path)) {
@@ -474,8 +475,7 @@ class Swift extends \OCP\Files\Storage\StorageAdapter {
 				\OCP\Util::writeLog('files_external', $e->getMessage(), \OCP\Util::ERROR);
 				return false;
 			}
-
-		} else if ($fileType === 'dir') {
+		} elseif ($fileType === 'dir') {
 
 			// make way
 			$this->unlink($path2);
@@ -492,7 +492,7 @@ class Swift extends \OCP\Files\Storage\StorageAdapter {
 			}
 
 			$dh = $this->opendir($path1);
-			while ($file = readdir($dh)) {
+			while ($file = \readdir($dh)) {
 				if (\OC\Files\Filesystem::isIgnoredDir($file)) {
 					continue;
 				}
@@ -501,7 +501,6 @@ class Swift extends \OCP\Files\Storage\StorageAdapter {
 				$target = $path2 . '/' . $file;
 				$this->copy($source, $target);
 			}
-
 		} else {
 			//file does not exist
 			return false;
@@ -545,7 +544,7 @@ class Swift extends \OCP\Files\Storage\StorageAdapter {
 	 * @throws \Exception if connection could not be made
 	 */
 	public function getConnection() {
-		if (!is_null($this->connection)) {
+		if ($this->connection !== null) {
 			return $this->connection;
 		}
 
@@ -555,7 +554,7 @@ class Swift extends \OCP\Files\Storage\StorageAdapter {
 
 		if (!empty($this->params['password'])) {
 			$settings['password'] = $this->params['password'];
-		} else if (!empty($this->params['key'])) {
+		} elseif (!empty($this->params['key'])) {
 			$settings['apiKey'] = $this->params['key'];
 		}
 
@@ -593,7 +592,7 @@ class Swift extends \OCP\Files\Storage\StorageAdapter {
 	 * @return OpenCloud\ObjectStore\Resource\Container
 	 */
 	public function getContainer() {
-		if (!is_null($this->container)) {
+		if ($this->container !== null) {
 			return $this->container;
 		}
 
@@ -614,11 +613,11 @@ class Swift extends \OCP\Files\Storage\StorageAdapter {
 		if (!isset(self::$tmpFiles[$tmpFile])) {
 			return false;
 		}
-		$fileData = fopen($tmpFile, 'r');
+		$fileData = \fopen($tmpFile, 'r');
 		$this->getContainer()->uploadObject(self::$tmpFiles[$tmpFile], $fileData);
 		// invalidate target object to force repopulation on fetch
 		$this->objectCache->remove(self::$tmpFiles[$tmpFile]);
-		unlink($tmpFile);
+		\unlink($tmpFile);
 	}
 
 	public function hasUpdated($path, $time) {
@@ -628,18 +627,18 @@ class Swift extends \OCP\Files\Storage\StorageAdapter {
 		$path = $this->normalizePath($path);
 		$dh = $this->opendir($path);
 		$content = [];
-		while (($file = readdir($dh)) !== false) {
+		while (($file = \readdir($dh)) !== false) {
 			$content[] = $file;
 		}
 		if ($path === '.') {
 			$path = '';
 		}
 		$cachedContent = $this->getCache()->getFolderContents($path);
-		$cachedNames = array_map(function ($content) {
+		$cachedNames = \array_map(function ($content) {
 			return $content['name'];
 		}, $cachedContent);
-		sort($cachedNames);
-		sort($content);
+		\sort($cachedNames);
+		\sort($content);
 		return $cachedNames != $content;
 	}
 
@@ -649,5 +648,4 @@ class Swift extends \OCP\Files\Storage\StorageAdapter {
 	public static function checkDependencies() {
 		return true;
 	}
-
 }

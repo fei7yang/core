@@ -4,7 +4,7 @@
  * @author Joas Schilling <coding@schilljs.com>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -30,7 +30,6 @@ use OCP\DB\QueryBuilder\IQueryBuilder;
  * Delete all share entries that have no matching entries in the file cache table.
  */
 class DeleteOrphanedItems extends TimedJob {
-
 	const CHUNK_SIZE = 200;
 
 	/** @var \OCP\IDBConnection */
@@ -149,5 +148,4 @@ class DeleteOrphanedItems extends TimedJob {
 		$this->logger->debug("$deletedEntries orphaned comment read marks deleted", ['app' => 'DeleteOrphanedItems']);
 		return $deletedEntries;
 	}
-
 }

@@ -2,7 +2,7 @@
  * Copyright (c) 2014
  *
  * @author Vincent Petry
- * @copyright 2014 Vincent Petry <pvince81@owncloud.com>
+ * @copyright Copyright (c) 2014 Vincent Petry <pvince81@owncloud.com>
  *
  * This file is licensed under the Affero General Public License version 3
  * or later.
@@ -87,6 +87,7 @@
 					fileActions: fileActions,
 					allowLegacyActions: true,
 					scrollTo: urlParams.scrollto,
+					detailTabId: urlParams.details,
 					filesClient: OC.Files.getClient(),
 					sorting: {
 						mode: $('#defaultFileSorting').val(),
@@ -94,7 +95,9 @@
 					},
 					config: this._filesConfig,
 					enableUpload: true,
-					maxChunkSize: OC.appConfig.files && OC.appConfig.files.max_chunk_size
+					maxChunkSize: OC.appConfig.files && OC.appConfig.files.max_chunk_size,
+					uploadStallTimeout: OC.appConfig.files && OC.appConfig.files.upload_stall_timeout,
+					uploadStallRetries: OC.appConfig.files && OC.appConfig.files.upload_stall_retries
 				}
 			);
 			this.files.initialize();

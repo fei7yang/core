@@ -4,7 +4,7 @@
  * @author Joas Schilling <coding@schilljs.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,12 +21,11 @@
  *
  */
 
-
 namespace OCA\Federation\BackgroundJob;
 
 use GuzzleHttp\Exception\ClientException;
-use OC\BackgroundJob\JobList;
 use OC\BackgroundJob\Job;
+use OC\BackgroundJob\JobList;
 use OCA\Federation\DbHandler;
 use OCA\Federation\TrustedServers;
 use OCP\AppFramework\Http;
@@ -43,7 +42,7 @@ use OCP\IURLGenerator;
  *
  * @package OCA\Federation\Backgroundjob
  */
-class GetSharedSecret extends Job{
+class GetSharedSecret extends Job {
 
 	/** @var IClient */
 	private $httpClient;
@@ -137,7 +136,7 @@ class GetSharedSecret extends Job{
 	protected function run($argument) {
 		$target = $argument['url'];
 		$source = $this->urlGenerator->getAbsoluteURL('/');
-		$source = rtrim($source, '/');
+		$source = \rtrim($source, '/');
 		$token = $argument['token'];
 
 		$result = null;
@@ -156,7 +155,6 @@ class GetSharedSecret extends Job{
 			);
 
 			$status = $result->getStatusCode();
-
 		} catch (ClientException $e) {
 			$status = $e->getCode();
 			if ($status === Http::STATUS_FORBIDDEN) {
@@ -175,14 +173,14 @@ class GetSharedSecret extends Job{
 			&& $status !== Http::STATUS_FORBIDDEN
 		) {
 			$this->retainJob = true;
-		}  else {
+		} else {
 			// reset token if we received a valid response
 			$this->dbHandler->addToken($target, '');
 		}
 
 		if ($status === Http::STATUS_OK && $result instanceof IResponse) {
 			$body = $result->getBody();
-			$result = json_decode($body, true);
+			$result = \json_decode($body, true);
 			if (isset($result['ocs']['data']['sharedSecret'])) {
 				$this->trustedServers->addSharedSecret(
 						$target,
@@ -196,6 +194,5 @@ class GetSharedSecret extends Job{
 				$this->trustedServers->setServerStatus($target, TrustedServers::STATUS_FAILURE);
 			}
 		}
-
 	}
 }

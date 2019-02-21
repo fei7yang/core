@@ -8,7 +8,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -62,35 +62,56 @@ class Storage extends DAV implements ISharedStorage {
 	public function __construct($options) {
 		$this->memcacheFactory = \OC::$server->getMemCacheFactory();
 		$this->httpClient = \OC::$server->getHTTPClientService();
-		$discoveryManager = new DiscoveryManager(
-			$this->memcacheFactory,
-			\OC::$server->getHTTPClientService()
-		);
-
 		$this->manager = $options['manager'];
 		$this->certificateManager = $options['certificateManager'];
 		$this->remote = $options['remote'];
 		$this->remoteUser = $options['owner'];
-		list($protocol, $remote) = explode('://', $this->remote);
-		if (strpos($remote, '/')) {
-			list($host, $root) = explode('/', $remote, 2);
+		list($protocol, $remote) = \explode('://', $this->remote);
+		if (\strpos($remote, '/')) {
+			list($host, $root) = \explode('/', $remote, 2);
 		} else {
 			$host = $remote;
 			$root = '';
 		}
 		$secure = $protocol === 'https';
-		$root = rtrim($root, '/') . $discoveryManager->getWebDavEndpoint($this->remote);
 		$this->mountPoint = $options['mountpoint'];
 		$this->token = $options['token'];
 		parent::__construct([
 			'secure' => $secure,
 			'host' => $host,
+			// root will be adjusted lazily in init() with discovery manager
 			'root' => $root,
 			'user' => $options['token'],
 			'password' => (string)$options['password'],
 			// Federated sharing always uses BASIC auth
 			'authType' => Client::AUTH_BASIC
 		]);
+	}
+
+	protected function init() {
+		if ($this->ready) {
+			return;
+		}
+		$discoveryManager = new DiscoveryManager(
+			$this->memcacheFactory,
+			\OC::$server->getHTTPClientService()
+		);
+
+		$this->root = \rtrim($this->root, '/') . $discoveryManager->getWebDavEndpoint($this->remote);
+		if (!$this->root || $this->root[0] !== '/') {
+			$this->root = '/' . $this->root;
+		}
+		if (\substr($this->root, -1, 1) !== '/') {
+			$this->root .= '/';
+		}
+		parent::init();
+	}
+
+	/** {@inheritdoc} */
+	public function createBaseUri() {
+		// require lazy-initializing root to return correct value
+		$this->init();
+		return parent::createBaseUri();
 	}
 
 	public function getWatcher($path = '', $storage = null) {
@@ -129,11 +150,11 @@ class Storage extends DAV implements ISharedStorage {
 	 * @return string
 	 */
 	public function getId() {
-		return 'shared::' . md5($this->token . '@' . $this->remote);
+		return 'shared::' . \md5($this->token . '@' . $this->remote);
 	}
 
 	public function getCache($path = '', $storage = null) {
-		if (is_null($this->cache)) {
+		if ($this->cache === null) {
 			$this->cache = new Cache($this, $this->remote, $this->remoteUser);
 		}
 		return $this->cache;
@@ -192,7 +213,7 @@ class Storage extends DAV implements ISharedStorage {
 	public function checkStorageAvailability() {
 		// see if we can find out why the share is unavailable
 		try {
-			if ( ! $this->propfind('') ) {
+			if (! $this->propfind('')) {
 				// a 404 can either mean that the share no longer exists or there is no ownCloud on the remote
 				if ($this->testRemote()) {
 					// valid ownCloud instance means that the public share no longer exists
@@ -245,7 +266,7 @@ class Storage extends DAV implements ISharedStorage {
 	 */
 	private function testRemoteUrl($url) {
 		$cache = $this->memcacheFactory->create('files_sharing_remote_url');
-		if($cache->hasKey($url)) {
+		if ($cache->hasKey($url)) {
 			return (bool)$cache->get($url);
 		}
 
@@ -255,8 +276,8 @@ class Storage extends DAV implements ISharedStorage {
 				'timeout' => 10,
 				'connect_timeout' => 10,
 			])->getBody();
-			$data = json_decode($result);
-			$returnValue = (is_object($data) && !empty($data->version));
+			$data = \json_decode($result);
+			$returnValue = (\is_object($data) && !empty($data->version));
 		} catch (ConnectException $e) {
 			$returnValue = false;
 		} catch (ClientException $e) {
@@ -268,7 +289,7 @@ class Storage extends DAV implements ISharedStorage {
 	}
 
 	public function getOwner($path) {
-		list(, $remote) = explode('://', $this->remote, 2);
+		list(, $remote) = \explode('://', $this->remote, 2);
 		return $this->remoteUser . '@' . $remote;
 	}
 
@@ -294,5 +315,4 @@ class Storage extends DAV implements ISharedStorage {
 
 		return $permissions;
 	}
-
 }

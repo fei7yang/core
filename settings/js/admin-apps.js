@@ -10,13 +10,23 @@ Handlebars.registerHelper('score', function() {
 	return new Handlebars.SafeString('');
 });
 Handlebars.registerHelper('level', function() {
-	if(typeof this.level !== 'undefined') {
+	if(!_.isUndefined(this.level)) {
 		if(this.level === 200) {
 			return new Handlebars.SafeString('<span class="official icon-checkmark">' + t('settings', 'Official') + '</span>');
 		} else if(this.level === 100) {
 			return new Handlebars.SafeString('<span class="approved">' + t('settings', 'Approved') + '</span>');
 		}
 	}
+});
+Handlebars.registerHelper('md', function(text){
+	var converter =  new showdown.Converter({
+		strikethrough: true,
+		tables : true,
+		tasklists : true
+	});
+	return new Handlebars.SafeString(
+		converter.makeHtml(text)
+	);
 });
 
 OC.Settings = OC.Settings || {};
@@ -137,7 +147,7 @@ OC.Settings.Apps = OC.Settings.Apps || {
 			var source   = $("#app-template").html();
 			template = Handlebars.compile(source);
 		}
-		if (typeof app === 'string') {
+		if (_.isString(app)) {
 			app = OC.Settings.Apps.State.apps[app];
 		}
 		app.firstExperimental = firstExperimental;
@@ -146,6 +156,8 @@ OC.Settings.Apps = OC.Settings.Apps || {
 			app.preview = OC.imagePath('core', 'default-app-icon');
 			app.previewAsIcon = true;
 		}
+
+		app.author = this._parseAppAuthor(app.author);
 
 		var html = template(app);
 		if (selector) {
@@ -169,9 +181,7 @@ OC.Settings.Apps = OC.Settings.Apps || {
 		}
 
 		// set group select properly
-		if(OC.Settings.Apps.isType(app, 'filesystem') || OC.Settings.Apps.isType(app, 'prelogin') ||
-			OC.Settings.Apps.isType(app, 'authentication') || OC.Settings.Apps.isType(app, 'logging') ||
-			OC.Settings.Apps.isType(app, 'prevent_group_restriction')) {
+		if (OC.Settings.Apps.isProtected(app)) {
 			page.find(".groups-enable").hide();
 			page.find(".groups-enable__checkbox").prop('checked', false);
 		} else {
@@ -190,7 +200,55 @@ OC.Settings.Apps = OC.Settings.Apps || {
 		}
 	},
 
-	isType: function(app, type){
+	/**
+	 * Parses the author(s) from the app info response.
+	 *
+	 * @param {(string|string[]|Object|Object[])} author - A string or an array of Objects or strings or both representing the author info from apps info.xml.
+	 * @return {string}
+	 */
+	_parseAppAuthor: function (author) {
+		if (_.isObject(author) && !_.isUndefined(author['@value'])) {
+			return author['@value'];
+		}
+
+		if (_.isArray(author)) {
+			var authorNames = [];
+			for (var i = 0; i < author.length; i++) {
+				if (_.isObject(author[i]) && !_.isUndefined(author[i]['@value'])) {
+					authorNames.push(author[i]['@value']);
+				} else {
+					authorNames.push(author[i]);
+				}
+			}
+			return authorNames.join(', ');
+		}
+
+		return author;
+	},
+
+	/**
+	 * Checks if enable for groups should be hidden
+	 * @param app
+	 * @returns {boolean}
+	 */
+	isProtected: function(app) {
+		var protectedTypes = [
+			'filesystem',
+			'prelogin',
+			'authentication',
+			'logging',
+			'prevent_group_restriction',
+			'theme'
+		];
+		for (var i=0;i<protectedTypes.length;i++) {
+			if (OC.Settings.Apps.isType(app, protectedTypes[i])) {
+				return true;
+			}
+		}
+		return false;
+	},
+
+	isType: function(app, type) {
 		return app.types && app.types.indexOf(type) !== -1;
 	},
 
@@ -474,10 +532,7 @@ OC.Settings.Apps = OC.Settings.Apps || {
 			if (_.isUndefined(app.author)) {
 				return false;
 			}
-			if (_.isArray(app.author)) {
-				return app.author.join(' ').toLowerCase().indexOf(query) !== -1;
-			}
-			return app.author.toLowerCase().indexOf(query) !== -1;
+			return self._parseAppAuthor(app.author).toLowerCase().indexOf(query) !== -1;
 		}));
 
 		// App status

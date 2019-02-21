@@ -23,13 +23,6 @@ OC.L10N.register(
     "Client secret" : "Ключ клієнта",
     "API key" : "ключ API",
     "Public key" : "Відкритий ключ",
-    "Amazon S3" : "Amazon S3",
-    "Bucket" : "Кошик",
-    "Hostname" : "Ім'я хоста",
-    "Port" : "Порт",
-    "Region" : "Регіон",
-    "Enable SSL" : "Включити SSL",
-    "Enable Path Style" : "Включити стиль шляху",
     "WebDAV" : "WebDAV",
     "URL" : "URL",
     "Remote subfolder" : "Віддалений підкаталог",
@@ -43,6 +36,8 @@ OC.L10N.register(
     "SMB / CIFS using OC login" : "SMB / CIFS з використанням логіна OC",
     "Username as share" : "Ім'я для відкритого доступу",
     "OpenStack Object Storage" : "OpenStack Object Storage",
+    "Region" : "Регіон",
+    "Bucket" : "Кошик",
     "<b>Note:</b> " : "<b>Примітка:</b>",
     "<b>Note:</b> The cURL support in PHP is not enabled or installed. Mounting of %s is not possible. Please ask your system administrator to install it." : "<b>Примітка:</b> Підтримку cURL в PHP не ввімкнено чи не встановлена. Під'єднатися до %s неможливо. Зверніться до системного адміністратора.",
     "<b>Note:</b> \"%s\" is not installed. Mounting of %s is not possible. Please ask your system administrator to install it." : "<b>Примітка:</b> \"%s\" не встановлено. Під'єднатися до %s неможливо. Зверніться до системного адміністратора.",
@@ -51,6 +46,7 @@ OC.L10N.register(
     "Storage type" : "Тип сховища",
     "Scope" : "Область",
     "Enable encryption" : "Увімкнути шифрування",
+    "Never" : "Ніколи",
     "External Storage" : "Зовнішні сховища",
     "Folder name" : "Ім'я теки",
     "Configuration" : "Налаштування",
@@ -60,4 +56,4 @@ OC.L10N.register(
     "Delete" : "Видалити",
     "Allow users to mount the following external storage" : "Дозволити користувачам монтувати наступні зовнішні сховища"
 },
-"nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);");
+"nplurals=4; plural=(n % 1 == 0 && n % 10 == 1 && n % 100 != 11 ? 0 : n % 1 == 0 && n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 1 : n % 1 == 0 && (n % 10 ==0 || (n % 10 >=5 && n % 10 <=9) || (n % 100 >=11 && n % 100 <=14 )) ? 2: 3);");

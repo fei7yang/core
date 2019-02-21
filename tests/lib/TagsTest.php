@@ -3,7 +3,7 @@
 * ownCloud
 *
 * @author Thomas Tanghus
-* @copyright 2012-13 Thomas Tanghus (thomas@tanghus.net)
+* @copyright Copyright (c) 2012-13 Thomas Tanghus (thomas@tanghus.net)
 *
 * This library is free software; you can redistribute it and/or
 * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
@@ -32,7 +32,6 @@ use Test\Traits\UserTrait;
  * @group DB
  */
 class TagsTest extends TestCase {
-
 	use UserTrait;
 
 	protected $objectType;
@@ -40,7 +39,7 @@ class TagsTest extends TestCase {
 	protected $user;
 	/** @var \OCP\IUserSession */
 	protected $userSession;
-	protected $backupGlobals = FALSE;
+	protected $backupGlobals = false;
 	/** @var TagMapper */
 	protected $tagMapper;
 	/** @var \OCP\ITagManager */
@@ -61,7 +60,6 @@ class TagsTest extends TestCase {
 		$this->objectType = $this->getUniqueID('type_');
 		$this->tagMapper = new TagMapper(\OC::$server->getDatabaseConnection());
 		$this->tagMgr = new TagManager($this->tagMapper, $this->userSession);
-
 	}
 
 	protected function tearDown() {
@@ -87,7 +85,7 @@ class TagsTest extends TestCase {
 
 		$tagger = $this->tagMgr->load($this->objectType, $defaultTags);
 
-		$this->assertEquals(4, count($tagger->getTags()));
+		$this->assertCount(4, $tagger->getTags());
 	}
 
 	public function testAddTags() {
@@ -95,7 +93,7 @@ class TagsTest extends TestCase {
 
 		$tagger = $this->tagMgr->load($this->objectType);
 
-		foreach($tags as $tag) {
+		foreach ($tags as $tag) {
 			$result = $tagger->add($tag);
 			$this->assertGreaterThan(0, $result, 'add() returned an ID <= 0');
 			$this->assertTrue((bool)$result);
@@ -112,28 +110,28 @@ class TagsTest extends TestCase {
 
 		$tagger = $this->tagMgr->load($this->objectType);
 
-		foreach($tags as $tag) {
+		foreach ($tags as $tag) {
 			$this->assertFalse($tagger->hasTag($tag));
 		}
 
 		$result = $tagger->addMultiple($tags);
 		$this->assertTrue((bool)$result);
 
-		foreach($tags as $tag) {
+		foreach ($tags as $tag) {
 			$this->assertTrue($tagger->hasTag($tag));
 		}
 
 		$tagMaps = $tagger->getTags();
 		$this->assertCount(4, $tagMaps, 'Not all tags added');
-		foreach($tagMaps as $tagMap) {
-			$this->assertEquals(null, $tagMap['id']);
+		foreach ($tagMaps as $tagMap) {
+			$this->assertNull($tagMap['id']);
 		}
 
 		// As addMultiple has been called without $sync=true, the tags aren't
 		// saved to the database, so they're gone when we reload $tagger:
 
 		$tagger = $this->tagMgr->load($this->objectType);
-		$this->assertEquals(0, count($tagger->getTags()));
+		$this->assertCount(0, $tagger->getTags());
 
 		// Now, we call addMultiple() with $sync=true so the tags will be
 		// be saved to the database.
@@ -141,14 +139,14 @@ class TagsTest extends TestCase {
 		$this->assertTrue((bool)$result);
 
 		$tagMaps = $tagger->getTags();
-		foreach($tagMaps as $tagMap) {
-			$this->assertNotEquals(null, $tagMap['id']);
+		foreach ($tagMaps as $tagMap) {
+			$this->assertNotNull($tagMap['id']);
 		}
 
 		// Reload the tagger.
 		$tagger = $this->tagMgr->load($this->objectType);
 
-		foreach($tags as $tag) {
+		foreach ($tags as $tag) {
 			$this->assertTrue($tagger->hasTag($tag));
 		}
 
@@ -158,12 +156,12 @@ class TagsTest extends TestCase {
 	public function testIsEmpty() {
 		$tagger = $this->tagMgr->load($this->objectType);
 
-		$this->assertEquals(0, count($tagger->getTags()));
+		$this->assertCount(0, $tagger->getTags());
 		$this->assertTrue($tagger->isEmpty());
 
 		$result = $tagger->add('Tag');
 		$this->assertGreaterThan(0, $result, 'add() returned an ID <= 0');
-		$this->assertNotEquals(false, $result, 'add() returned false');
+		$this->assertNotFalse($result, 'add() returned false');
 		$this->assertFalse($tagger->isEmpty());
 	}
 
@@ -176,15 +174,15 @@ class TagsTest extends TestCase {
 		$tagger->tagAs(2, 'Family');
 
 		$tags = $tagger->getTagsForObjects([1]);
-		$this->assertEquals(1, count($tags));
-		$tags = current($tags);
-		sort($tags);
+		$this->assertCount(1, $tags);
+		$tags = \current($tags);
+		\sort($tags);
 		$this->assertSame(['Friends', 'Other'], $tags);
 
 		$tags = $tagger->getTagsForObjects([1, 2]);
-		$this->assertEquals(2, count($tags));
+		$this->assertCount(2, $tags);
 		$tags1 = $tags[1];
-		sort($tags1);
+		\sort($tags1);
 		$this->assertSame(['Friends', 'Other'], $tags1);
 		$this->assertSame(['Family'], $tags[2]);
 		$this->assertEquals(
@@ -213,26 +211,26 @@ class TagsTest extends TestCase {
 
 		// insert lots of entries
 		$idsArray = [];
-		for($i = 1; $i <= 1500; $i++) {
+		for ($i = 1; $i <= 1500; $i++) {
 			$statement->execute([$i, $tagId, $tagType]);
 			$idsArray[] = $i;
 		}
 
 		$tags = $tagger->getTagsForObjects($idsArray);
-		$this->assertEquals(1500, count($tags));
+		$this->assertCount(1500, $tags);
 	}
 
 	public function testDeleteTags() {
 		$defaultTags = ['Friends', 'Family', 'Work', 'Other'];
 		$tagger = $this->tagMgr->load($this->objectType, $defaultTags);
 
-		$this->assertEquals(4, count($tagger->getTags()));
+		$this->assertCount(4, $tagger->getTags());
 
 		$tagger->delete('family');
-		$this->assertEquals(3, count($tagger->getTags()));
+		$this->assertCount(3, $tagger->getTags());
 
 		$tagger->delete(['Friends', 'Work', 'Other']);
-		$this->assertEquals(0, count($tagger->getTags()));
+		$this->assertCount(0, $tagger->getTags());
 	}
 
 	public function testRenameTag() {
@@ -251,12 +249,12 @@ class TagsTest extends TestCase {
 
 		$tagger = $this->tagMgr->load($this->objectType);
 
-		foreach($objids as $id) {
+		foreach ($objids as $id) {
 			$this->assertTrue($tagger->tagAs($id, 'Family'));
 		}
 
-		$this->assertEquals(1, count($tagger->getTags()));
-		$this->assertEquals(9, count($tagger->getIdsForTag('Family')));
+		$this->assertCount(1, $tagger->getTags());
+		$this->assertCount(9, $tagger->getIdsForTag('Family'));
 	}
 
 	/**
@@ -269,14 +267,14 @@ class TagsTest extends TestCase {
 		$this->testTagAs();
 		$tagger = $this->tagMgr->load($this->objectType);
 
-		foreach($objIds as $id) {
-			$this->assertTrue(in_array($id, $tagger->getIdsForTag('Family')));
+		foreach ($objIds as $id) {
+			$this->assertContains($id, $tagger->getIdsForTag('Family'));
 			$tagger->unTag($id, 'Family');
-			$this->assertFalse(in_array($id, $tagger->getIdsForTag('Family')));
+			$this->assertNotContains($id, $tagger->getIdsForTag('Family'));
 		}
 
-		$this->assertEquals(1, count($tagger->getTags()));
-		$this->assertEquals(0, count($tagger->getIdsForTag('Family')));
+		$this->assertCount(1, $tagger->getTags());
+		$this->assertCount(0, $tagger->getIdsForTag('Family'));
 	}
 
 	public function testFavorite() {
@@ -286,35 +284,4 @@ class TagsTest extends TestCase {
 		$this->assertTrue($tagger->removeFromFavorites(1));
 		$this->assertEquals([], $tagger->getFavorites());
 	}
-
-	public function testShareTags() {
-		$testTag = 'TestTag';
-		\OCP\Share::registerBackend('test', 'Test\Share\Backend');
-
-		$tagger = $this->tagMgr->load('test');
-		$tagger->tagAs(1, $testTag);
-
-		$otherUserId = $this->getUniqueID('user2_');
-		$otherUser = $this->createUser($otherUserId, 'pass');
-		\OC_User::setUserId($otherUserId);
-		/** @var IUserSession | \PHPUnit_Framework_MockObject_MockObject $otherUserSession */
-		$otherUserSession = $this->createMock(IUserSession::class);
-		$otherUserSession
-			->expects($this->any())
-			->method('getUser')
-			->will($this->returnValue($otherUser));
-
-		$otherTagMgr = new TagManager($this->tagMapper, $otherUserSession);
-		$otherTagger = $otherTagMgr->load('test');
-		$this->assertFalse($otherTagger->hasTag($testTag));
-
-		\OC_User::setUserId($this->user->getUID());
-		\OCP\Share::shareItem('test', 1, \OCP\Share::SHARE_TYPE_USER, $otherUserId, \OCP\Constants::PERMISSION_READ);
-
-		\OC_User::setUserId($otherUserId);
-		$otherTagger = $otherTagMgr->load('test', [], true); // Update tags, load shared ones.
-		$this->assertTrue($otherTagger->hasTag($testTag));
-		$this->assertContains(1, $otherTagger->getIdsForTag($testTag));
-	}
-
 }

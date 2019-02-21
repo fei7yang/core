@@ -2,7 +2,7 @@
 /**
  * @author Tom Needham <tom@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,11 +21,11 @@
 namespace OCA\Files_External\Panels;
 
 use OC\Encryption\Manager;
+use OCP\Files\External\IStoragesBackendService;
 use OCP\Files\External\Service\IUserStoragesService;
+use OCP\IConfig;
 use OCP\Settings\ISettings;
 use OCP\Template;
-use \OCP\Files\External\IStoragesBackendService;
-use OCP\IConfig;
 
 class Personal implements ISettings {
 
@@ -48,15 +48,15 @@ class Personal implements ISettings {
 		$this->encManager = $encManager;
 	}
 
-    public function getPriority() {
-        return 0;
-    }
+	public function getPriority() {
+		return 0;
+	}
 
-    public function getSectionID() {
-        return 'storage';
-    }
+	public function getSectionID() {
+		return 'storage';
+	}
 
-    public function getPanel() {
+	public function getPanel() {
 		$tmpl = new Template('files_external', 'settings');
 		$enabled = ($this->config->getAppValue('core', 'enable_external_storage', 'no') === 'yes'
 			&& $this->backendService->isUserMountingAllowed());
@@ -70,6 +70,5 @@ class Personal implements ISettings {
 		$tmpl->assign('allowUserMounting', $enabled);
 		$tmpl->assign('allowUserMountSharing', $this->config->getAppValue('core', 'allow_user_mount_sharing', 'yes') === 'yes');
 		return $tmpl;
-    }
-
+	}
 }

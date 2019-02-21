@@ -2,7 +2,7 @@
 /**
  * @author Christoph Wurst <christoph@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -74,11 +74,11 @@ class AuthSettingsController extends Controller {
 	 * @NoAdminRequired
 	 * @NoSubadminRequired
 	 *
-	 * @return JSONResponse
+	 * @return JSONResponse | array
 	 */
 	public function index() {
 		$user = $this->userManager->get($this->uid);
-		if (is_null($user)) {
+		if ($user === null) {
 			return [];
 		}
 		$tokens = $this->tokenProvider->getTokenByUser($user);
@@ -94,7 +94,7 @@ class AuthSettingsController extends Controller {
 			return $this->getServiceNotAvailableResponse();
 		}
 
-		return array_map(function(IToken $token) use ($sessionToken) {
+		return \array_map(function (IToken $token) use ($sessionToken) {
 			$data = $token->jsonSerialize();
 			if ($sessionToken->getId() === $token->getId()) {
 				$data['canDelete'] = false;
@@ -109,7 +109,8 @@ class AuthSettingsController extends Controller {
 	 * @NoAdminRequired
 	 * @NoSubadminRequired
 	 *
-	 * @return JSONResponse
+	 * @param string $name
+	 * @return JSONResponse | array
 	 */
 	public function create($name) {
 		try {
@@ -126,18 +127,19 @@ class AuthSettingsController extends Controller {
 			} catch (PasswordlessTokenException $ex) {
 				$password = null;
 			}
+			$token = $this->generateRandomDeviceToken();
+			$deviceToken = $this->tokenProvider->generateToken($token, $this->uid, $loginName, $password, $name, IToken::PERMANENT_TOKEN);
+
+			return [
+				'token' => $token,
+				'loginName' => $loginName,
+				'deviceToken' => $deviceToken
+			];
+		} catch (\InvalidArgumentException $ex) {
+			return $this->getServiceNotAvailableResponse();
 		} catch (InvalidTokenException $ex) {
 			return $this->getServiceNotAvailableResponse();
 		}
-
-		$token = $this->generateRandomDeviceToken();
-		$deviceToken = $this->tokenProvider->generateToken($token, $this->uid, $loginName, $password, $name, IToken::PERMANENT_TOKEN);
-
-		return [
-			'token' => $token,
-			'loginName' => $loginName,
-			'deviceToken' => $deviceToken
-		];
 	}
 
 	private function getServiceNotAvailableResponse() {
@@ -156,25 +158,30 @@ class AuthSettingsController extends Controller {
 	private function generateRandomDeviceToken() {
 		$groups = [];
 		for ($i = 0; $i < 4; $i++) {
-			$groups[] = $this->random->generate(5, implode('', range('A', 'Z')));
+			$groups[] = $this->random->generate(5, \implode('', \range('A', 'Z')));
 		}
-		return implode('-', $groups);
+		return \implode('-', $groups);
 	}
 
 	/**
 	 * @NoAdminRequired
 	 * @NoSubadminRequired
 	 *
-	 * @return JSONResponse
+	 * @return JSONResponse | array
 	 */
 	public function destroy($id) {
 		$user = $this->userManager->get($this->uid);
-		if (is_null($user)) {
+		$currentToken = $this->tokenProvider->getToken($this->session->getId());
+
+		if ($currentToken && ($currentToken->getId() === \intval($id))) {
+			return (new JSONResponse())->setStatus(Http::STATUS_CONFLICT);
+		}
+
+		if ($user === null) {
 			return [];
 		}
 
 		$this->tokenProvider->invalidateTokenById($user, $id);
 		return [];
 	}
-
 }

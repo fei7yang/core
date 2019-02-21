@@ -2,7 +2,7 @@
 /**
  * @author Joas Schilling <coding@schilljs.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -69,7 +69,7 @@ class Listener {
 	 */
 	public function commentEvent(CommentsEvent $event) {
 		if ($event->getComment()->getObjectType() !== 'files'
-			|| !in_array($event->getEvent(), [CommentsEvent::EVENT_ADD])
+			|| !\in_array($event->getEvent(), [CommentsEvent::EVENT_ADD])
 			|| !$this->appManager->isInstalled('activity')) {
 			// Comment not for file, not adding a comment or no activity-app enabled (save the energy)
 			return;
@@ -86,16 +86,15 @@ class Listener {
 		foreach ($mounts as $mount) {
 			$owner = $mount->getUser()->getUID();
 			$ownerFolder = $this->rootFolder->getUserFolder($owner);
-			$nodes = $ownerFolder->getById($event->getComment()->getObjectId());
-			if (!empty($nodes)) {
-				/** @var Node $node */
-				$node = array_shift($nodes);
+			$nodes = $ownerFolder->getById($event->getComment()->getObjectId(), true);
+			$node = $nodes[0] ?? null;
+			if ($node) {
 				$path = $node->getPath();
-				if (strpos($path, '/' . $owner . '/files/') === 0) {
-					$path = substr($path, strlen('/' . $owner . '/files'));
+				if (\strpos($path, '/' . $owner . '/files/') === 0) {
+					$path = \substr($path, \strlen('/' . $owner . '/files'));
 				}
 				// Get all users that have access to the mount point
-				$users = array_merge($users, Share::getUsersSharingFile($path, $owner, true, true));
+				$users = \array_merge($users, Share::getUsersSharingFile($path, $owner, true, true));
 			}
 		}
 

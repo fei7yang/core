@@ -3,7 +3,7 @@
  * @author Joas Schilling <coding@schilljs.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -19,13 +19,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
-if (!defined('PHPUNIT_RUN')) {
-	define('PHPUNIT_RUN', 1);
+if (!\defined('PHPUNIT_RUN')) {
+	\define('PHPUNIT_RUN', 1);
 }
 
 require_once __DIR__.'/../../../../lib/base.php';
 
-if(!class_exists('PHPUnit_Framework_TestCase')) {
+if (!\class_exists('PHPUnit\Framework\TestCase')) {
 	require_once('PHPUnit/Autoload.php');
 }
 

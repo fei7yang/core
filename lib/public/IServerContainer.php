@@ -16,7 +16,7 @@
  * @author Thomas Tanghus <thomas@tanghus.net>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -43,8 +43,8 @@
 // This means that they should be used by apps instead of the internal ownCloud classes
 namespace OCP;
 use OCP\Security\IContentSecurityPolicyManager;
+use OCP\Shutdown\IShutdownManager;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
-
 
 /**
  * Class IServerContainer
@@ -53,7 +53,7 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
  * This container holds all ownCloud services
  * @since 6.0.0
  */
-interface IServerContainer {
+interface IServerContainer extends IContainer {
 
 	/**
 	 * The contacts manager will act as a broker between consumers for contacts information and
@@ -531,4 +531,16 @@ interface IServerContainer {
 	 * @since 8.0.0
 	 */
 	public function getDateTimeFormatter();
+
+	/**
+	 * @return \OCP\Theme\IThemeService
+	 * @since 10.0.3
+	 */
+	public function getThemeService();
+
+	/**
+	 * @return IShutdownManager
+	 * @since 10.0.10
+	 */
+	public function getShutdownHandler();
 }

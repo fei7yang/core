@@ -2,7 +2,7 @@
 /**
  * @author Philipp Schaffrath <github@philipp.schaffrath.email>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -19,27 +19,45 @@
  */
 namespace OC\Theme;
 
+use OCP\App\IAppManager;
 use OCP\Theme\IThemeService;
+use OC\Helper\EnvironmentHelper;
 
+/**
+ * Class ThemeService
+ *
+ * @package OC\Theme
+ */
 class ThemeService implements IThemeService {
+	const DEFAULT_THEME_PATH = '/themes/default';
 
 	/**
 	 * @var Theme
 	 */
 	private $theme;
 
-	/** @var string */
-	private $defaultThemeDirectory;
+	/**
+	 * @var IAppManager
+	 */
+	private $appManager;
+
+	/**
+	 * @var EnvironmentHelper
+	 */
+	private $environmentHelper;
 
 	/**
 	 * ThemeService constructor.
 	 *
 	 * @param string $themeName
-	 * @param string $defaultThemeDirectory
+	 * @param IAppManager $appManager
+	 * @param EnvironmentHelper $environmentHelper
 	 */
-	public function __construct($themeName = '', $defaultThemeDirectory = '') {
-		$this->setDefaultThemeDirectory($defaultThemeDirectory);
-
+	public function __construct($themeName,
+		IAppManager $appManager, EnvironmentHelper $environmentHelper
+	) {
+		$this->appManager = $appManager;
+		$this->environmentHelper = $environmentHelper;
 		if ($themeName === '' && $this->defaultThemeExists()) {
 			$themeName = 'default';
 		}
@@ -48,25 +66,12 @@ class ThemeService implements IThemeService {
 	}
 
 	/**
-	 * @param string $defaultThemeDirectory
-	 */
-	private function setDefaultThemeDirectory($defaultThemeDirectory = '') {
-		if ($defaultThemeDirectory === '') {
-			$this->defaultThemeDirectory = \OC::$SERVERROOT . '/themes/default';
-		} else {
-			$this->defaultThemeDirectory = $defaultThemeDirectory;
-		}
-	}
-
-	/**
 	 * @return bool
 	 */
-	private function defaultThemeExists() {
-		if (is_dir($this->defaultThemeDirectory)) {
-			return true;
-		}
-
-		return false;
+	public function defaultThemeExists() {
+		$defaultThemePath = $this->environmentHelper->getServerRoot()
+			. self::DEFAULT_THEME_PATH;
+		return \is_dir($defaultThemePath);
 	}
 
 	/**
@@ -78,74 +83,68 @@ class ThemeService implements IThemeService {
 
 	/**
 	 * @param string $themeName
+	 *
+	 * @return void
 	 */
 	public function setAppTheme($themeName = '') {
-		$this->theme = $this->makeTheme($themeName, true, $this->getTheme());
+		$this->theme = $this->makeTheme($themeName, true);
 	}
 
 	/**
 	 * @param string $themeName
 	 * @param bool $appTheme
-	 * @param Theme $theme
+	 *
 	 * @return Theme
 	 */
-	private function makeTheme($themeName, $appTheme = true, Theme $theme = null) {
-		$directory = $this->getDirectory($themeName, $appTheme);
-		$webPath = $this->getWebPath($themeName, $appTheme);
+	private function makeTheme($themeName, $appTheme = true) {
+		$serverRoot = $this->environmentHelper->getServerRoot();
+		$baseDirectory = $serverRoot;
+		$directory = '';
+		$webPath = '';
+		if ($themeName !== '') {
+			if ($appTheme) {
+				$themeDirectory = $this->appManager->getAppPath($themeName);
+				// If theme is located below OC server root
+				//   Theme base directory is OC server root
+				//
+				// if theme is located outside OC server root
+				//   Theme base directory is a path to the appsRoot containing
+				//   this theme
+				//
+				// In any case theme directory is relative to theme base directory
+				if (\strpos($themeDirectory, $serverRoot) === 0) {
+					$directory = \substr($themeDirectory, \strlen($serverRoot) + 1);
+				} else {
+					$appsRoots = $this->environmentHelper->getAppsRoots();
+					foreach ($appsRoots as $appsRoot) {
+						if (\strpos($themeDirectory, $appsRoot['path']) === 0) {
+							$baseDirectory = $appsRoot['path'];
+							$directory = \substr(
+								$themeDirectory,
+								\strlen($appsRoot['path']) + 1
+							);
+						}
+					}
+				}
 
-		if (is_null($theme)) {
-			$theme = new Theme(
-				$themeName,
-				$directory,
-				$webPath
-			);
-		} else {
-			$theme->setName($themeName);
-			$theme->setDirectory($directory);
-			$theme->setWebPath($webPath);
+				$webPath = $this->appManager->getAppWebPath($themeName);
+			} else {
+				$directory = 'themes/' . $themeName;
+				$webPath = '/themes/' . $themeName;
+			}
 		}
+
+		$theme = new Theme($themeName, $directory, $webPath);
+		$theme->setBaseDirectory($baseDirectory);
 
 		return $theme;
-	}
-
-	/**
-	 * @param string $themeName
-	 * @param bool $appTheme
-	 * @return string
-	 */
-	private function getDirectory($themeName, $appTheme = true) {
-		if ($themeName !== '') {
-			if ($appTheme) {
-				return substr(\OC_App::getAppPath($themeName), strlen(\OC::$SERVERROOT) + 1);
-			}
-			return 'themes/' . $themeName;
-		}
-
-		return '';
-	}
-
-	/**
-	 * @param $themeName
-	 * @param bool $appTheme
-	 * @return false|string
-	 */
-	private function getWebPath($themeName, $appTheme = true) {
-		if ($themeName !== '') {
-			if ($appTheme) {
-				$appWebPath = \OC_App::getAppWebPath($themeName);
-				return $appWebPath ? $appWebPath : '';
-			}
-			return '/themes/' . $themeName;
-		}
-
-		return '';
 	}
 
 	/**
 	 * @return Theme[]
 	 */
 	public function getAllThemes() {
-		return array_merge($this->getAllAppThemes(), $this->getAllLegacyThemes());
+		return \array_merge($this->getAllAppThemes(), $this->getAllLegacyThemes());
 	}
 
 	/**
@@ -153,7 +152,7 @@ class ThemeService implements IThemeService {
 	 */
 	private function getAllAppThemes() {
 		$themes = [];
-		foreach (\OC::$server->getAppManager()->getAllApps() as $app) {
+		foreach ($this->appManager->getInstalledApps() as $app) {
 			if (\OC_App::isType($app, 'theme')) {
 				$themes[$app] = $this->makeTheme($app);
 			}
@@ -165,18 +164,21 @@ class ThemeService implements IThemeService {
 	 * @return Theme[]
 	 */
 	private function getAllLegacyThemes() {
+		$serverRoot = $this->environmentHelper->getServerRoot();
 		$themes = [];
-		if ($handle = opendir(\OC::$SERVERROOT . '/themes')) {
-			while (false !== ($entry = readdir($handle))) {
-				if ($entry === '.' || $entry === '..') {
-					continue;
+		if (\is_dir($serverRoot . '/themes')) {
+			if ($handle = \opendir($serverRoot . '/themes')) {
+				while (($entry = \readdir($handle)) !== false) {
+					if ($entry === '.' || $entry === '..') {
+						continue;
+					}
+					if (\is_dir($serverRoot . '/themes/' . $entry)) {
+						$themes[$entry] = $this->makeTheme($entry, false);
+					}
 				}
-				if (is_dir(\OC::$SERVERROOT . '/themes/' . $entry)) {
-					$themes[$entry] = $this->makeTheme($entry, false);
-				}
+				\closedir($handle);
+				return $themes;
 			}
-			closedir($handle);
-			return $themes;
 		}
 		return $themes;
 	}
@@ -187,7 +189,7 @@ class ThemeService implements IThemeService {
 	 */
 	public function findTheme($themeName) {
 		$allThemes = $this->getAllThemes();
-		if (array_key_exists($themeName, $allThemes)) {
+		if (\array_key_exists($themeName, $allThemes)) {
 			return $allThemes[$themeName];
 		}
 		return false;

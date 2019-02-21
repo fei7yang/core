@@ -1,8 +1,8 @@
 <?php
 /**
- * @author Victor Dubiniuk <dubiniuk@owncloud.com>
+ * @author Viktar Dubiniuk <dubiniuk@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,8 +21,8 @@
 
 namespace OCA\DAV\Migrations;
 
-use OCP\Migration\ISchemaMigration;
 use Doctrine\DBAL\Schema\Schema;
+use OCP\Migration\ISchemaMigration;
 
 /*
  * Create initial properties table
@@ -80,7 +80,7 @@ class Version20170116170538 implements ISchemaMigration {
 					'length' => 20,
 				]);
 			}
-			if (!$table->hasIndex('fileid_index')){
+			if (!$table->hasIndex('fileid_index')) {
 				$table->addIndex(['fileid'], 'fileid_index');
 			}
 		}

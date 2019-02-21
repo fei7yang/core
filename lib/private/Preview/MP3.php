@@ -7,7 +7,7 @@
  * @author Olivier Paroz <github@oparoz.com>
  * @author Thomas Tanghus <thomas@tanghus.net>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -26,8 +26,11 @@
 namespace OC\Preview;
 
 use ID3Parser\ID3Parser;
+use OCP\Files\File;
+use OCP\Files\FileInfo;
+use OCP\Preview\IProvider2;
 
-class MP3 extends Provider {
+class MP3 implements IProvider2 {
 	/**
 	 * {@inheritDoc}
 	 */
@@ -38,18 +41,27 @@ class MP3 extends Provider {
 	/**
 	 * {@inheritDoc}
 	 */
-	public function getThumbnail($path, $maxX, $maxY, $scalingup, $fileview) {
-		$getID3 = new ID3Parser();
+	public function getThumbnail(File $file, $maxX, $maxY, $scalingUp) {
+		$useFileDirectly = (!$file->isEncrypted() && !$file->isMounted());
+		if ($useFileDirectly) {
+			$absPath = $file->getStorage()->getLocalFile($file->getInternalPath());
+		} else {
+			$absPath = \OC::$server->getTempManager()->getTemporaryFile();
 
-		$tmpPath = $fileview->toTmpFile($path);
-		$tags = $getID3->analyze($tmpPath);
-		unlink($tmpPath);
+			$handle = $file->fopen('rb');
+			\file_put_contents($absPath, $handle);
+			\fclose($handle);
+		}
+
+		$getID3 = new ID3Parser();
+		$tags = $getID3->analyze($absPath);
+
 		$picture = isset($tags['id3v2']['APIC'][0]['data']) ? $tags['id3v2']['APIC'][0]['data'] : null;
-		if(is_null($picture) && isset($tags['id3v2']['PIC'][0]['data'])) {
+		if ($picture === null && isset($tags['id3v2']['PIC'][0]['data'])) {
 			$picture = $tags['id3v2']['PIC'][0]['data'];
 		}
 
-		if(!is_null($picture)) {
+		if ($picture !== null) {
 			$image = new \OC_Image();
 			$image->loadFromData($picture);
 
@@ -71,7 +83,7 @@ class MP3 extends Provider {
 	private function getNoCoverThumbnail() {
 		$icon = \OC::$SERVERROOT . '/core/img/filetypes/audio.svg';
 
-		if(!file_exists($icon)) {
+		if (!\file_exists($icon)) {
 			return false;
 		}
 
@@ -80,4 +92,10 @@ class MP3 extends Provider {
 		return $image->valid() ? $image : false;
 	}
 
+	/**
+	 * @inheritdoc
+	 */
+	public function isAvailable(FileInfo $file) {
+		return true;
+	}
 }

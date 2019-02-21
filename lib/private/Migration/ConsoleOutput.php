@@ -2,7 +2,7 @@
 /**
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -19,9 +19,7 @@
  *
  */
 
-
 namespace OC\Migration;
-
 
 use OCP\Migration\IOutput;
 use Symfony\Component\Console\Helper\ProgressBar;
@@ -65,7 +63,7 @@ class ConsoleOutput implements IOutput {
 	 * @param int $max
 	 */
 	public function startProgress($max = 0) {
-		if (!is_null($this->progressBar)) {
+		if ($this->progressBar !== null) {
 			$this->progressBar->finish();
 		}
 		$this->progressBar = new ProgressBar($this->output);
@@ -77,7 +75,7 @@ class ConsoleOutput implements IOutput {
 	 * @param string $description
 	 */
 	public function advance($step = 1, $description = '') {
-		if (!is_null($this->progressBar)) {
+		if ($this->progressBar !== null) {
 			$this->progressBar = new ProgressBar($this->output);
 			$this->progressBar->start();
 		}
@@ -85,7 +83,7 @@ class ConsoleOutput implements IOutput {
 	}
 
 	public function finishProgress() {
-		if (is_null($this->progressBar)) {
+		if ($this->progressBar === null) {
 			return;
 		}
 		$this->progressBar->finish();

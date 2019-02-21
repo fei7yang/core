@@ -24,8 +24,6 @@ OC.L10N.register(
     "Not permitted to use authentication mechanism \"%s\"" : "Nie je povolené použiť autentifikačný mechanizmus \"%s\"",
     "Unsatisfied backend parameters" : "Nedostatočné parametre backendu",
     "Unsatisfied authentication mechanism parameters" : "Nedostatočné parametre autentifikačného mechanizmu",
-    "Access key" : "Prístupový kľúč",
-    "Secret key" : "Tajný kľúč",
     "OAuth1" : "OAuth1",
     "App key" : "Kľúč aplikácie",
     "App secret" : "Heslo aplikácie",
@@ -39,13 +37,6 @@ OC.L10N.register(
     "API key" : "API kľúč",
     "RSA public key" : "RSA verejný kľúč",
     "Public key" : "Verejný kľúč",
-    "Amazon S3" : "Amazon S3",
-    "Bucket" : "Sektor",
-    "Hostname" : "Hostname",
-    "Port" : "Port",
-    "Region" : "Región",
-    "Enable SSL" : "Povoliť SSL",
-    "Enable Path Style" : "Povoliť štýl cesty",
     "WebDAV" : "WebDAV",
     "URL" : "URL",
     "Remote subfolder" : "Vzdialený podpriečinok",
@@ -63,6 +54,8 @@ OC.L10N.register(
     "Username as share" : "Používateľské meno ako zdieľaný priečinok",
     "OpenStack Object Storage" : "OpenStack Object Storage",
     "Service name" : "Názov služby",
+    "Region" : "Región",
+    "Bucket" : "Sektor",
     "Request timeout (seconds)" : "Timeout požiadavky (s)",
     "<b>Note:</b> " : "<b>Poznámka:</b> ",
     "<b>Note:</b> The cURL support in PHP is not enabled or installed. Mounting of %s is not possible. Please ask your system administrator to install it." : "<b>Poznámka:</b> cURL podpora v PHP nie je zapnutá alebo nainštalovaná. Pripojenie %s nie je možné. Požiadajte správcu systému, aby ju nainštaloval.",
@@ -86,4 +79,4 @@ OC.L10N.register(
     "Delete" : "Zmazať",
     "Allow users to mount the following external storage" : "Povoliť používateľom pripojiť tieto externé úložiská"
 },
-"nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;");
+"nplurals=4; plural=(n % 1 == 0 && n == 1 ? 0 : n % 1 == 0 && n >= 2 && n <= 4 ? 1 : n % 1 != 0 ? 2: 3);");

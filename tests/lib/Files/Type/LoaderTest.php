@@ -2,7 +2,7 @@
 /**
  * @author Robin McCorkell <rmccorkell@owncloud.com>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,8 +21,8 @@
 
 namespace Test\Files\Type;
 
-use \OC\Files\Type\Loader;
-use \OCP\IDBConnection;
+use OC\Files\Type\Loader;
+use OCP\IDBConnection;
 
 class LoaderTest extends \Test\TestCase {
 	/** @var IDBConnection */
@@ -43,7 +43,6 @@ class LoaderTest extends \Test\TestCase {
 			));
 		$deleteMimetypes->execute();
 	}
-
 
 	public function testGetMimetype() {
 		$qb = $this->db->getQueryBuilder();
@@ -89,5 +88,4 @@ class LoaderTest extends \Test\TestCase {
 
 		$this->assertEquals($mimetypeId, $mimetypeId2);
 	}
-
 }

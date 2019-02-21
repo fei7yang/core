@@ -37,7 +37,7 @@
  * @author Vincent Petry <pvince81@owncloud.com>
  * @author Volkan Gezer <volkangezer@gmail.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -54,6 +54,7 @@
  *
  */
 
+use OC\Autoloader;
 use OCP\IRequest;
 
 require_once 'public/Constants.php';
@@ -102,7 +103,7 @@ class OC {
 	public static $CLI = false;
 
 	/**
-	 * @var \OC\Autoloader $loader
+	 * @var Autoloader $loader
 	 */
 	public static $loader = null;
 
@@ -124,18 +125,18 @@ class OC {
 	 * the app path list is empty or contains an invalid path
 	 */
 	public static function initPaths() {
-		if(defined('PHPUNIT_CONFIG_DIR')) {
+		if (\defined('PHPUNIT_CONFIG_DIR')) {
 			self::$configDir = OC::$SERVERROOT . '/' . PHPUNIT_CONFIG_DIR . '/';
-		} elseif(defined('PHPUNIT_RUN') and PHPUNIT_RUN and is_dir(OC::$SERVERROOT . '/tests/config/')) {
+		} elseif (\defined('PHPUNIT_RUN') and PHPUNIT_RUN and \is_dir(OC::$SERVERROOT . '/tests/config/')) {
 			self::$configDir = OC::$SERVERROOT . '/tests/config/';
-		} elseif($dir = getenv('OWNCLOUD_CONFIG_DIR')) {
-			self::$configDir = rtrim($dir, '/') . '/';
+		} elseif ($dir = \getenv('OWNCLOUD_CONFIG_DIR')) {
+			self::$configDir = \rtrim($dir, '/') . '/';
 		} else {
 			self::$configDir = OC::$SERVERROOT . '/config/';
 		}
 		self::$config = new \OC\Config(self::$configDir);
 
-		OC::$SUBURI = str_replace("\\", "/", substr(realpath($_SERVER["SCRIPT_FILENAME"]), strlen(OC::$SERVERROOT)));
+		OC::$SUBURI = \str_replace("\\", "/", \substr(\realpath($_SERVER["SCRIPT_FILENAME"]), \strlen(OC::$SERVERROOT)));
 		/**
 		 * FIXME: The following lines are required because we can't yet instantiiate
 		 *        \OC::$server->getRequest() since \OC::$server does not yet exist.
@@ -146,25 +147,31 @@ class OC {
 				'SCRIPT_FILENAME' => $_SERVER['SCRIPT_FILENAME'],
 			],
 		];
-		$fakeRequest = new \OC\AppFramework\Http\Request($params, null, new \OC\AllConfig(new \OC\SystemConfig(self::$config)));
+		/**
+		 * The event dispatcher added here will not be used to listen any event.
+		 * So if the modifications made in the configuration, by fakeRequest
+		 * will not throw events.
+		 */
+		$fakeRequest = new \OC\AppFramework\Http\Request($params, null,
+			new \OC\AllConfig(new \OC\SystemConfig(self::$config),
+				new \Symfony\Component\EventDispatcher\EventDispatcher()));
 		$scriptName = $fakeRequest->getScriptName();
-		if (substr($scriptName, -1) == '/') {
+		if (\substr($scriptName, -1) == '/') {
 			$scriptName .= 'index.php';
 			//make sure suburi follows the same rules as scriptName
-			if (substr(OC::$SUBURI, -9) != 'index.php') {
-				if (substr(OC::$SUBURI, -1) != '/') {
+			if (\substr(OC::$SUBURI, -9) != 'index.php') {
+				if (\substr(OC::$SUBURI, -1) != '/') {
 					OC::$SUBURI = OC::$SUBURI . '/';
 				}
 				OC::$SUBURI = OC::$SUBURI . 'index.php';
 			}
 		}
 
-
 		if (OC::$CLI) {
 			OC::$WEBROOT = self::$config->getValue('overwritewebroot', '');
 		} else {
-			if (substr($scriptName, 0 - strlen(OC::$SUBURI)) === OC::$SUBURI) {
-				OC::$WEBROOT = substr($scriptName, 0, 0 - strlen(OC::$SUBURI));
+			if (\substr($scriptName, 0 - \strlen(OC::$SUBURI)) === OC::$SUBURI) {
+				OC::$WEBROOT = \substr($scriptName, 0, 0 - \strlen(OC::$SUBURI));
 
 				if (OC::$WEBROOT != '' && OC::$WEBROOT[0] !== '/') {
 					OC::$WEBROOT = '/' . OC::$WEBROOT;
@@ -179,9 +186,9 @@ class OC {
 
 			// Resolve /owncloud to /owncloud/ to ensure to always have a trailing
 			// slash which is required by URL generation.
-			if($_SERVER['REQUEST_URI'] === \OC::$WEBROOT &&
-					substr($_SERVER['REQUEST_URI'], -1) !== '/') {
-				header('Location: '.\OC::$WEBROOT.'/');
+			if ($_SERVER['REQUEST_URI'] === \OC::$WEBROOT &&
+					\substr($_SERVER['REQUEST_URI'], -1) !== '/') {
+				\header('Location: '.\OC::$WEBROOT.'/');
 				exit();
 			}
 		}
@@ -190,20 +197,14 @@ class OC {
 		$config_paths = self::$config->getValue('apps_paths', []);
 		if (!empty($config_paths)) {
 			foreach ($config_paths as $paths) {
-				if (isset($paths['url']) && isset($paths['path'])) {
-					$paths['url'] = rtrim($paths['url'], '/');
-					$paths['path'] = rtrim($paths['path'], '/');
+				if (isset($paths['url'], $paths['path'])) {
+					$paths['url'] = \rtrim($paths['url'], '/');
+					$paths['path'] = \rtrim($paths['path'], '/');
 					OC::$APPSROOTS[] = $paths;
 				}
 			}
-		} elseif (file_exists(OC::$SERVERROOT . '/apps')) {
+		} elseif (\file_exists(OC::$SERVERROOT . '/apps')) {
 			OC::$APPSROOTS[] = ['path' => OC::$SERVERROOT . '/apps', 'url' => '/apps', 'writable' => true];
-		} elseif (file_exists(OC::$SERVERROOT . '/../apps')) {
-			OC::$APPSROOTS[] = [
-				'path' => rtrim(dirname(OC::$SERVERROOT), '/') . '/apps',
-				'url' => '/apps',
-				'writable' => true
-			];
 		}
 
 		if (empty(OC::$APPSROOTS)) {
@@ -213,16 +214,16 @@ class OC {
 		$paths = [];
 		foreach (OC::$APPSROOTS as $path) {
 			$paths[] = $path['path'];
-			if (!is_dir($path['path'])) {
-				throw new \RuntimeException(sprintf('App directory "%s" not found! Please put the ownCloud apps folder in the'
+			if (!\is_dir($path['path'])) {
+				throw new \RuntimeException(\sprintf('App directory "%s" not found! Please put the ownCloud apps folder in the'
 					. ' ownCloud folder or the folder above. You can also configure the location in the'
 					. ' config.php file.', $path['path']));
 			}
 		}
 
 		// set the right include path
-		set_include_path(
-			implode(PATH_SEPARATOR, $paths)
+		\set_include_path(
+			\implode(PATH_SEPARATOR, $paths)
 		);
 	}
 
@@ -231,15 +232,14 @@ class OC {
 
 		// Create config if it does not already exist
 		$configFilePath = self::$configDir .'/config.php';
-		if(!file_exists($configFilePath)) {
-			@touch($configFilePath);
+		if (!\file_exists($configFilePath)) {
+			@\touch($configFilePath);
 		}
 
 		// Check if config is writable
-		$configFileWritable = is_writable($configFilePath);
+		$configFileWritable = \is_writable($configFilePath);
 		if (!$configFileWritable && !\OC::$server->getConfig()->isSystemConfigReadOnly()
 			|| !$configFileWritable && self::checkUpgrade(false)) {
-
 			$urlGenerator = \OC::$server->getURLGenerator();
 
 			if (self::$CLI) {
@@ -260,7 +260,7 @@ class OC {
 	}
 
 	public static function checkInstalled() {
-		if (defined('OC_CONSOLE')) {
+		if (\defined('OC_CONSOLE')) {
 			return;
 		}
 		// Redirect to installer if not installed
@@ -269,7 +269,7 @@ class OC {
 				throw new Exception('Not installed');
 			} else {
 				$url = OC::$WEBROOT . '/index.php';
-				header('Location: ' . $url);
+				\header('Location: ' . $url);
 			}
 			exit();
 		}
@@ -281,8 +281,8 @@ class OC {
 	 */
 	public static function checkMaintenanceMode(IRequest $request) {
 		// Check if requested URL matches 'index.php/occ'
-		$isOccControllerRequested = preg_match('|/index\.php$|', $request->getScriptName()) === 1
-				&& strpos($request->getPathInfo(), '/occ/') === 0;
+		$isOccControllerRequested = \preg_match('|/index\.php$|', $request->getScriptName()) === 1
+				&& \strpos($request->getPathInfo(), '/occ/') === 0;
 		// Allow ajax update script to execute without being stopped
 		if (
 			\OC::$server->getSystemConfig()->getValue('maintenance', false)
@@ -290,9 +290,9 @@ class OC {
 			&& !$isOccControllerRequested
 		) {
 			// send http status 503
-			header('HTTP/1.1 503 Service Temporarily Unavailable');
-			header('Status: 503 Service Temporarily Unavailable');
-			header('Retry-After: 120');
+			\header('HTTP/1.1 503 Service Temporarily Unavailable');
+			\header('Status: 503 Service Temporarily Unavailable');
+			\header('Retry-After: 120');
 
 			// render error page
 			$template = new OC_Template('', 'update.user', 'guest');
@@ -313,14 +313,14 @@ class OC {
 				return;
 			}
 		} else {
-			if(!$lockIfNoUserLoggedIn) {
+			if (!$lockIfNoUserLoggedIn) {
 				return;
 			}
 		}
 		// send http status 503
-		header('HTTP/1.1 503 Service Temporarily Unavailable');
-		header('Status: 503 Service Temporarily Unavailable');
-		header('Retry-After: 120');
+		\header('HTTP/1.1 503 Service Temporarily Unavailable');
+		\header('Status: 503 Service Temporarily Unavailable');
+		\header('Retry-After: 120');
 
 		// render error page
 		$template = new OC_Template('', 'singleuser.user', 'guest');
@@ -365,9 +365,9 @@ class OC {
 		}
 		if ($disableWebUpdater || $tooBig) {
 			// send http status 503
-			header('HTTP/1.1 503 Service Temporarily Unavailable');
-			header('Status: 503 Service Temporarily Unavailable');
-			header('Retry-After: 120');
+			\header('HTTP/1.1 503 Service Temporarily Unavailable');
+			\header('Status: 503 Service Temporarily Unavailable');
+			\header('Retry-After: 120');
 
 			// render error page
 			$template = new OC_Template('', 'update.use-cli', 'guest');
@@ -381,10 +381,10 @@ class OC {
 
 		// check whether this is a core update or apps update
 		$installedVersion = $systemConfig->getValue('version', '0.0.0');
-		$currentVersion = implode('.', \OCP\Util::getVersion());
+		$currentVersion = \implode('.', \OCP\Util::getVersion());
 
 		// if not a core upgrade, then it's apps upgrade
-		$isAppsOnlyUpgrade = (version_compare($currentVersion, $installedVersion, '='));
+		$isAppsOnlyUpgrade = (\version_compare($currentVersion, $installedVersion, '='));
 
 		$oldTheme = $systemConfig->getValue('theme');
 		$systemConfig->setValue('theme', '');
@@ -400,21 +400,13 @@ class OC {
 		$tmpl->assign('isAppsOnlyUpgrade', $isAppsOnlyUpgrade);
 
 		// get third party apps
-		$ocVersion = \OCP\Util::getVersion();
-		$tmpl->assign('appsToUpgrade', $appManager->getAppsNeedingUpgrade($ocVersion));
+		$tmpl->assign('appsToUpgrade', $appManager->getAppsNeedingUpgrade());
 		$tmpl->assign('productName', 'ownCloud'); // for now
 		$tmpl->assign('oldTheme', $oldTheme);
 		$tmpl->printPage();
 	}
 
 	public static function initSession() {
-		// prevents javascript from accessing php session cookies
-		ini_set('session.cookie_httponly', true);
-
-		// set the cookie path to the ownCloud directory
-		$cookie_path = OC::$WEBROOT ? : '/';
-		ini_set('session.cookie_path', $cookie_path);
-
 		// Let the session name be changed in the initSession Hook
 		$sessionName = OC_Util::getInstanceId();
 
@@ -444,14 +436,14 @@ class OC {
 		$sessionLifeTime = self::getSessionLifeTime();
 
 		// session timeout
-		if ($session->exists('LAST_ACTIVITY') && (time() - $session->get('LAST_ACTIVITY') > $sessionLifeTime)) {
-			if (isset($_COOKIE[session_name()])) {
-				setcookie(session_name(), null, -1, self::$WEBROOT ? : '/');
+		if ($session->exists('LAST_ACTIVITY') && (\time() - $session->get('LAST_ACTIVITY') > $sessionLifeTime)) {
+			if (isset($_COOKIE[\session_name()])) {
+				\setcookie(\session_name(), null, -1, self::$WEBROOT ? : '/');
 			}
 			\OC::$server->getUserSession()->logout();
 		}
 
-		$session->set('LAST_ACTIVITY', time());
+		$session->set('LAST_ACTIVITY', \time());
 	}
 
 	/**
@@ -469,7 +461,7 @@ class OC {
 			}
 
 			$file = $appPath . '/appinfo/classpath.php';
-			if (file_exists($file)) {
+			if (\file_exists($file)) {
 				require_once $file;
 			}
 		}
@@ -479,32 +471,26 @@ class OC {
 	 * Try to set some values to the required ownCloud default
 	 */
 	public static function setRequiredIniValues() {
-		@ini_set('default_charset', 'UTF-8');
-		@ini_set('gd.jpeg_ignore_warning', 1);
+		@\ini_set('default_charset', 'UTF-8');
+		@\ini_set('gd.jpeg_ignore_warning', 1);
 	}
 
+	/**
+	 * @throws \OCP\AppFramework\QueryException
+	 * @codeCoverageIgnore
+	 */
 	public static function init() {
 		// calculate the root directories
-		OC::$SERVERROOT = str_replace("\\", '/', substr(__DIR__, 0, -4));
+		OC::$SERVERROOT = \str_replace("\\", '/', \substr(__DIR__, 0, -4));
 
 		// register autoloader
-		$loaderStart = microtime(true);
-		require_once __DIR__ . '/autoloader.php';
-		self::$loader = new \OC\Autoloader([
-			OC::$SERVERROOT . '/lib/private/legacy',
-		]);
-		if (defined('PHPUNIT_RUN')) {
-			self::$loader->addValidRoot(OC::$SERVERROOT . '/tests');
-		}
-		spl_autoload_register([self::$loader, 'load']);
-		$loaderEnd = microtime(true);
-
-		self::$CLI = (php_sapi_name() == 'cli');
+		$loaderStart = \microtime(true);
+		self::$CLI = (\in_array(\php_sapi_name(), ['cli', 'phpdbg']));
 
 		// setup 3rdparty autoloader
 		$vendorAutoLoad = OC::$SERVERROOT . '/lib/composer/autoload.php';
-		if (!file_exists($vendorAutoLoad)) {
-			printf('Composer autoloader not found, unable to continue. Please run "make".');
+		if (!\file_exists($vendorAutoLoad)) {
+			\printf('Composer autoloader not found, unable to continue. Please run "make".');
 			exit();
 		}
 
@@ -514,6 +500,12 @@ class OC {
 			print('Composer autoloader not found!');
 			exit();
 		}
+		self::$loader = new Autoloader();
+		if (\defined('PHPUNIT_RUN')) {
+			self::$loader->addValidRoot(OC::$SERVERROOT . '/tests');
+		}
+		\spl_autoload_register([self::$loader, 'load']);
+		$loaderEnd = \microtime(true);
 
 		try {
 			self::initPaths();
@@ -521,7 +513,7 @@ class OC {
 			if (!self::$CLI) {
 				// can`t use OC_Response::setStatus because server is not
 				// initialized here
-				http_response_code(OC_Response::STATUS_SERVICE_UNAVAILABLE);
+				\http_response_code(OC_Response::STATUS_SERVICE_UNAVAILABLE);
 			}
 			// we can't use the template error page here, because this needs the
 			// DI container which isn't available yet
@@ -535,11 +527,11 @@ class OC {
 		\OC::$server->getEventLogger()->start('boot', 'Initialize');
 
 		// Don't display errors and log them
-		error_reporting(E_ALL | E_STRICT);
-		@ini_set('display_errors', 0);
-		@ini_set('log_errors', 1);
+		\error_reporting(E_ALL | E_STRICT);
+		@\ini_set('display_errors', 0);
+		@\ini_set('log_errors', 1);
 
-		if(!date_default_timezone_set('UTC')) {
+		if (!\date_default_timezone_set('UTC')) {
 			\OC::$server->getLogger()->error('Could not set timezone to UTC');
 		};
 
@@ -548,14 +540,14 @@ class OC {
 		//Let´s try to overwrite some defaults anyway
 
 		//try to set the maximum execution time to 60min
-		@set_time_limit(3600);
-		@ini_set('max_execution_time', 3600);
-		@ini_set('max_input_time', 3600);
+		@\set_time_limit(3600);
+		@\ini_set('max_execution_time', 3600);
+		@\ini_set('max_input_time', 3600);
 
 		//try to set the maximum filesize to 10G
-		@ini_set('upload_max_filesize', '10G');
-		@ini_set('post_max_size', '10G');
-		@ini_set('file_uploads', '50');
+		@\ini_set('upload_max_filesize', '10G');
+		@\ini_set('post_max_size', '10G');
+		@\ini_set('file_uploads', '50');
 
 		self::setRequiredIniValues();
 		self::handleAuthHeaders();
@@ -565,23 +557,24 @@ class OC {
 		\Patchwork\Utf8\Bootup::initIntl();
 		OC_Util::isSetLocaleWorking();
 
-		if (!defined('PHPUNIT_RUN')) {
+		if (!\defined('PHPUNIT_RUN')) {
 			OC\Log\ErrorHandler::setLogger(\OC::$server->getLogger());
 			$debug = \OC::$server->getConfig()->getSystemValue('debug', false);
 			OC\Log\ErrorHandler::register($debug);
 		}
 
 		// register the stream wrappers
-		stream_wrapper_register('fakedir', 'OC\Files\Stream\Dir');
-		stream_wrapper_register('static', 'OC\Files\Stream\StaticStream');
-		stream_wrapper_register('close', 'OC\Files\Stream\Close');
-		stream_wrapper_register('quota', 'OC\Files\Stream\Quota');
+		\stream_wrapper_register('fakedir', 'OC\Files\Stream\Dir');
+		\stream_wrapper_register('static', 'OC\Files\Stream\StaticStream');
+		\stream_wrapper_register('close', 'OC\Files\Stream\Close');
+		\stream_wrapper_register('quota', 'OC\Files\Stream\Quota');
 
 		\OC::$server->getEventLogger()->start('init_session', 'Initialize session');
-		OC_App::loadApps(['session']);
+		OC_App::loadApps(['session', 'theme']);
 		if (!self::$CLI) {
 			self::initSession();
 		}
+
 		\OC::$server->getEventLogger()->end('init_session');
 
 		// incognito mode for now
@@ -592,13 +585,10 @@ class OC {
 		self::checkInstalled();
 
 		OC_Response::addSecurityHeaders();
-		if(self::$server->getRequest()->getServerProtocol() === 'https') {
-			ini_set('session.cookie_secure', true);
-		}
 
-		if (!defined('OC_CONSOLE')) {
+		if (!\defined('OC_CONSOLE')) {
 			$errors = OC_Util::checkServer(\OC::$server->getConfig());
-			if (count($errors) > 0) {
+			if (\count($errors) > 0) {
 				if (self::$CLI) {
 					// Convert l10n string into regular string for usage in database
 					$staticErrors = [];
@@ -612,7 +602,7 @@ class OC {
 					}
 
 					try {
-						\OC::$server->getConfig()->setAppValue('core', 'cronErrors', json_encode($staticErrors));
+						\OC::$server->getConfig()->setAppValue('core', 'cronErrors', \json_encode($staticErrors));
 					} catch (\Exception $e) {
 						echo('Writing to database failed');
 					}
@@ -632,7 +622,7 @@ class OC {
 
 		//try to set the session lifetime
 		$sessionLifeTime = self::getSessionLifeTime();
-		@ini_set('gc_maxlifetime', (string)$sessionLifeTime);
+		@\ini_set('gc_maxlifetime', (string)$sessionLifeTime);
 
 		$systemConfig = \OC::$server->getSystemConfig();
 
@@ -673,16 +663,20 @@ class OC {
 		}
 
 		//make sure temporary files are cleaned up
-		$tmpManager = \OC::$server->getTempManager();
-		register_shutdown_function([$tmpManager, 'clean']);
-		$lockProvider = \OC::$server->getLockingProvider();
-		register_shutdown_function([$lockProvider, 'releaseAll']);
+		\OC::$server->getShutdownHandler()->register(function () {
+			$tmpManager = \OC::$server->getTempManager();
+			$tmpManager->clean();
+		});
+		\OC::$server->getShutdownHandler()->register(function () {
+			$lockProvider = \OC::$server->getLockingProvider();
+			$lockProvider->releaseAll();
+		});
 
 		// Check whether the sample configuration has been copied
-		if($systemConfig->getValue('copied_sample_config', false)) {
+		if ($systemConfig->getValue('copied_sample_config', false)) {
 			$l = \OC::$server->getL10N('lib');
-			header('HTTP/1.1 503 Service Temporarily Unavailable');
-			header('Status: 503 Service Temporarily Unavailable');
+			\header('HTTP/1.1 503 Service Temporarily Unavailable');
+			\header('Status: 503 Service Temporarily Unavailable');
 			OC_Template::printErrorPage(
 				$l->t('Sample configuration detected'),
 				$l->t('It has been detected that the sample configuration has been copied. This can break your installation and is unsupported. Please read the documentation before performing changes on config.php')
@@ -703,8 +697,8 @@ class OC {
 			&& !\OC::$server->getTrustedDomainHelper()->isTrustedDomain($host)
 			&& self::$server->getConfig()->getSystemValue('installed', false)
 		) {
-			header('HTTP/1.1 400 Bad Request');
-			header('Status: 400 Bad Request');
+			\header('HTTP/1.1 400 Bad Request');
+			\header('Status: 400 Bad Request');
 
 			\OC::$server->getLogger()->warning(
 					'Trusted domain error. "{remoteAddress}" tried to access using "{host}" as host.',
@@ -772,7 +766,8 @@ class OC {
 		if ($systemConfig->getValue('installed', false) && $systemConfig->getValue('log_rotate_size', false) && !self::checkUpgrade(false)) {
 			//don't try to do this before we are properly setup
 			//use custom logfile path if defined, otherwise use default of owncloud.log in data directory
-			\OCP\BackgroundJob::registerJob('OC\Log\Rotate', $systemConfig->getValue('logfile', $systemConfig->getValue('datadirectory', OC::$SERVERROOT . '/data') . '/owncloud.log'));
+			$jobList = \OC::$server->getJobList();
+			$jobList->add('OC\Log\Rotate', $systemConfig->getValue('logfile', $systemConfig->getValue('datadirectory', OC::$SERVERROOT . '/data') . '/owncloud.log'));
 		}
 	}
 
@@ -828,26 +823,9 @@ class OC {
 	}
 
 	/**
-	 * Enables the defaultEnabled app theme
-	 * __do not__ call this for every request, as this parses all apps info.xml
-	 * files in order to determine which app is a default enabled theme while
-	 * not accessing the database which might not be available.
-	 */
-	public static function loadDefaultEnabledAppTheme() {
-		$defaultEnabledAppTheme = \OC_App::getDefaultEnabledAppTheme();
-
-		if ($defaultEnabledAppTheme !== false) {
-			/** @var \OC\Theme\ThemeService $themeService */
-			$themeService = \OC::$server->query('ThemeService');
-			$themeService->setAppTheme($defaultEnabledAppTheme);
-		}
-	}
-
-	/**
 	 * Handle the request
 	 */
 	public static function handleRequest() {
-
 		\OC::$server->getEventLogger()->start('handle_request', 'Handle request');
 		$systemConfig = \OC::$server->getSystemConfig();
 		// load all the classpaths from the enabled apps so they are available
@@ -861,8 +839,6 @@ class OC {
 				\OC::$server->getL10N('lib'), new \OC_Defaults(), \OC::$server->getLogger(),
 				\OC::$server->getSecureRandom());
 
-			self::loadDefaultEnabledAppTheme();
-
 			$controller = new OC\Core\Controller\SetupController($setupHelper);
 			$controller->run($_POST);
 			exit();
@@ -870,12 +846,12 @@ class OC {
 
 		$request = \OC::$server->getRequest();
 		// Check if requested URL matches 'index.php/occ'
-		$isOccControllerRequested = preg_match('|/index\.php$|', $request->getScriptName()) === 1
-			&& strpos($request->getPathInfo(), '/occ/') === 0;
+		$isOccControllerRequested = \preg_match('|/index\.php$|', $request->getScriptName()) === 1
+			&& \strpos($request->getPathInfo(), '/occ/') === 0;
 
 		$needUpgrade = false;
 		$requestPath = $request->getRawPathInfo();
-		if (substr($requestPath, -3) !== '.js') { // we need these files during the upgrade
+		if (\substr($requestPath, -3) !== '.js') { // we need these files during the upgrade
 			self::checkMaintenanceMode($request);
 			$needUpgrade = self::checkUpgrade(!$isOccControllerRequested);
 		}
@@ -899,7 +875,7 @@ class OC {
 			// Always load authentication apps
 			OC_App::loadApps(['authentication']);
 		} catch (\OC\NeedsUpdateException $e) {
-			if ($isOccControllerRequested && $needUpgrade){
+			if ($isOccControllerRequested && $needUpgrade) {
 				OC::$server->getRouter()->match(\OC::$server->getRequest()->getRawPathInfo());
 				return;
 			}
@@ -910,12 +886,12 @@ class OC {
 		if (!self::checkUpgrade(false)
 			&& !$systemConfig->getValue('maintenance', false)) {
 			// For logged-in users: Load everything
-			if(OC_User::isLoggedIn()) {
+			$userSession = \OC::$server->getUserSession();
+			if ($userSession->isLoggedIn() && $userSession->verifyAuthHeaders($request)) {
 				OC_App::loadApps();
 			} else {
 				// For guests: Load only filesystem and logging
 				OC_App::loadApps(['filesystem', 'logging']);
-				self::handleLogin($request);
 			}
 		}
 
@@ -930,7 +906,7 @@ class OC {
 				OC::$server->getRouter()->match(\OC::$server->getRequest()->getRawPathInfo());
 				return;
 			} catch (\OC\NeedsUpdateException $e) {
-				if ($isOccControllerRequested && $needUpgrade){
+				if ($isOccControllerRequested && $needUpgrade) {
 					OC::$server->getRouter()->match(\OC::$server->getRequest()->getRawPathInfo());
 					return;
 				}
@@ -953,13 +929,13 @@ class OC {
 			// not allowed any more to prevent people
 			// mounting this root directly.
 			// Users need to mount remote.php/webdav instead.
-			header('HTTP/1.1 405 Method Not Allowed');
-			header('Status: 405 Method Not Allowed');
+			\header('HTTP/1.1 405 Method Not Allowed');
+			\header('Status: 405 Method Not Allowed');
 			return;
 		}
 
 		// Someone is logged in
-		if (OC_User::isLoggedIn()) {
+		if ($userSession->isLoggedIn() && $userSession->verifyAuthHeaders($request)) {
 			OC_App::loadApps();
 			OC_User::setupBackends();
 			OC_Util::setupFS();
@@ -968,7 +944,7 @@ class OC {
 			OC_Util::redirectToDefaultPage();
 		} else {
 			// Not handled and not logged in
-			header('Location: '.\OC::$server->getURLGenerator()->linkToRouteAbsolute('core.login.showLoginForm'));
+			\header('Location: '.\OC::$server->getURLGenerator()->linkToRouteAbsolute('core.login.showLoginForm'));
 		}
 	}
 
@@ -978,7 +954,7 @@ class OC {
 	 * @param OCP\IRequest $request
 	 * @return boolean
 	 */
-	static function handleLogin(OCP\IRequest $request) {
+	public static function handleLogin(OCP\IRequest $request) {
 		$userSession = self::$server->getUserSession();
 		if (OC_User::handleApacheAuth()) {
 			return true;
@@ -1007,8 +983,8 @@ class OC {
 			'REDIRECT_HTTP_AUTHORIZATION', // apache+php-cgi alternative
 		];
 		foreach ($vars as $var) {
-			if (isset($_SERVER[$var]) && preg_match('/Basic\s+(.*)$/i', $_SERVER[$var], $matches)) {
-				list($name, $password) = explode(':', base64_decode($matches[1]), 2);
+			if (isset($_SERVER[$var]) && \preg_match('/Basic\s+(.*)$/i', $_SERVER[$var], $matches)) {
+				list($name, $password) = \explode(':', \base64_decode($matches[1]), 2);
 				$_SERVER['PHP_AUTH_USER'] = $name;
 				$_SERVER['PHP_AUTH_PW'] = $password;
 				break;

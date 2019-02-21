@@ -5,7 +5,7 @@
  * @author tbelau666 <thomas.belau@gmx.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -47,7 +47,7 @@ class PgSqlTools {
 	* @return null
 	*/
 	public function resynchronizeDatabaseSequences(Connection $conn) {
-		$filterExpression = '/^' . preg_quote($this->config->getSystemValue('dbtableprefix', 'oc_')) . '/';
+		$filterExpression = '/^' . \preg_quote($this->config->getSystemValue('dbtableprefix', 'oc_')) . '/';
 		$databaseName = $conn->getDatabase();
 		$conn->getConfiguration()->setFilterSchemaAssetsExpression($filterExpression);
 

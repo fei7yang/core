@@ -3,7 +3,7 @@
  * @author Lukas Reschke <lukas@statuscode.ch>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -64,15 +64,15 @@ class UpdateCertificateStore implements IRepairStep {
 	public function run(IOutput $out) {
 		$rootView = new View();
 		$dataDirectory = $this->config->getSystemValue('datadirectory', null);
-		if(is_null($dataDirectory)) {
+		if ($dataDirectory === null) {
 			throw new \Exception('No data directory specified');
 		}
 
 		$pathToRootCerts = '/files_external/rootcerts.crt';
 
-		foreach($rootView->getDirectoryContent('', 'httpd/unix-directory') as $fileInfo) {
-			$uid = trim($fileInfo->getPath(), '/');
-			if($rootView->file_exists($uid . $pathToRootCerts)) {
+		foreach ($rootView->getDirectoryContent('', 'httpd/unix-directory') as $fileInfo) {
+			$uid = \trim($fileInfo->getPath(), '/');
+			if ($rootView->file_exists($uid . $pathToRootCerts)) {
 				// Delete the existing root certificate
 				$rootView->unlink($uid . $pathToRootCerts);
 

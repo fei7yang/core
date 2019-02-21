@@ -9,7 +9,7 @@
  * @author Roeland Jago Douma <rullzer@users.noreply.github.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -91,11 +91,14 @@ class RouteConfig {
 				$postFix = $ocsRoute['postfix'];
 			}
 
-			$url = $ocsRoute['url'];
-			$verb = isset($ocsRoute['verb']) ? strtoupper($ocsRoute['verb']) : 'GET';
+			$root = (isset($ocsRoute['root']))
+				? $ocsRoute['root']
+				: '/apps/' . $this->appName;
+			$url = $root . $ocsRoute['url'];
+			$verb = isset($ocsRoute['verb']) ? \strtoupper($ocsRoute['verb']) : 'GET';
 
-			$split = explode('#', $name, 2);
-			if (count($split) != 2) {
+			$split = \explode('#', $name, 2);
+			if (\count($split) != 2) {
 				throw new \UnexpectedValueException('Invalid route name');
 			}
 			$controller = $split[0];
@@ -113,13 +116,13 @@ class RouteConfig {
 
 			// optionally register requirements for route. This is used to
 			// tell the route parser how url parameters should be matched
-			if(array_key_exists('requirements', $ocsRoute)) {
+			if (\array_key_exists('requirements', $ocsRoute)) {
 				$router->requirements($ocsRoute['requirements']);
 			}
 
 			// optionally register defaults for route. This is used to
 			// tell the route parser how url parameters should be default valued
-			if(array_key_exists('defaults', $ocsRoute)) {
+			if (\array_key_exists('defaults', $ocsRoute)) {
 				$router->defaults($ocsRoute['defaults']);
 			}
 		}
@@ -130,8 +133,7 @@ class RouteConfig {
 	 * @param array $routes
 	 * @throws \UnexpectedValueException
 	 */
-	private function processSimpleRoutes($routes)
-	{
+	private function processSimpleRoutes($routes) {
 		$simpleRoutes = isset($routes['routes']) ? $routes['routes'] : [];
 		foreach ($simpleRoutes as $simpleRoute) {
 			$name = $simpleRoute['name'];
@@ -142,10 +144,10 @@ class RouteConfig {
 			}
 
 			$url = $simpleRoute['url'];
-			$verb = isset($simpleRoute['verb']) ? strtoupper($simpleRoute['verb']) : 'GET';
+			$verb = isset($simpleRoute['verb']) ? \strtoupper($simpleRoute['verb']) : 'GET';
 
-			$split = explode('#', $name, 2);
-			if (count($split) != 2) {
+			$split = \explode('#', $name, 2);
+			if (\count($split) != 2) {
 				throw new \UnexpectedValueException('Invalid route name');
 			}
 			$controller = $split[0];
@@ -162,13 +164,13 @@ class RouteConfig {
 
 			// optionally register requirements for route. This is used to
 			// tell the route parser how url parameters should be matched
-			if(array_key_exists('requirements', $simpleRoute)) {
+			if (\array_key_exists('requirements', $simpleRoute)) {
 				$router->requirements($simpleRoute['requirements']);
 			}
 
 			// optionally register defaults for route. This is used to
 			// tell the route parser how url parameters should be default valued
-			if(array_key_exists('defaults', $simpleRoute)) {
+			if (\array_key_exists('defaults', $simpleRoute)) {
 				$router->defaults($simpleRoute['defaults']);
 			}
 		}
@@ -185,8 +187,7 @@ class RouteConfig {
 	 *
 	 * @param array $routes
 	 */
-	private function processResources($routes)
-	{
+	private function processResources($routes) {
 		// declaration of all restful actions
 		$actions = [
 			['name' => 'index', 'verb' => 'GET', 'on-collection' => true],
@@ -200,10 +201,10 @@ class RouteConfig {
 		foreach ($resources as $resource => $config) {
 
 			// the url parameter used as id to the resource
-			foreach($actions as $action) {
+			foreach ($actions as $action) {
 				$url = $config['url'];
 				$method = $action['name'];
-				$verb = isset($action['verb']) ? strtoupper($action['verb']) : 'GET';
+				$verb = isset($action['verb']) ? \strtoupper($action['verb']) : 'GET';
 				$collectionAction = isset($action['on-collection']) ? $action['on-collection'] : false;
 				if (!$collectionAction) {
 					$url = $url . '/{id}';
@@ -217,11 +218,11 @@ class RouteConfig {
 				$controllerName = $this->buildControllerName($controller);
 				$actionName = $this->buildActionName($method);
 
-				$routeName = $this->appName . '.' . strtolower($resource) . '.' . strtolower($method);
+				$routeName = $this->appName . '.' . \strtolower($resource) . '.' . \strtolower($method);
 
 				$this->router->create($routeName, $url)->method($verb)->action(
 					new RouteActionHandler($this->container, $controllerName, $actionName)
-				);
+				)->requirements(['id' => '.+']); // allow / in {id} parameter
 			}
 		}
 	}
@@ -231,9 +232,8 @@ class RouteConfig {
 	 * @param string $controller
 	 * @return string
 	 */
-	private function buildControllerName($controller)
-	{
-		return $this->underScoreToCamelCase(ucfirst($controller)) . 'Controller';
+	private function buildControllerName($controller) {
+		return $this->underScoreToCamelCase(\ucfirst($controller)) . 'Controller';
 	}
 
 	/**
@@ -252,10 +252,10 @@ class RouteConfig {
 	 */
 	private function underScoreToCamelCase($str) {
 		$pattern = "/_[a-z]?/";
-		return preg_replace_callback(
+		return \preg_replace_callback(
 			$pattern,
 			function ($matches) {
-				return strtoupper(ltrim($matches[0], "_"));
+				return \strtoupper(\ltrim($matches[0], "_"));
 			},
 			$str);
 	}

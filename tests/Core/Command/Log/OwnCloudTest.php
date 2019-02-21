@@ -2,7 +2,7 @@
 /**
  * @author Robin McCorkell <rmccorkell@owncloud.com>
  *
- * @copyright Copyright (c) 2015, ownCloud, Inc.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -20,7 +20,6 @@
  */
 
 namespace Tests\Core\Command\Log;
-
 
 use OC\Core\Command\Log\OwnCloud;
 use Test\TestCase;
@@ -117,5 +116,4 @@ class OwnCloudTest extends TestCase {
 
 		self::invokePrivate($this->command, 'execute', [$this->consoleInput, $this->consoleOutput]);
 	}
-
 }

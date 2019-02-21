@@ -13,10 +13,10 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
- * @author Victor Dubiniuk <dubiniuk@owncloud.com>
+ * @author Viktar Dubiniuk <dubiniuk@owncloud.com>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -46,11 +46,11 @@ use OC\Files\View;
 use OCA\Files_Versions\AppInfo\Application;
 use OCA\Files_Versions\Command\Expire;
 use OCP\Files\NotFoundException;
+use OCP\Files\Storage\IVersionedStorage;
 use OCP\Lock\ILockingProvider;
 use OCP\User;
 
 class Storage {
-
 	const DEFAULTENABLED=true;
 	const DEFAULTMAXSIZE=50; // unit: percentage; 50% of available disk space/quota
 	const VERSIONS_ROOT = 'files_versions/';
@@ -100,14 +100,14 @@ class Storage {
 			$uid = User::getUser();
 		}
 		Filesystem::initMountPoints($uid);
-		if ( $uid != User::getUser() ) {
+		if ($uid != User::getUser()) {
 			$info = Filesystem::getFileInfo($filename);
 			$ownerView = new View('/'.$uid.'/files');
 			try {
 				$filename = $ownerView->getPath($info['fileid']);
 				// make sure that the file name doesn't end with a trailing slash
 				// can for example happen single files shared across servers
-				$filename = rtrim($filename, '/');
+				$filename = \rtrim($filename, '/');
 			} catch (NotFoundException $e) {
 				$filename = null;
 			}
@@ -132,7 +132,6 @@ class Storage {
 	 * @return array with user id and path
 	 */
 	public static function getSourcePathAndUser($source) {
-
 		if (isset(self::$sourcePathAndUser[$source])) {
 			$uid = self::$sourcePathAndUser[$source]['uid'];
 			$path = self::$sourcePathAndUser[$source]['path'];
@@ -144,28 +143,16 @@ class Storage {
 	}
 
 	/**
-	 * get current size of all versions from a given user
-	 *
-	 * @param string $user user who owns the versions
-	 * @return int versions size
-	 */
-	private static function getVersionsSize($user) {
-		$view = new View('/' . $user);
-		$fileInfo = $view->getFileInfo('/files_versions');
-		return isset($fileInfo['size']) ? $fileInfo['size'] : 0;
-	}
-
-	/**
 	 * store a new version of a file.
 	 */
 	public static function store($filename) {
-		if(\OCP\Config::getSystemValue('files_versions', Storage::DEFAULTENABLED)=='true') {
+		if (\OC::$server->getConfig()->getSystemValue('files_versions', Storage::DEFAULTENABLED)=='true') {
 
 			// if the file gets streamed we need to remove the .part extension
 			// to get the right target
-			$ext = pathinfo($filename, PATHINFO_EXTENSION);
+			$ext = \pathinfo($filename, PATHINFO_EXTENSION);
 			if ($ext === 'part') {
-				$filename = substr($filename, 0, strlen($filename) - 5);
+				$filename = \substr($filename, 0, \strlen($filename) - 5);
 			}
 
 			// we only handle existing files
@@ -174,7 +161,16 @@ class Storage {
 			}
 
 			list($uid, $filename) = self::getUidAndFilename($filename);
+			/** @var \OCP\Files\Storage\IStorage $storage */
+			list($storage, $internalPath) = Filesystem::resolvePath($filename);
+			if ($storage->instanceOfStorage(IVersionedStorage::class)) {
+				/** @var IVersionedStorage $storage */
+				if ($storage->saveVersion($internalPath)) {
+					return true;
+				}
+			}
 
+			// fallback implementation below - need to go into class Common
 			$files_view = new View('/'.$uid .'/files');
 			$users_view = new View('/'.$uid);
 
@@ -184,9 +180,11 @@ class Storage {
 			}
 
 			// create all parent folders
-			self::createMissingDirectories($filename, $users_view);
+			self::getFileHelper()->createMissingDirectories($users_view, $filename);
 
 			self::scheduleExpire($uid, $filename);
+
+			$filename = \ltrim($filename, '/');
 
 			// store a new version of a file
 			$mtime = $users_view->filemtime('files/' . $filename);
@@ -195,7 +193,6 @@ class Storage {
 			$users_view->getFileInfo('files_versions/' . $filename . '.v' . $mtime);
 		}
 	}
-
 
 	/**
 	 * mark file as deleted so that we can remove the versions if the file is gone
@@ -229,21 +226,26 @@ class Storage {
 	 * Delete versions of a file
 	 */
 	public static function delete($path) {
-
 		$deletedFile = self::$deletedFiles[$path];
 		$uid = $deletedFile['uid'];
 		$filename = $deletedFile['filename'];
 
 		if (!Filesystem::file_exists($path)) {
-
 			$view = new View('/' . $uid . '/files_versions');
 
 			$versions = self::getVersions($uid, $filename);
 			if (!empty($versions)) {
 				foreach ($versions as $v) {
-					\OC_Hook::emit('\OCP\Versions', 'preDelete', ['path' => $path . $v['version'], 'trigger' => self::DELETE_TRIGGER_MASTER_REMOVED]);
+					$hookData = [
+						'user' => $uid,
+						'path' => $path . $v['version'],
+						'original_path' => $path,
+						'deleted_revision' => $v['version'],
+						'trigger' => self::DELETE_TRIGGER_MASTER_REMOVED
+					];
+					\OC_Hook::emit('\OCP\Versions', 'preDelete', $hookData);
 					self::deleteVersion($view, $filename . '.v' . $v['version']);
-					\OC_Hook::emit('\OCP\Versions', 'delete', ['path' => $path . $v['version'], 'trigger' => self::DELETE_TRIGGER_MASTER_REMOVED]);
+					\OC_Hook::emit('\OCP\Versions', 'delete', $hookData);
 				}
 			}
 		}
@@ -271,8 +273,8 @@ class Storage {
 
 		list($targetOwner, $targetPath) = self::getUidAndFilename($targetPath);
 
-		$sourcePath = ltrim($sourcePath, '/');
-		$targetPath = ltrim($targetPath, '/');
+		$sourcePath = \ltrim($sourcePath, '/');
+		$targetPath = \ltrim($targetPath, '/');
 
 		$rootView = new View('');
 
@@ -281,7 +283,7 @@ class Storage {
 			// does the directory exists for versions too ?
 			if ($rootView->is_dir('/' . $sourceOwner . '/files_versions/' . $sourcePath)) {
 				// create missing dirs if necessary
-				self::createMissingDirectories($targetPath, new View('/'. $targetOwner));
+				self::getFileHelper()->createMissingDirectories(new View("/$targetOwner"), $targetPath);
 
 				// move the directory containing the versions
 				$rootView->$operation(
@@ -289,9 +291,9 @@ class Storage {
 					'/' . $targetOwner . '/files_versions/' . $targetPath
 				);
 			}
-		} else if ($versions = Storage::getVersions($sourceOwner, '/' . $sourcePath)) {
+		} elseif ($versions = Storage::getVersions($sourceOwner, '/' . $sourcePath)) {
 			// create missing dirs if necessary
-			self::createMissingDirectories($targetPath, new View('/'. $targetOwner));
+			self::getFileHelper()->createMissingDirectories(new View("/$targetOwner"), $targetPath);
 
 			foreach ($versions as $v) {
 				// move each version one by one to the target directory
@@ -306,71 +308,54 @@ class Storage {
 		if (!$rootView->is_dir('/' . $targetOwner . '/files/' . $targetPath)) {
 			self::scheduleExpire($targetOwner, $targetPath);
 		}
-
 	}
 
-	/**
-	 * Rollback to an old version of a file.
-	 *
-	 * @param string $file file name
-	 * @param int $revision revision timestamp
-	 */
-	public static function rollback($file, $revision) {
-
-		if(\OCP\Config::getSystemValue('files_versions', Storage::DEFAULTENABLED)=='true') {
-			// add expected leading slash
-			$file = '/' . ltrim($file, '/');
-			list($uid, $filename) = self::getUidAndFilename($file);
-			if ($uid === null || trim($filename, '/') === '') {
-				return false;
-			}
-			$users_view = new View('/'.$uid);
-			$files_view = new View('/'. User::getUser().'/files');
-
-			if (!$files_view->isUpdatable($filename)) {
-				return false;
-			}
-
-			$versionCreated = false;
-
-			//first create a new version
-			$version = 'files_versions'.$filename.'.v'.$users_view->filemtime('files'.$filename);
-			if (!$users_view->file_exists($version)) {
-				$users_view->copy('files'.$filename, 'files_versions'.$filename.'.v'.$users_view->filemtime('files'.$filename));
-				$versionCreated = true;
-			}
-
-			$fileToRestore =  'files_versions' . $filename . '.v' . $revision;
-
-			// Restore encrypted version of the old file for the newly restored file
-			// This has to happen manually here since the file is manually copied below
-			$oldVersion = $users_view->getFileInfo($fileToRestore)->getEncryptedVersion();
-			$oldFileInfo = $users_view->getFileInfo($fileToRestore);
-			$newFileInfo = $files_view->getFileInfo($filename);
-			$cache = $newFileInfo->getStorage()->getCache();
-			$cache->update(
-				$newFileInfo->getId(), [
-					'encrypted' => $oldVersion,
-					'encryptedVersion' => $oldVersion,
-					'size' => $oldFileInfo->getSize()
-				]
-			);
-
-			// rollback
-			if (self::copyFileContents($users_view, $fileToRestore, 'files' . $filename)) {
-				$files_view->touch($file, $revision);
-				Storage::scheduleExpire($uid, $file);
-				\OC_Hook::emit('\OCP\Versions', 'rollback', [
-					'path' => $filename,
-					'revision' => $revision,
-				]);
-				return true;
-			} else if ($versionCreated) {
-				self::deleteVersion($users_view, $version);
-			}
+	public static function restoreVersion($uid, $filename, $fileToRestore, $revision) {
+		if (\OC::$server->getConfig()->getSystemValue('files_versions', Storage::DEFAULTENABLED) !== true) {
+			return false;
 		}
-		return false;
+		$users_view = new View('/'.$uid);
+		if (!$users_view->isUpdatable("/files$filename")) {
+			return false;
+		}
 
+		$versionCreated = false;
+
+		//first create a new version
+		$version = 'files_versions'.$filename.'.v'.$users_view->filemtime('files'.$filename);
+		if (!$users_view->file_exists($version)) {
+			$users_view->copy('files'.$filename, 'files_versions'.$filename.'.v'.$users_view->filemtime('files'.$filename));
+			$versionCreated = true;
+		}
+
+		// Restore encrypted version of the old file for the newly restored file
+		// This has to happen manually here since the file is manually copied below
+		$oldVersion = $users_view->getFileInfo($fileToRestore)->getEncryptedVersion();
+		$oldFileInfo = $users_view->getFileInfo($fileToRestore);
+		$newFileInfo = $users_view->getFileInfo("/files$filename");
+		$cache = $newFileInfo->getStorage()->getCache();
+		$cache->update(
+			$newFileInfo->getId(), [
+				'encrypted' => $oldVersion,
+				'encryptedVersion' => $oldVersion,
+				'size' => $oldFileInfo->getSize()
+			]
+		);
+
+		// rollback
+		if (self::copyFileContents($users_view, $fileToRestore, 'files' . $filename)) {
+			$users_view->touch("/files$filename", $revision);
+			Storage::scheduleExpire($uid, $filename);
+			\OC_Hook::emit('\OCP\Versions', 'rollback', [
+				'path' => $filename,
+				'user' => $uid,
+				'revision' => $revision,
+			]);
+			return true;
+		} elseif ($versionCreated) {
+			self::deleteVersion($users_view, $version);
+		}
+		return true;
 	}
 
 	/**
@@ -396,8 +381,8 @@ class Storage {
 			$source = $storage1->fopen($internalPath1, 'r');
 			$target = $storage2->fopen($internalPath2, 'w');
 			list(, $result) = \OC_Helper::streamCopy($source, $target);
-			fclose($source);
-			fclose($target);
+			\fclose($source);
+			\fclose($target);
 
 			if ($result !== false) {
 				$storage1->unlink($internalPath1);
@@ -416,10 +401,10 @@ class Storage {
 	 * get a list of all available versions of a file in descending chronological order
 	 * @param string $uid user id from the owner of the file
 	 * @param string $filename file to find versions of, relative to the user files dir
-	 * @param string $userFullPath
+	 *
 	 * @return array versions newest version first
 	 */
-	public static function getVersions($uid, $filename, $userFullPath = '') {
+	public static function getVersions($uid, $filename) {
 		$versions = [];
 		if (empty($filename)) {
 			return $versions;
@@ -427,7 +412,7 @@ class Storage {
 		// fetch for old versions
 		$view = new View('/' . $uid . '/');
 
-		$pathinfo = pathinfo($filename);
+		$pathinfo = \pathinfo($filename);
 		$versionedFile = $pathinfo['basename'];
 
 		$dir = Filesystem::normalizePath(self::VERSIONS_ROOT . '/' . $pathinfo['dirname']);
@@ -441,34 +426,34 @@ class Storage {
 			return $versions;
 		}
 
-		if (is_resource($dirContent)) {
-			while (($entryName = readdir($dirContent)) !== false) {
+		if (\is_resource($dirContent)) {
+			while (($entryName = \readdir($dirContent)) !== false) {
 				if (!Filesystem::isIgnoredDir($entryName)) {
-					$pathparts = pathinfo($entryName);
+					$pathparts = \pathinfo($entryName);
 					$filename = $pathparts['filename'];
 					if ($filename === $versionedFile) {
-						$pathparts = pathinfo($entryName);
-						$timestamp = substr($pathparts['extension'], 1);
+						$pathparts = \pathinfo($entryName);
+						$timestamp = \substr($pathparts['extension'], 1);
 						$filename = $pathparts['filename'];
 						$key = $timestamp . '#' . $filename;
 						$versions[$key]['version'] = $timestamp;
 						$versions[$key]['humanReadableTimestamp'] = self::getHumanReadableTimestamp($timestamp);
-						if (empty($userFullPath)) {
-							$versions[$key]['preview'] = '';
-						} else {
-							$versions[$key]['preview'] = \OCP\Util::linkToRoute('core_ajax_versions_preview', ['file' => $userFullPath, 'version' => $timestamp]);
-						}
+						$versions[$key]['preview'] = '';
 						$versions[$key]['path'] = Filesystem::normalizePath($pathinfo['dirname'] . '/' . $filename);
 						$versions[$key]['name'] = $versionedFile;
 						$versions[$key]['size'] = $view->filesize($dir . '/' . $entryName);
+						$versions[$key]['timestamp'] = $timestamp;
+						$versions[$key]['etag'] = $view->getETag($dir . '/' . $entryName);
+						$versions[$key]['storage_location'] = "$dir/$entryName";
+						$versions[$key]['owner'] = $uid;
 					}
 				}
 			}
-			closedir($dirContent);
+			\closedir($dirContent);
 		}
 
 		// sort with newest version first
-		krsort($versions);
+		\krsort($versions);
 
 		return $versions;
 	}
@@ -477,17 +462,17 @@ class Storage {
 	 * Expire versions that older than max version retention time
 	 * @param string $uid
 	 */
-	public static function expireOlderThanMaxForUser($uid){
+	public static function expireOlderThanMaxForUser($uid) {
 		$expiration = self::getExpiration();
 		$threshold = $expiration->getMaxAgeAsTimestamp();
-		$versions = self::getAllVersions($uid);
-		if (!$threshold || !array_key_exists('all', $versions)) {
+		$versions = self::getFileHelper()->getAllVersions($uid);
+		if (!$threshold || !\array_key_exists('all', $versions)) {
 			return;
 		}
 
 		$toDelete = [];
-		foreach (array_reverse($versions['all']) as $key => $version) {
-			if (intval($version['version'])<$threshold) {
+		foreach (\array_reverse($versions['all']) as $key => $version) {
+			if (\intval($version['version'])<$threshold) {
 				$toDelete[$key] = $version;
 			} else {
 				//Versions are sorted by time - nothing mo to iterate.
@@ -498,9 +483,16 @@ class Storage {
 		$view = new View('/' . $uid . '/files_versions');
 		if (!empty($toDelete)) {
 			foreach ($toDelete as $version) {
-				\OC_Hook::emit('\OCP\Versions', 'preDelete', ['path' => $version['path'].'.v'.$version['version'], 'trigger' => self::DELETE_TRIGGER_RETENTION_CONSTRAINT]);
+				$hookData = [
+					'user' => $uid,
+					'path' => $version['path'] . '.v' . $version['version'],
+					'original_path' => $version['path'],
+					'deleted_revision' => $version['version'],
+					'trigger' => self::DELETE_TRIGGER_RETENTION_CONSTRAINT
+				];
+				\OC_Hook::emit('\OCP\Versions', 'preDelete', $hookData);
 				self::deleteVersion($view, $version['path'] . '.v' . $version['version']);
-				\OC_Hook::emit('\OCP\Versions', 'delete', ['path' => $version['path'].'.v'.$version['version'], 'trigger' => self::DELETE_TRIGGER_RETENTION_CONSTRAINT]);
+				\OC_Hook::emit('\OCP\Versions', 'delete', $hookData);
 			}
 		}
 	}
@@ -511,76 +503,23 @@ class Storage {
 	 * @return string for example "5 days ago"
 	 */
 	private static function getHumanReadableTimestamp($timestamp) {
-
-		$diff = time() - $timestamp;
+		$diff = \time() - $timestamp;
 
 		if ($diff < 60) { // first minute
 			return  $diff . " seconds ago";
 		} elseif ($diff < 3600) { //first hour
-			return round($diff / 60) . " minutes ago";
+			return \round($diff / 60) . " minutes ago";
 		} elseif ($diff < 86400) { // first day
-			return round($diff / 3600) . " hours ago";
+			return \round($diff / 3600) . " hours ago";
 		} elseif ($diff < 604800) { //first week
-			return round($diff / 86400) . " days ago";
+			return \round($diff / 86400) . " days ago";
 		} elseif ($diff < 2419200) { //first month
-			return round($diff / 604800) . " weeks ago";
+			return \round($diff / 604800) . " weeks ago";
 		} elseif ($diff < 29030400) { // first year
-			return round($diff / 2419200) . " months ago";
+			return \round($diff / 2419200) . " months ago";
 		} else {
-			return round($diff / 29030400) . " years ago";
+			return \round($diff / 29030400) . " years ago";
 		}
-
-	}
-
-	/**
-	 * returns all stored file versions from a given user
-	 * @param string $uid id of the user
-	 * @return array with contains two arrays 'all' which contains all versions sorted by age and 'by_file' which contains all versions sorted by filename
-	 */
-	private static function getAllVersions($uid) {
-		$view = new View('/' . $uid . '/');
-		$dirs = [self::VERSIONS_ROOT];
-		$versions = [];
-
-		while (!empty($dirs)) {
-			$dir = array_pop($dirs);
-			$files = $view->getDirectoryContent($dir);
-
-			foreach ($files as $file) {
-				$fileData = $file->getData();
-				$filePath = $dir . '/' . $fileData['name'];
-				if ($file['type'] === 'dir') {
-					array_push($dirs, $filePath);
-				} else {
-					$versionsBegin = strrpos($filePath, '.v');
-					$relPathStart = strlen(self::VERSIONS_ROOT);
-					$version = substr($filePath, $versionsBegin + 2);
-					$relpath = substr($filePath, $relPathStart, $versionsBegin - $relPathStart);
-					$key = $version . '#' . $relpath;
-					$versions[$key] = ['path' => $relpath, 'timestamp' => $version];
-				}
-			}
-		}
-
-		// newest version first
-		krsort($versions);
-
-		$result = [];
-
-		foreach ($versions as $key => $value) {
-			$size = $view->filesize(self::VERSIONS_ROOT.'/'.$value['path'].'.v'.$value['timestamp']);
-			$filename = $value['path'];
-
-			$result['all'][$key]['version'] = $value['timestamp'];
-			$result['all'][$key]['path'] = $filename;
-			$result['all'][$key]['size'] = $size;
-
-			$result['by_file'][$filename][$key]['version'] = $value['timestamp'];
-			$result['by_file'][$filename][$key]['path'] = $filename;
-			$result['by_file'][$filename][$key]['size'] = $size;
-		}
-
-		return $result;
 	}
 
 	/**
@@ -628,8 +567,8 @@ class Storage {
 			$nextInterval = $time - Storage::$max_versions_per_interval[$interval]['intervalEndsAfter'];
 		}
 
-		$firstVersion = reset($versions);
-		$firstKey = key($versions);
+		$firstVersion = \reset($versions);
+		$firstKey = \key($versions);
 		$prevTimestamp = $firstVersion['version'];
 		$nextVersion = $firstVersion['version'] - $step;
 		unset($versions[$firstKey]);
@@ -694,12 +633,14 @@ class Storage {
 		$config = \OC::$server->getConfig();
 		$expiration = self::getExpiration();
 
-		if($config->getSystemValue('files_versions', Storage::DEFAULTENABLED)=='true' && $expiration->isEnabled()) {
+		if ($config->getSystemValue('files_versions', Storage::DEFAULTENABLED)=='true' && $expiration->isEnabled()) {
 			// get available disk space for user
 			$user = \OC::$server->getUserManager()->get($uid);
-			if (is_null($user)) {
-				\OCP\Util::writeLog('files_versions', 'Backends provided no user object for ' . $uid, \OCP\Util::ERROR);
-				throw new \OC\User\NoUserException('Backends provided no user object for ' . $uid);
+
+			if ($user === null) {
+				$msg = "Backends provided no user object for $uid";
+				\OC::$server->getLogger()->error($msg, ['app' => __CLASS__]);
+				throw new \OC\User\NoUserException($msg);
 			}
 
 			\OC_Util::setupFS($uid);
@@ -724,7 +665,7 @@ class Storage {
 			}
 
 			// make sure that we have the current size of the version history
-			$versionsSize = self::getVersionsSize($uid);
+			$versionsSize = self::getFileHelper()->getVersionsSize($uid);
 
 			// calculate available space for version history
 			// subtract size of files and current versions size from quota
@@ -747,7 +688,7 @@ class Storage {
 
 			$allVersions = Storage::getVersions($uid, $filename);
 
-			$time = time();
+			$time = \time();
 			list($toDelete, $sizeOfDeletedVersions) = self::getExpireList($time, $allVersions, $availableSpace <= 0);
 
 			$availableSpace = $availableSpace + $sizeOfDeletedVersions;
@@ -755,22 +696,30 @@ class Storage {
 
 			// if still not enough free space we rearrange the versions from all files
 			if ($availableSpace <= 0) {
-				$result = Storage::getAllVersions($uid);
+				$result = self::getFileHelper()->getAllVersions($uid);
 				$allVersions = $result['all'];
 
 				foreach ($result['by_file'] as $versions) {
 					list($toDeleteNew, $size) = self::getExpireList($time, $versions, $availableSpace <= 0);
-					$toDelete = array_merge($toDelete, $toDeleteNew);
+					$toDelete = \array_merge($toDelete, $toDeleteNew);
 					$sizeOfDeletedVersions += $size;
 				}
 				$availableSpace = $availableSpace + $sizeOfDeletedVersions;
 				$versionsSize = $versionsSize - $sizeOfDeletedVersions;
 			}
 
-			foreach($toDelete as $key => $path) {
-				\OC_Hook::emit('\OCP\Versions', 'preDelete', ['path' => $path, 'trigger' => self::DELETE_TRIGGER_QUOTA_EXCEEDED]);
+			foreach ($toDelete as $key => $path) {
+				$versionInfo = self::getFileHelper()->getPathAndRevision($path);
+				$hookData = [
+					'user' => $uid,
+					'path' => $path,
+					'original_path' => $versionInfo['path'],
+					'deleted_revision' => $versionInfo['revision'],
+					'trigger' => self::DELETE_TRIGGER_QUOTA_EXCEEDED
+				];
+				\OC_Hook::emit('\OCP\Versions', 'preDelete', $hookData);
 				self::deleteVersion($versionsFileview, $path);
-				\OC_Hook::emit('\OCP\Versions', 'delete', ['path' => $path, 'trigger' => self::DELETE_TRIGGER_QUOTA_EXCEEDED]);
+				\OC_Hook::emit('\OCP\Versions', 'delete', $hookData);
 				unset($allVersions[$key]); // update array with the versions we keep
 				\OCP\Util::writeLog('files_versions', "Expire: " . $path, \OCP\Util::INFO);
 			}
@@ -778,20 +727,27 @@ class Storage {
 			// Check if enough space is available after versions are rearranged.
 			// If not we delete the oldest versions until we meet the size limit for versions,
 			// but always keep the two latest versions
-			$numOfVersions = count($allVersions) -2 ;
+			$numOfVersions = \count($allVersions) -2 ;
 			$i = 0;
 			// sort oldest first and make sure that we start at the first element
-			ksort($allVersions);
-			reset($allVersions);
+			\ksort($allVersions);
+			\reset($allVersions);
 			while ($availableSpace < 0 && $i < $numOfVersions) {
-				$version = current($allVersions);
-				\OC_Hook::emit('\OCP\Versions', 'preDelete', ['path' => $version['path'].'.v'.$version['version'], 'trigger' => self::DELETE_TRIGGER_QUOTA_EXCEEDED]);
+				$version = \current($allVersions);
+				$hookData = [
+					'user' => $uid,
+					'path' => $version['path'].'.v'.$version['version'],
+					'original_path' => $version['path'],
+					'deleted_revision' => $version['version'],
+					'trigger' => self::DELETE_TRIGGER_QUOTA_EXCEEDED
+				];
+				\OC_Hook::emit('\OCP\Versions', 'preDelete', $hookData);
 				self::deleteVersion($versionsFileview, $version['path'] . '.v' . $version['version']);
-				\OC_Hook::emit('\OCP\Versions', 'delete', ['path' => $version['path'].'.v'.$version['version'], 'trigger' => self::DELETE_TRIGGER_QUOTA_EXCEEDED]);
-				\OCP\Util::writeLog('files_versions', 'running out of space! Delete oldest version: ' . $version['path'].'.v'.$version['version'] , \OCP\Util::INFO);
+				\OC_Hook::emit('\OCP\Versions', 'delete', $hookData);
+				\OCP\Util::writeLog('files_versions', 'running out of space! Delete oldest version: ' . $version['path'].'.v'.$version['version'], \OCP\Util::INFO);
 				$versionsSize -= $version['size'];
 				$availableSpace += $version['size'];
-				next($allVersions);
+				\next($allVersions);
 				$i++;
 			}
 
@@ -800,36 +756,31 @@ class Storage {
 
 		return false;
 	}
-
+	
 	/**
-	 * Create recursively missing directories inside of files_versions
-	 * that match the given path to a file.
-	 *
-	 * @param string $filename $path to a file, relative to the user's
-	 * "files" folder
-	 * @param View $view view on data/user/
+	 * Static workaround
+	 * @return FileHelper
 	 */
-	private static function createMissingDirectories($filename, $view) {
-		$dirname = Filesystem::normalizePath(dirname($filename));
-		$dirParts = explode('/', $dirname);
-		$dir = "/files_versions";
-		foreach ($dirParts as $part) {
-			$dir = $dir . '/' . $part;
-			if (!$view->file_exists($dir)) {
-				$view->mkdir($dir);
-			}
+	protected static function getFileHelper() {
+		if (self::$application === null) {
+			self::$application = new Application();
 		}
+		return self::$application->getContainer()->query('FileHelper');
 	}
 
 	/**
 	 * Static workaround
 	 * @return Expiration
 	 */
-	protected static function getExpiration(){
-		if (is_null(self::$application)) {
+	protected static function getExpiration() {
+		if (self::$application === null) {
 			self::$application = new Application();
 		}
 		return self::$application->getContainer()->query('Expiration');
 	}
 
+	public static function getContentOfVersion($uid, $storage_location) {
+		$users_view = new View('/'.$uid);
+		return $users_view->fopen($storage_location, 'r');
+	}
 }

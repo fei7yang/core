@@ -1,8 +1,8 @@
 <?php
 /**
- * @author Victor Dubiniuk <dubiniuk@owncloud.com>
+ * @author Viktar Dubiniuk <dubiniuk@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,8 +21,8 @@
 
 namespace OCA\DAV\Migrations;
 
-use OCP\Migration\ISchemaMigration;
 use Doctrine\DBAL\Schema\Schema;
+use OCP\Migration\ISchemaMigration;
 
 /*
  * Drop property_index index if exists

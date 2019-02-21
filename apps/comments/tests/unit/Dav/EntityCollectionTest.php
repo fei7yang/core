@@ -5,7 +5,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -24,6 +24,13 @@
 
 namespace OCA\DAV\Tests\unit\Comments;
 
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use OCP\Comments\IComment;
+use OCP\ILogger;
+use OCP\IUserSession;
+use OCP\IUserManager;
+use OCP\Comments\ICommentsManager;
+
 class EntityCollectionTest extends \Test\TestCase {
 
 	/** @var \OCP\Comments\ICommentsManager|\PHPUnit_Framework_MockObject_MockObject */
@@ -36,14 +43,17 @@ class EntityCollectionTest extends \Test\TestCase {
 	protected $collection;
 	/** @var \OCP\IUserSession|\PHPUnit_Framework_MockObject_MockObject */
 	protected $userSession;
+	/** @var EventDispatcherInterface | \PHPUnit_Framework_MockObject_MockObject */
+	private $dispatcher;
 
 	public function setUp() {
 		parent::setUp();
 
-		$this->commentsManager = $this->createMock('\OCP\Comments\ICommentsManager');
-		$this->userManager = $this->createMock('\OCP\IUserManager');
-		$this->userSession = $this->createMock('\OCP\IUserSession');
-		$this->logger = $this->createMock('\OCP\ILogger');
+		$this->commentsManager = $this->createMock(ICommentsManager::class);
+		$this->userManager = $this->createMock(IUserManager::class);
+		$this->userSession = $this->createMock(IUserSession::class);
+		$this->logger = $this->createMock(ILogger::class);
+		$this->dispatcher = $this->createMock(EventDispatcherInterface::class);
 
 		$this->collection = new \OCA\Comments\Dav\EntityCollection(
 			'19',
@@ -51,28 +61,29 @@ class EntityCollectionTest extends \Test\TestCase {
 			$this->commentsManager,
 			$this->userManager,
 			$this->userSession,
+			$this->dispatcher,
 			$this->logger
 		);
 	}
 
-	public function testGetId() {
+	public function testGetId(): void {
 		$this->assertSame($this->collection->getId(), '19');
 	}
 
-	public function testGetChild() {
+	public function testGetChild(): void {
 		$this->commentsManager->expects($this->once())
 			->method('get')
 			->with('55')
-			->will($this->returnValue($this->createMock('\OCP\Comments\IComment')));
+			->will($this->returnValue($this->createMock(IComment::class)));
 
 		$node = $this->collection->getChild('55');
-		$this->assertTrue($node instanceof \OCA\Comments\Dav\CommentNode);
+		$this->assertInstanceOf(\OCA\Comments\Dav\CommentNode::class, $node);
 	}
 
 	/**
 	 * @expectedException \Sabre\DAV\Exception\NotFound
 	 */
-	public function testGetChildException() {
+	public function testGetChildException(): void {
 		$this->commentsManager->expects($this->once())
 			->method('get')
 			->with('55')
@@ -81,36 +92,36 @@ class EntityCollectionTest extends \Test\TestCase {
 		$this->collection->getChild('55');
 	}
 
-	public function testGetChildren() {
+	public function testGetChildren(): void {
 		$this->commentsManager->expects($this->once())
 			->method('getForObject')
 			->with('files', '19')
-			->will($this->returnValue([$this->createMock('\OCP\Comments\IComment')]));
+			->will($this->returnValue([$this->createMock(IComment::class)]));
 
 		$result = $this->collection->getChildren();
 
-		$this->assertSame(count($result), 1);
-		$this->assertTrue($result[0] instanceof \OCA\Comments\Dav\CommentNode);
+		$this->assertSame(\count($result), 1);
+		$this->assertInstanceOf(\OCA\Comments\Dav\CommentNode::class, $result[0]);
 	}
 
-	public function testFindChildren() {
+	public function testFindChildren(): void {
 		$dt = new \DateTime('2016-01-10 18:48:00');
 		$this->commentsManager->expects($this->once())
 			->method('getForObject')
 			->with('files', '19', 5, 15, $dt)
-			->will($this->returnValue([$this->createMock('\OCP\Comments\IComment')]));
+			->will($this->returnValue([$this->createMock(IComment::class)]));
 
 		$result = $this->collection->findChildren(5, 15, $dt);
 
-		$this->assertSame(count($result), 1);
-		$this->assertTrue($result[0] instanceof \OCA\Comments\Dav\CommentNode);
+		$this->assertSame(\count($result), 1);
+		$this->assertInstanceOf(\OCA\Comments\Dav\CommentNode::class, $result[0]);
 	}
 
-	public function testChildExistsTrue() {
+	public function testChildExistsTrue(): void {
 		$this->assertTrue($this->collection->childExists('44'));
 	}
 
-	public function testChildExistsFalse() {
+	public function testChildExistsFalse(): void {
 		$this->commentsManager->expects($this->once())
 			->method('get')
 			->with('44')

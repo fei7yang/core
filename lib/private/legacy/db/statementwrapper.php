@@ -8,7 +8,7 @@
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -53,8 +53,8 @@ class OC_DB_StatementWrapper {
 	/**
 	 * pass all other function directly to the \Doctrine\DBAL\Driver\Statement
 	 */
-	public function __call($name,$arguments) {
-		return call_user_func_array([$this->statement,$name], $arguments);
+	public function __call($name, $arguments) {
+		return \call_user_func_array([$this->statement,$name], $arguments);
 	}
 
 	/**
@@ -63,9 +63,9 @@ class OC_DB_StatementWrapper {
 	 * @param array $input
 	 * @return \OC_DB_StatementWrapper|int
 	 */
-	public function execute($input= []) {
+	public function execute(array $input= []) {
 		$this->lastArguments = $input;
-		if (count($input) > 0) {
+		if (\count($input) > 0) {
 			$result = $this->statement->execute($input);
 		} else {
 			$result = $this->statement->execute();
@@ -112,7 +112,7 @@ class OC_DB_StatementWrapper {
 	 * @param integer|null $length max length when using an OUT bind
 	 * @return boolean
 	 */
-	public function bindParam($column, &$variable, $type = null, $length = null){
+	public function bindParam($column, &$variable, $type = null, $length = null) {
 		return $this->statement->bindParam($column, $variable, $type, $length);
 	}
 }

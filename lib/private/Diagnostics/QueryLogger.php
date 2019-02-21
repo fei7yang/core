@@ -5,7 +5,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Piotr Mrowczynski <piotr@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -47,7 +47,7 @@ class QueryLogger implements IQueryLogger {
 	 */
 	public function startQuery($sql, array $params = null, array $types = null) {
 		if ($this->activated) {
-			$this->activeQuery = new Query($sql, $params, microtime(true));
+			$this->activeQuery = new Query($sql, $params, \microtime(true));
 		}
 	}
 
@@ -56,7 +56,7 @@ class QueryLogger implements IQueryLogger {
 	 */
 	public function stopQuery() {
 		if ($this->activated && $this->activeQuery) {
-			$this->activeQuery->end(microtime(true));
+			$this->activeQuery->end(\microtime(true));
 			$this->queries[] = $this->activeQuery;
 			$this->activeQuery = null;
 		}

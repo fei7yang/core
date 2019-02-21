@@ -3,7 +3,7 @@
  * @author Jörn Friedrich Dreyer <jfd@butonic.de>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -79,7 +79,7 @@ class RemoveRootShares implements IRepairStep {
 	 * @param IOutput $output
 	 */
 	private function removeRootShares(IOutput $output) {
-		$function = function(IUser $user) use ($output) {
+		$function = function (IUser $user) use ($output) {
 			$userFolder = $this->rootFolder->getUserFolder($user->getUID());
 			$fileId = $userFolder->getId();
 
@@ -138,4 +138,3 @@ class RemoveRootShares implements IRepairStep {
 		return true;
 	}
 }
-

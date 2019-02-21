@@ -2,7 +2,7 @@
  * ownCloud
  *
  * @author Vincent Petry
- * @copyright 2017 Vincent Petry <pvince81@owncloud.com>
+ * @copyright Copyright (c) 2017 Vincent Petry <pvince81@owncloud.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU AFFERO GENERAL PUBLIC LICENSE
@@ -28,12 +28,12 @@ describe('OC.Share.ShareDialogLinkShareView', function() {
 	var view;
 
 	var PASSWORD_PLACEHOLDER_STARS = '**********';
-	var PASSWORD_PLACEHOLDER_MESSAGE = 'Choose a password for the public link';
+	var PASSWORD_PLACEHOLDER_MESSAGE = 'Choose a password';
 
 	beforeEach(function() {
 		configModel = new OC.Share.ShareConfigModel();
 		fileInfoModel = new OCA.Files.FileInfoModel({
-			id: 123,
+			id: '123',
 			name: 'shared_folder',
 			path: '/subdir',
 			size: 100,
@@ -135,18 +135,18 @@ describe('OC.Share.ShareDialogLinkShareView', function() {
 			publicUploadConfigStub.returns(true);
 			view.render();
 			expect(view.$('[name=linkName]').val()).toEqual('first link');
-			expect(view.$('.publicUploadCheckbox').prop('checked')).toEqual(false);
+			expect(view.$('.publicPermissions').prop('checked')).toEqual(true);
 			expect(view.$('.linkPassText').val()).toEqual('');
 			expect(view.$('.expirationDate').val()).toEqual('');
 
 			model.set({
 				password: 'set',
 				expireDate: '2017-10-12',
-				permissions: OC.PERMISSION_ALL
+				permissions: OC.PERMISSION_CREATE
 			});
 			view.render();
 
-			expect(view.$('.publicUploadCheckbox').prop('checked')).toEqual(true);
+			expect(parseInt(view.$('.publicPermissions:checked').val())).toBe(OC.PERMISSION_CREATE);
 			expect(view.$('.linkPassText').val()).toEqual('');
 			expect(view.$('.expirationDate').val()).toEqual('12-10-2017');
 		});
@@ -208,37 +208,15 @@ describe('OC.Share.ShareDialogLinkShareView', function() {
 					permissions: OC.PERMISSION_READ | OC.PERMISSION_CREATE
 				});
 				view.render();
-				expect(view.$('.showListingCheckbox').length).toEqual(1);
-				expect(view.$('.showListingCheckbox').is(':checked')).toEqual(true);
-				expect(view.$('.showListingCheckbox').is(':disabled')).toEqual(false);
+				expect(view.$('.publicPermissions').length).toEqual(3);
 			});
-			it('renders listing checkbox disabled when public upload is disallowed by user', function() {
+			it('renders checkbox disabled when public upload is disallowed by user', function() {
 				publicUploadConfigStub.returns(true);
 				model.set({
 					permissions: OC.PERMISSION_READ
 				});
 				view.render();
-				expect(view.$('.showListingCheckbox').length).toEqual(1);
-				expect(view.$('.showListingCheckbox').is(':checked')).toEqual(true);
-				expect(view.$('.showListingCheckbox').is(':disabled')).toEqual(true);
-			});
-			it('disables listing checkbox when ticking public upload', function() {
-				publicUploadConfigStub.returns(true);
-				model.set({
-					permissions: OC.PERMISSION_CREATE
-				});
-				view.render();
-
-				expect(view.$('.showListingCheckbox').length).toEqual(1);
-				expect(view.$('.showListingCheckbox').is(':checked')).toEqual(false);
-				expect(view.$('.showListingCheckbox').is(':disabled')).toEqual(false);
-
-				expect(view.$('.publicUploadCheckbox').length).toEqual(1);
-				expect(view.$('.publicUploadCheckbox').is(':checked')).toEqual(true);
-				view.$('.publicUploadCheckbox').trigger(new $.Event('click'));
-				expect(view.$('.publicUploadCheckbox').is(':checked')).toEqual(false);
-				expect(view.$('.showListingCheckbox').is(':checked')).toEqual(true);
-				expect(view.$('.showListingCheckbox').is(':disabled')).toEqual(true);
+				expect(view.$('.showListingCheckbox').length).toEqual(0);
 			});
 		});
 		describe('password logic', function() {
@@ -252,15 +230,16 @@ describe('OC.Share.ShareDialogLinkShareView', function() {
 				expect(view.$('.linkPassText').val()).toEqual('');
 				expect(view.$('.linkPassText').attr('placeholder')).toEqual(PASSWORD_PLACEHOLDER_STARS);
 			});
-			it('renders required indicator when password is enforced', function() {
-				configModel.set('enforcePasswordForPublicLink', true);
+			it('denies removing the password if it is enfoced', function() {
+				model.set('encryptedPassword', 'foo');
+				configModel.set({
+					enforceLinkPasswordReadOnly : true,
+					enforceLinkPasswordWriteOnly : true,
+					enforceLinkPasswordReadWrite : true
+				});
 				view.render();
-				expect(view.$('.linkPass .required-indicator').length).toEqual(1);
-			});
-			it('does not render required indicator when password not enforced', function() {
-				configModel.set('enforcePasswordForPublicLink', false);
-				view.render();
-				expect(view.$('.linkPass .required-indicator').length).toEqual(0);
+				view._onClickReset();
+				expect(model.get("resetPassword")).not.toBe(true);
 			});
 		});
 	});
@@ -270,6 +249,7 @@ describe('OC.Share.ShareDialogLinkShareView', function() {
 		var sendMailStub;
 		var sendMailDeferred;
 		var isMailEnabledStub;
+		var isPublicUploadEnabledStub;
 
 		beforeEach(function() {
 			saveStub = sinon.stub(OC.Share.ShareModel.prototype, 'save');
@@ -283,8 +263,28 @@ describe('OC.Share.ShareDialogLinkShareView', function() {
 			sendMailStub.restore();
 			isMailEnabledStub.restore();
 			sendMailDeferred = null;
+			if (isPublicUploadEnabledStub) {
+				isPublicUploadEnabledStub.restore();
+			}
 		});
 
+		it('locks all input fields while processing', function() {
+			view._save();
+			expect(view.$('input, textarea, select, button').prop('disabled')).toEqual(true);
+		});
+		it('unlocks all input fields when saving failed', function() {
+			view._save();
+			saveStub.yieldTo('error', model, {
+				responseJSON: {
+					ocs: {
+						meta: {
+							message: 'Little error'
+						}
+					}
+				}
+			});
+			expect(view.$('input, textarea, select, button').prop('disabled')).toEqual(false);
+		});
 		it('reads values from the fields and saves', function() {
 			view.$('.linkPassText').val('newpassword');
 			view._save();
@@ -374,8 +374,35 @@ describe('OC.Share.ShareDialogLinkShareView', function() {
 			expect(view.$('.error-message-global').hasClass('hidden')).toEqual(false);
 			expect(view.$('.error-message-global').text()).toEqual('Some error');
 		});
-		it('displays inline error when password enforced but missing', function() {
-			configModel.set('enforcePasswordForPublicLink', true);
+		it('displays inline error when password enforced for read-only but missing', function() {
+			isPublicUploadEnabledStub = sinon.stub(configModel, 'isPublicUploadEnabled').returns(true);
+			configModel.set('enforceLinkPasswordReadOnly', true);
+			view.render();
+			view.$('#sharingDialogAllowPublicRead-' + view.cid).prop('checked', true)
+			var handler = sinon.stub();
+			view.on('saved', handler);
+			view._save();
+			expect(handler.notCalled).toEqual(true);
+
+			expect(view.$('.linkPassText').next('.error-message').hasClass('hidden')).toEqual(false);
+		});
+		it('displays inline error when password enforced for read & write but missing', function() {
+			isPublicUploadEnabledStub = sinon.stub(configModel, 'isPublicUploadEnabled').returns(true);
+			configModel.set('enforceLinkPasswordReadWrite', true);
+			view.render();
+			view.$('#sharingDialogAllowPublicReadWrite-' + view.cid).prop('checked', true)
+			var handler = sinon.stub();
+			view.on('saved', handler);
+			view._save();
+			expect(handler.notCalled).toEqual(true);
+
+			expect(view.$('.linkPassText').next('.error-message').hasClass('hidden')).toEqual(false);
+		});
+		it('displays inline error when password enforced for write-only but missing', function() {
+			isPublicUploadEnabledStub = sinon.stub(configModel, 'isPublicUploadEnabled').returns(true);
+			configModel.set('enforceLinkPasswordWriteOnly', true);
+			view.render();
+			view.$('#sharingDialogAllowPublicUpload-' + view.cid).prop('checked', true)
 			var handler = sinon.stub();
 			view.on('saved', handler);
 			view._save();
@@ -389,35 +416,27 @@ describe('OC.Share.ShareDialogLinkShareView', function() {
 			beforeEach(function() {
 				publicUploadConfigStub = sinon.stub(configModel, 'isPublicUploadEnabled');
 			});
-			afterEach(function() { 
-				publicUploadConfigStub.restore(); 
+			afterEach(function() {
+				publicUploadConfigStub.restore();
 			});
 
 			var dataProvider = [
-				// globally enabled
-				[true, true, true, OC.PERMISSION_READ | OC.PERMISSION_CREATE | OC.PERMISSION_UPDATE | OC.PERMISSION_DELETE],
-				[true, true, false, OC.PERMISSION_CREATE],
-				[true, false, true, OC.PERMISSION_READ],
-				[true, false, false, OC.PERMISSION_READ],
-
-				// globally disabled, permission stays regardless
-				[false, false, false, OC.PERMISSION_READ],
-				[false, true, false, OC.PERMISSION_READ],
-				[false, true, false, OC.PERMISSION_READ],
-				[false, true, true, OC.PERMISSION_READ],
+				[true, OC.PERMISSION_READ | OC.PERMISSION_CREATE | OC.PERMISSION_UPDATE | OC.PERMISSION_DELETE],
+				[true, OC.PERMISSION_CREATE],
+				[true, OC.PERMISSION_READ],
+				[false, OC.PERMISSION_READ], // globally disabled, permission stays regardless
 			];
 
-			function testPermissions(globalEnabled, uploadChecked, listingChecked, expectedPerms) {
+			function testPermissions(globalEnabled, expectedPerms) {
+				expectedPerms = expectedPerms;
 				it('sets permissions to ' + expectedPerms +
 					' if global enabled is ' + globalEnabled +
-					' and public upload checkbox is ' + uploadChecked +
-					' and listing checkbox is ' + listingChecked, function() {
+					' and corresponding radiobutton is checked', function() {
 
 					publicUploadConfigStub.returns(globalEnabled);
 					view.render();
 
-					view.$('.publicUploadCheckbox').prop('checked', uploadChecked);
-					view.$('.showListingCheckbox').prop('checked', listingChecked);
+					view.$('input[name="publicPermissions"]:checked').val(expectedPerms);
 
 					view._save();
 

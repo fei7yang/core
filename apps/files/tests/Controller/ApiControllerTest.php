@@ -7,7 +7,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -26,16 +26,15 @@
 
 namespace OCA\Files\Controller;
 
-use OC\Files\FileInfo;
+use OCA\Files\Service\TagService;
 use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\DataResponse;
 use OCP\Files\NotFoundException;
 use OCP\Files\StorageNotAvailableException;
-use Test\TestCase;
-use OCP\IRequest;
-use OCA\Files\Service\TagService;
-use OCP\AppFramework\Http\DataResponse;
-use OCP\IPreview;
 use OCP\Image;
+use OCP\IPreview;
+use OCP\IRequest;
+use Test\TestCase;
 
 /**
  * Class ApiController
@@ -219,5 +218,4 @@ class ApiControllerTest extends TestCase {
 
 		$this->assertEquals($expected, $actual);
 	}
-
 }

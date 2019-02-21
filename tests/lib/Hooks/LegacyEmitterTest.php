@@ -31,7 +31,7 @@ class LegacyEmitterTest extends BasicEmitterTest {
 
 		$this->emitter = new DummyLegacyEmitter();
 		self::$emitted = false;
-		\OC_Hook::clear('Test','test');
+		\OC_Hook::clear('Test', 'test');
 	}
 
 	public static function staticLegacyCallBack() {
@@ -39,19 +39,20 @@ class LegacyEmitterTest extends BasicEmitterTest {
 	}
 
 	public static function staticLegacyArgumentsCallBack($arguments) {
-		if ($arguments['foo'] == 'foo' and $arguments['bar'] == 'bar')
+		if ($arguments['foo'] == 'foo' and $arguments['bar'] == 'bar') {
 			self::$emitted = true;
+		}
 	}
 
 	public function testLegacyHook() {
 		\OC_Hook::connect('Test', 'test', '\Test\Hooks\LegacyEmitterTest', 'staticLegacyCallBack');
 		$this->emitter->emitEvent('Test', 'test');
-		$this->assertEquals(true, self::$emitted);
+		$this->assertTrue(self::$emitted);
 	}
 
 	public function testLegacyArguments() {
 		\OC_Hook::connect('Test', 'test', '\Test\Hooks\LegacyEmitterTest', 'staticLegacyArgumentsCallBack');
 		$this->emitter->emitEvent('Test', 'test', ['foo' => 'foo', 'bar' => 'bar']);
-		$this->assertEquals(true, self::$emitted);
+		$this->assertTrue(self::$emitted);
 	}
 }

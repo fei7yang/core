@@ -5,7 +5,7 @@
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -44,7 +44,7 @@ class UpdateJS extends Command {
 	protected function configure() {
 		$this
 			->setName('maintenance:mimetype:update-js')
-			->setDescription('Update mimetypelist.js');
+			->setDescription('Update mimetypelist.js.');
 	}
 
 	/**
@@ -54,14 +54,14 @@ class UpdateJS extends Command {
 		$dir = new \DirectoryIterator(\OC::$SERVERROOT . '/core/img/filetypes');
 
 		$files = [];
-		foreach($dir as $fileInfo) {
+		foreach ($dir as $fileInfo) {
 			if ($fileInfo->isFile()) {
-				$files[] = preg_replace('/.[^.]*$/', '', $fileInfo->getFilename());
+				$files[] = \preg_replace('/.[^.]*$/', '', $fileInfo->getFilename());
 			}
 		}
 
-		$files = array_values(array_unique($files));
-		sort($files);
+		$files = \array_values(\array_unique($files));
+		\sort($files);
 		return $files;
 	}
 
@@ -73,18 +73,18 @@ class UpdateJS extends Command {
 		$fileTypeIcons = [];
 		$fileTypeIconDirectory = $themeDirectory . '/core/img/filetypes';
 
-		if (is_dir($fileTypeIconDirectory)) {
+		if (\is_dir($fileTypeIconDirectory)) {
 			$fileTypeIconFiles = new \DirectoryIterator($fileTypeIconDirectory);
 			foreach ($fileTypeIconFiles as $fileTypeIconFile) {
 				if ($fileTypeIconFile->isFile()) {
-					$fileTypeIconName = preg_replace('/.[^.]*$/', '', $fileTypeIconFile->getFilename());
+					$fileTypeIconName = \preg_replace('/.[^.]*$/', '', $fileTypeIconFile->getFilename());
 					$fileTypeIcons[] = $fileTypeIconName;
 				}
 			}
 		}
 
-		$fileTypeIcons = array_values(array_unique($fileTypeIcons));
-		sort($fileTypeIcons);
+		$fileTypeIcons = \array_values(\array_unique($fileTypeIcons));
+		\sort($fileTypeIcons);
 
 		return $fileTypeIcons;
 	}
@@ -93,7 +93,7 @@ class UpdateJS extends Command {
 	 * @return array
 	 */
 	private function getThemes() {
-		return array_merge(
+		return \array_merge(
 			$this->getAppThemes(),
 			$this->getLegacyThemes()
 		);
@@ -108,7 +108,7 @@ class UpdateJS extends Command {
 		$apps = \OC_App::getEnabledApps();
 
 		foreach ($apps as $app) {
-			if(\OC_App::isType($app, 'theme')) {
+			if (\OC_App::isType($app, 'theme')) {
 				$themes[$app] = $this->getFileTypeIcons(\OC_App::getAppPath($app));
 			}
 		}
@@ -122,15 +122,17 @@ class UpdateJS extends Command {
 	private function getLegacyThemes() {
 		$themes = [];
 
-		$legacyThemeDirectories = new \DirectoryIterator(\OC::$SERVERROOT . '/themes/');
+		if (\is_dir(\OC::$SERVERROOT . '/themes/')) {
+			$legacyThemeDirectories = new \DirectoryIterator(\OC::$SERVERROOT . '/themes/');
 
-		foreach($legacyThemeDirectories as $legacyThemeDirectory) {
-			if ($legacyThemeDirectory->isFile() || $legacyThemeDirectory->isDot()) {
-				continue;
+			foreach ($legacyThemeDirectories as $legacyThemeDirectory) {
+				if ($legacyThemeDirectory->isFile() || $legacyThemeDirectory->isDot()) {
+					continue;
+				}
+				$themes[$legacyThemeDirectory->getFilename()] = $this->getFileTypeIcons(
+					$legacyThemeDirectory->getPathname()
+				);
 			}
-			$themes[$legacyThemeDirectory->getFilename()] = $this->getFileTypeIcons(
-				$legacyThemeDirectory->getPathname()
-			);
 		}
 
 		return $themes;
@@ -144,7 +146,7 @@ class UpdateJS extends Command {
 	protected function execute(InputInterface $input, OutputInterface $output) {
 		$fileName = \OC::$SERVERROOT.'/core/js/mimetypelist.js';
 
-		$success = file_put_contents(
+		$success = \file_put_contents(
 			$fileName,
 			$this->generateMimeTypeListContent(
 				$this->mimetypeDetector->getAllAliases(),
@@ -169,9 +171,9 @@ class UpdateJS extends Command {
 	 * @return string
 	 */
 	private function generateMimeTypeListContent($aliases, $files, $themes) {
-		$aliasesJson = json_encode($aliases, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-		$filesJson = json_encode($files, JSON_PRETTY_PRINT);
-		$themesJson = json_encode($themes, JSON_PRETTY_PRINT);
+		$aliasesJson = \json_encode($aliases, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+		$filesJson = \json_encode($files, JSON_PRETTY_PRINT);
+		$themesJson = \json_encode($themes, JSON_PRETTY_PRINT);
 
 		$content = <<< MTLC
 /**

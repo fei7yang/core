@@ -2,7 +2,7 @@
 /**
  * @author Robin Appelman <icewind@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -64,21 +64,17 @@ class CacheEntry implements ICacheEntry, \ArrayAccess {
 		return $this->data['storage'];
 	}
 
-
 	public function getPath() {
 		return $this->data['path'];
 	}
-
 
 	public function getName() {
 		return $this->data['name'];
 	}
 
-
 	public function getMimeType() {
 		return $this->data['mimetype'];
 	}
-
 
 	public function getMimePart() {
 		return $this->data['mimepart'];

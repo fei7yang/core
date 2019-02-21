@@ -78,6 +78,19 @@ $(document).ready(function(){
 		$('#setDefaultExpireDate').toggleClass('hidden', !(this.checked && $('#shareapiDefaultExpireDate')[0].checked));
 	});
 
+	$('#allowPublicMailNotification').change(function() {
+		$("#publicMailNotificationLang").toggleClass('hidden', !this.checked);
+	});
+
+	$('#shareapiPublicNotificationLang').change(function() {
+		var value = $(this).val();
+		if (value === 'owner') {
+			OC.AppConfig.deleteKey('core', $(this).attr('name'));
+		} else {
+			OC.AppConfig.setValue('core', $(this).attr('name'), $(this).val());
+		}
+	});
+
 
 	$('#allowGroupSharing').change(function() {
 		$('#allowGroupSharing').toggleClass('hidden', !this.checked);
@@ -109,5 +122,10 @@ $(document).ready(function(){
 		return false;
 	});
 
-
+	var $additionalInfo = $('#coreUserAdditionalInfo');
+	$additionalInfo.val($additionalInfo.attr('data-value'));
+	$additionalInfo.change(function(ev) {
+		$(this).attr('data-value', $(this).val());
+		OC.AppConfig.setValue('core', $(this).attr('name'), $(this).val());
+	});
 });

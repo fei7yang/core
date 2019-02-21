@@ -5,7 +5,7 @@
  * @author Robin Appelman <icewind@owncloud.com>
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -48,9 +48,9 @@ interface File extends Node {
 	public function getContent();
 
 	/**
-	 * Write to the file from string data
+	 * Write to the file from string or resource data
 	 *
-	 * @param string $data
+	 * @param string|resource $data
 	 * @throws \OCP\Files\NotPermittedException
 	 * @return void
 	 * @since 6.0.0

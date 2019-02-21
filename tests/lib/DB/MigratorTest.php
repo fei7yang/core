@@ -9,10 +9,10 @@
 
 namespace Test\DB;
 
-use \Doctrine\DBAL\DBALException;
+use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Platforms\OraclePlatform;
-use \Doctrine\DBAL\Schema\Schema;
-use \Doctrine\DBAL\Schema\SchemaConfig;
+use Doctrine\DBAL\Schema\Schema;
+use Doctrine\DBAL\Schema\SchemaConfig;
 use OCP\IConfig;
 
 /**
@@ -41,17 +41,34 @@ class MigratorTest extends \Test\TestCase {
 	/** @var string */
 	private $tableName;
 
+	/** @var string */
+	private $tableNameTmp;
+
 	protected function setUp() {
 		parent::setUp();
 
 		$this->config = \OC::$server->getConfig();
 		$this->connection = \OC::$server->getDatabaseConnection();
 		$this->manager = new \OC\DB\MDB2SchemaManager($this->connection);
-		$this->tableName = strtolower($this->getUniqueID($this->config->getSystemValue('dbtableprefix', 'oc_') . 'test_'));
+		$this->tableName = $this->getUniqueTableName();
+		$this->tableNameTmp = $this->getUniqueTableName();
+	}
+
+	private function getUniqueTableName() {
+		return \strtolower($this->getUniqueID($this->config->getSystemValue('dbtableprefix', 'oc_') . 'test_'));
 	}
 
 	protected function tearDown() {
-		$this->connection->exec('DROP TABLE ' . $this->connection->quoteIdentifier($this->tableName));
+		// Try to delete if exists (IF EXISTS NOT SUPPORTED IN ORACLE)
+		try {
+			$this->connection->exec('DROP TABLE ' . $this->connection->quoteIdentifier($this->tableNameTmp));
+		} catch (\Doctrine\DBAL\DBALException $e) {
+		}
+
+		try {
+			$this->connection->exec('DROP TABLE ' . $this->connection->quoteIdentifier($this->tableName));
+		} catch (\Doctrine\DBAL\DBALException $e) {
+		}
 		parent::tearDown();
 	}
 
@@ -59,7 +76,7 @@ class MigratorTest extends \Test\TestCase {
 		$indexName = $tableName . '_' . $indexName;
 		if ($this->isOracle()) {
 			// Oracle doesn't like long names...
-			return 'i' . substr(md5($indexName), 0, 29);
+			return 'i' . \substr(\md5($indexName), 0, 29);
 		}
 		return $indexName;
 	}
@@ -141,7 +158,7 @@ class MigratorTest extends \Test\TestCase {
 		$oldTablePrefix = $this->config->getSystemValue('dbtableprefix', 'oc_');
 
 		$this->config->setSystemValue('dbtableprefix', 'ownc_');
-		$this->tableName = strtolower($this->getUniqueID($this->config->getSystemValue('dbtableprefix') . 'test_'));
+		$this->tableName = \strtolower($this->getUniqueID($this->config->getSystemValue('dbtableprefix') . 'test_'));
 
 		list($startSchema, $endSchema) = $this->getDuplicateKeySchemas();
 		$migrator = $this->manager->getMigrator();
@@ -268,5 +285,24 @@ class MigratorTest extends \Test\TestCase {
 		$migrator->migrate($endSchema);
 
 		$this->assertTrue(true);
+	}
+
+	public function testAddingForeignKey() {
+		$startSchema = new Schema([], [], $this->getSchemaConfig());
+		$table = $startSchema->createTable($this->tableName);
+		$table->addColumn('id', 'integer', ['autoincrement' => true]);
+		$table->addColumn('name', 'string');
+		$table->setPrimaryKey(['id']);
+
+		$fkName = "fkc";
+		$tableFk = $startSchema->createTable($this->tableNameTmp);
+		$tableFk->addColumn('fk_id', 'integer');
+		$tableFk->addColumn('name', 'string');
+		$tableFk->addForeignKeyConstraint($this->tableName, ['fk_id'], ['id'], [], $fkName);
+
+		$migrator = $this->manager->getMigrator();
+		$migrator->migrate($startSchema);
+
+		$this->assertTrue($startSchema->getTable($this->tableNameTmp)->hasForeignKey($fkName));
 	}
 }

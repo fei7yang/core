@@ -7,7 +7,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -26,20 +26,19 @@
 
 namespace OCA\Files_External\Controller;
 
-
-use OCP\ILogger;
-use OCP\IRequest;
-use OCP\IL10N;
-use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
-use OCP\Files\External\Service\IStoragesService;
-use OCP\Files\External\NotFoundException;
-use OCP\Files\External\IStorageConfig;
-use OCP\Files\External\Backend\Backend;
+use OCP\AppFramework\Http\DataResponse;
 use OCP\Files\External\Auth\AuthMechanism;
-use OCP\Files\StorageNotAvailableException;
+use OCP\Files\External\Backend\Backend;
 use OCP\Files\External\InsufficientDataForMeaningfulAnswerException;
+use OCP\Files\External\IStorageConfig;
+use OCP\Files\External\NotFoundException;
+use OCP\Files\External\Service\IStoragesService;
+use OCP\Files\StorageNotAvailableException;
+use OCP\IL10N;
+use OCP\ILogger;
+use OCP\IRequest;
 
 /**
  * Base class for storages controllers
@@ -270,7 +269,7 @@ abstract class StoragesController extends Controller {
 			// FIXME: convert storage exceptions to StorageNotAvailableException
 			$storage->setStatus(
 				StorageNotAvailableException::STATUS_ERROR,
-				get_class($e).': '.$e->getMessage()
+				\get_class($e).': '.$e->getMessage()
 			);
 		}
 	}
@@ -338,6 +337,4 @@ abstract class StoragesController extends Controller {
 
 		return new DataResponse([], Http::STATUS_NO_CONTENT);
 	}
-
 }
-

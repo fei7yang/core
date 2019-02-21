@@ -4,7 +4,7 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -34,7 +34,7 @@ class Rotate extends \OC\BackgroundJob\Job {
 	public function run($logFile) {
 		$this->max_log_size = \OC::$server->getConfig()->getSystemValue('log_rotate_size', false);
 		if ($this->max_log_size) {
-			$filesize = @filesize($logFile);
+			$filesize = @\filesize($logFile);
 			if ($filesize >= $this->max_log_size) {
 				$this->rotate($logFile);
 			}
@@ -43,7 +43,7 @@ class Rotate extends \OC\BackgroundJob\Job {
 
 	protected function rotate($logfile) {
 		$rotatedLogfile = $logfile.'.1';
-		rename($logfile, $rotatedLogfile);
+		\rename($logfile, $rotatedLogfile);
 		$msg = 'Log file "'.$logfile.'" was over '.$this->max_log_size.' bytes, moved to "'.$rotatedLogfile.'"';
 		\OCP\Util::writeLog('OC\Log\Rotate', $msg, \OCP\Util::WARN);
 	}

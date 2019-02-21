@@ -4,7 +4,7 @@
  * @author Morris Jobke <hey@morrisjobke.de>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -43,7 +43,6 @@ class DataResponse extends Response {
 	 */
 	protected $data;
 
-
 	/**
 	 * @param array|object $data the object or array that should be transformed
 	 * @param int $statusCode the Http status code, defaults to 200
@@ -54,9 +53,8 @@ class DataResponse extends Response {
 								array $headers= []) {
 		$this->data = $data;
 		$this->setStatus($statusCode);
-		$this->setHeaders(array_merge($this->getHeaders(), $headers));
+		$this->setHeaders(\array_merge($this->getHeaders(), $headers));
 	}
-
 
 	/**
 	 * Sets values in the data json array
@@ -64,21 +62,18 @@ class DataResponse extends Response {
 	 * @return DataResponse Reference to this object
 	 * @since 8.0.0
 	 */
-	public function setData($data){
+	public function setData($data) {
 		$this->data = $data;
 
 		return $this;
 	}
-
 
 	/**
 	 * Used to get the set parameters
 	 * @return array the data
 	 * @since 8.0.0
 	 */
-	public function getData(){
+	public function getData() {
 		return $this->data;
 	}
-
-
 }

@@ -3,7 +3,7 @@
  * @author Joas Schilling <coding@schilljs.com>
  * @author Morris Jobke <hey@morrisjobke.de>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -22,8 +22,6 @@
 
 namespace OCA\Files\Command;
 
-use Doctrine\DBAL\Platforms\PostgreSqlPlatform;
-use Doctrine\DBAL\Platforms\SqlitePlatform;
 use OCP\IDBConnection;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -33,7 +31,6 @@ use Symfony\Component\Console\Output\OutputInterface;
  * Delete all file entries that have no matching entries in the storage table.
  */
 class DeleteOrphanedFiles extends Command {
-
 	const CHUNK_SIZE = 200;
 
 	/**
@@ -80,5 +77,4 @@ class DeleteOrphanedFiles extends Command {
 
 		$output->writeln("$deletedEntries orphaned file cache entries deleted");
 	}
-
 }

@@ -2,7 +2,7 @@
 /**
  * @author Christoph Wurst <christoph@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -46,19 +46,18 @@ class Disable extends Base {
 		parent::configure();
 
 		$this->setName('twofactorauth:disable');
-		$this->setDescription('Disable two-factor authentication for a user');
+		$this->setDescription('Disable two-factor authentication for a user.');
 		$this->addArgument('uid', InputArgument::REQUIRED);
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output) {
 		$uid = $input->getArgument('uid');
 		$user = $this->userManager->get($uid);
-		if (is_null($user)) {
+		if ($user === null) {
 			$output->writeln("<error>Invalid UID</error>");
 			return;
 		}
 		$this->manager->disableTwoFactorAuthentication($user);
 		$output->writeln("Two-factor authentication disabled for user $uid");
 	}
-
 }

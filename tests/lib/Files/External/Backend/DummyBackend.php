@@ -2,7 +2,7 @@
 /**
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2016, ownCloud GmbH.
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -21,12 +21,11 @@
 
 namespace Test\Files\External\Backend;
 
+use OCP\Files\External\Auth\AuthMechanism;
 use OCP\Files\External\Backend\Backend;
 use OCP\Files\External\DefinitionParameter;
-use OCP\Files\External\Auth\AuthMechanism;
 
 class DummyBackend extends Backend {
-
 	public function __construct() {
 		$this
 			->setIdentifier('dummy')

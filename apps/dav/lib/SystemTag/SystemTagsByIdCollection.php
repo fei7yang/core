@@ -3,7 +3,7 @@
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -22,16 +22,15 @@
 
 namespace OCA\DAV\SystemTag;
 
-use Sabre\DAV\Exception\Forbidden;
-use Sabre\DAV\Exception\NotFound;
-use Sabre\DAV\Exception\BadRequest;
-use Sabre\DAV\ICollection;
-
-use OCP\SystemTag\ISystemTagManager;
-use OCP\SystemTag\ISystemTag;
-use OCP\SystemTag\TagNotFoundException;
 use OCP\IGroupManager;
 use OCP\IUserSession;
+use OCP\SystemTag\ISystemTag;
+use OCP\SystemTag\ISystemTagManager;
+use OCP\SystemTag\TagNotFoundException;
+use Sabre\DAV\Exception\BadRequest;
+use Sabre\DAV\Exception\Forbidden;
+use Sabre\DAV\Exception\NotFound;
+use Sabre\DAV\ICollection;
 
 class SystemTagsByIdCollection implements ICollection {
 
@@ -85,24 +84,24 @@ class SystemTagsByIdCollection implements ICollection {
 	 * @param resource|string $data Initial payload
 	 * @throws Forbidden
 	 */
-	function createFile($name, $data = null) {
+	public function createFile($name, $data = null) {
 		throw new Forbidden('Cannot create tags by id');
 	}
 
 	/**
 	 * @param string $name
 	 */
-	function createDirectory($name) {
+	public function createDirectory($name) {
 		throw new Forbidden('Permission denied to create collections');
 	}
 
 	/**
 	 * @param string $name
 	 */
-	function getChild($name) {
+	public function getChild($name) {
 		try {
 			$tag = $this->tagManager->getTagsByIds([$name]);
-			$tag = current($tag);
+			$tag = \current($tag);
 			if (!$this->tagManager->canUserSeeTag($tag, $this->userSession->getUser())) {
 				throw new NotFound('Tag with id ' . $name . ' not found');
 			}
@@ -114,14 +113,28 @@ class SystemTagsByIdCollection implements ICollection {
 		}
 	}
 
-	function getChildren() {
+	public function getChildren() {
 		$visibilityFilter = true;
 		if ($this->isAdmin()) {
 			$visibilityFilter = null;
 		}
 
-		$tags = $this->tagManager->getAllTags($visibilityFilter);
-		return array_map(function($tag) {
+		$tags = $this->tagManager->getAllTags($visibilityFilter, null);
+		/**
+		 * Filter out static tags if the user does not have privilege to see it.
+		 */
+		$tags =  \array_filter($tags, function ($tag) {
+			if (!$tag->isUserEditable() && $tag->isUserAssignable()) {
+				$user = $this->userSession->getUser();
+				if (($user !== null) &&
+					!$this->tagManager->canUserUseStaticTagInGroup($tag, $user)) {
+					return false;
+				}
+			}
+			return true;
+		});
+
+		return \array_map(function ($tag) {
 			return $this->makeNode($tag);
 		}, $tags);
 	}
@@ -129,10 +142,10 @@ class SystemTagsByIdCollection implements ICollection {
 	/**
 	 * @param string $name
 	 */
-	function childExists($name) {
+	public function childExists($name) {
 		try {
 			$tag = $this->tagManager->getTagsByIds([$name]);
-			$tag = current($tag);
+			$tag = \current($tag);
 			if (!$this->tagManager->canUserSeeTag($tag, $this->userSession->getUser())) {
 				return false;
 			}
@@ -144,15 +157,15 @@ class SystemTagsByIdCollection implements ICollection {
 		}
 	}
 
-	function delete() {
+	public function delete() {
 		throw new Forbidden('Permission denied to delete this collection');
 	}
 
-	function getName() {
+	public function getName() {
 		return 'systemtags';
 	}
 
-	function setName($name) {
+	public function setName($name) {
 		throw new Forbidden('Permission denied to rename this collection');
 	}
 
@@ -161,7 +174,7 @@ class SystemTagsByIdCollection implements ICollection {
 	 *
 	 * @return int
 	 */
-	function getLastModified() {
+	public function getLastModified() {
 		return null;
 	}
 

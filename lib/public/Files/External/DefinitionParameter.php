@@ -4,7 +4,7 @@
  * @author Robin McCorkell <robin@mccorkell.me.uk>
  * @author Vincent Petry <pvince81@owncloud.com>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -190,7 +190,7 @@ class DefinitionParameter implements \JsonSerializable {
 	public function validateValue(&$value) {
 		switch ($this->getType()) {
 			case self::VALUE_BOOLEAN:
-				if (!is_bool($value)) {
+				if (!\is_bool($value)) {
 					switch ($value) {
 						case 'true':
 							$value = true;

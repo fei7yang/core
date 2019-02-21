@@ -5,7 +5,7 @@
  * @author Roeland Jago Douma <rullzer@owncloud.com>
  * @author Thomas Müller <thomas.mueller@tmit.eu>
  *
- * @copyright Copyright (c) 2017, ownCloud GmbH
+ * @copyright Copyright (c) 2018, ownCloud GmbH
  * @license AGPL-3.0
  *
  * This code is free software: you can redistribute it and/or modify
@@ -23,11 +23,11 @@
  */
 
 namespace OCA\Files_Sharing\Middleware;
-use OCP\AppFramework\Http\NotFoundResponse;
-use OCP\Files\NotFoundException;
-use OCP\AppFramework\Utility\IControllerMethodReflector;
 use OCA\Files_Sharing\Exceptions\S2SException;
 use OCP\AppFramework\Http\JSONResponse;
+use OCP\AppFramework\Http\NotFoundResponse;
+use OCP\AppFramework\Utility\IControllerMethodReflector;
+use OCP\Files\NotFoundException;
 
 /**
  * @package OCA\Files_Sharing\Middleware\SharingCheckMiddleware
@@ -98,7 +98,6 @@ class SharingCheckMiddlewareTest extends \Test\TestCase {
 		$this->assertTrue(self::invokePrivate($this->sharingCheckMiddleware, 'isLinkSharingEnabled'));
 	}
 
-
 	public function testIsLinkSharingEnabledWithLinkSharingDisabled() {
 		$this->config
 			->expects($this->at(0))
@@ -126,14 +125,12 @@ class SharingCheckMiddlewareTest extends \Test\TestCase {
 	}
 
 	public function externalSharesChecksDataProvider() {
-
 		$data = [];
 
 		foreach ([false, true] as $annIn) {
 			foreach ([false, true] as $annOut) {
 				foreach ([false, true] as $confIn) {
 					foreach ([false, true] as $confOut) {
-
 						$res = true;
 						if (!$annIn && !$confIn) {
 							$res = false;
@@ -282,6 +279,4 @@ class SharingCheckMiddlewareTest extends \Test\TestCase {
 	public function testAfterExceptionWithS2SException() {
 		$this->assertEquals(new JSONResponse('My Exception message', 405), $this->sharingCheckMiddleware->afterException($this->controllerMock, 'myMethod', new S2SException('My Exception message')));
 	}
-
-
 }

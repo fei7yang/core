@@ -9,8 +9,10 @@
 namespace Test\Traits;
 
 use OC\User\AccountTermMapper;
+use OC\User\SyncService;
 use OC\User\User;
 use OCP\IConfig;
+use OCP\ILogger;
 use Test\Util\User\Dummy;
 use Test\Util\User\MemoryAccountMapper;
 
@@ -25,7 +27,7 @@ trait UserTrait {
 	private $previousUserManagerInternals;
 
 	protected function createUser($name, $password = null) {
-		if (is_null($password)) {
+		if ($password === null) {
 			$password = $name;
 		}
 		$userManager = \OC::$server->getUserManager();
@@ -38,13 +40,14 @@ trait UserTrait {
 	}
 
 	protected function setUpUserTrait() {
-
 		$db = \OC::$server->getDatabaseConnection();
-		$config = $this->createMock(IConfig::class);
+		$config =  \OC::$server->getConfig();
 		$accountMapper = new MemoryAccountMapper($config, $db, new AccountTermMapper($db));
-		$accountMapper->testCaseName = get_class($this);
+		$logger = $this->createMock(ILogger::class);
+		$syncService = new SyncService($config, $logger, $accountMapper);
+		$accountMapper->testCaseName = \get_class($this);
 		$this->previousUserManagerInternals = \OC::$server->getUserManager()
-			->reset($accountMapper, [Dummy::class => new Dummy()]);
+			->reset($accountMapper, [Dummy::class => new Dummy()], $syncService);
 
 		if ($this->previousUserManagerInternals[0] instanceof MemoryAccountMapper) {
 			throw new \Exception("Missing tearDown call in " . $this->previousUserManagerInternals[0]->testCaseName);
@@ -52,10 +55,10 @@ trait UserTrait {
 	}
 
 	protected function tearDownUserTrait() {
-		foreach($this->users as $user) {
+		foreach ($this->users as $user) {
 			$user->delete();
 		}
 		\OC::$server->getUserManager()
-			->reset($this->previousUserManagerInternals[0], $this->previousUserManagerInternals[1]);
+			->reset($this->previousUserManagerInternals[0], $this->previousUserManagerInternals[1], $this->previousUserManagerInternals[2]);
 	}
 }
