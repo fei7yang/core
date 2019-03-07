@@ -19,6 +19,10 @@
  *
  */
 
+<<<<<<< HEAD
+=======
+use Behat\Behat\Hook\Scope\BeforeScenarioScope;
+>>>>>>> upstream/master
 use Behat\Gherkin\Node\PyStringNode;
 use Behat\Gherkin\Node\TableNode;
 use Behat\Testwork\Hook\Scope\BeforeSuiteScope;
@@ -192,6 +196,15 @@ trait BasicStructure {
 	private $guzzleClientHeaders = [];
 
 	/**
+<<<<<<< HEAD
+=======
+	 *
+	 * @var OCSContext
+	 */
+	private $ocsContext;
+
+	/**
+>>>>>>> upstream/master
 	 * BasicStructure constructor.
 	 *
 	 * @param string $baseUrl
@@ -767,6 +780,7 @@ trait BasicStructure {
 	}
 
 	/**
+<<<<<<< HEAD
 	 * @When /^the user sends HTTP method "([^"]*)" to OCS API endpoint "([^"]*)"$/
 	 * @Given /^the user has sent HTTP method "([^"]*)" to OCS API endpoint "([^"]*)"$/
 	 *
@@ -831,6 +845,8 @@ trait BasicStructure {
 	}
 
 	/**
+=======
+>>>>>>> upstream/master
 	 * Parses the response as XML
 	 *
 	 * @param ResponseInterface $response
@@ -846,6 +862,7 @@ trait BasicStructure {
 	}
 
 	/**
+<<<<<<< HEAD
 	 * Parses the xml answer to get ocs response message which doesn't match with
 	 * http one in v1 of the api.
 	 *
@@ -858,6 +875,8 @@ trait BasicStructure {
 	}
 
 	/**
+=======
+>>>>>>> upstream/master
 	 * Parses the xml answer to get the requested key and sub-key
 	 *
 	 * @param ResponseInterface $response
@@ -918,6 +937,7 @@ trait BasicStructure {
 	}
 
 	/**
+<<<<<<< HEAD
 	 * @When /^the user sends HTTP method "([^"]*)" to OCS API endpoint "([^"]*)" with body$/
 	 * @Given /^the user has sent HTTP method "([^"]*)" to OCS API endpoint "([^"]*)" with body$/
 	 *
@@ -996,6 +1016,8 @@ trait BasicStructure {
 	}
 
 	/**
+=======
+>>>>>>> upstream/master
 	 * @When /^user "([^"]*)" sends HTTP method "([^"]*)" to URL "([^"]*)"$/
 	 * @Given /^user "([^"]*)" has sent HTTP method "([^"]*)" to URL "([^"]*)"$/
 	 *
@@ -1081,6 +1103,7 @@ trait BasicStructure {
 	}
 
 	/**
+<<<<<<< HEAD
 	 * @Then /^the OCS status code should be "([^"]*)"$/
 	 *
 	 * @param int|int[] $statusCode
@@ -1107,6 +1130,8 @@ trait BasicStructure {
 	}
 
 	/**
+=======
+>>>>>>> upstream/master
 	 * @Then /^the HTTP status code should be "([^"]*)"$/
 	 *
 	 * @param int|int[] $statusCode
@@ -1191,6 +1216,7 @@ trait BasicStructure {
 	}
 
 	/**
+<<<<<<< HEAD
 	 * Check the text in an OCS status message
 	 *
 	 * @Then /^the OCS status message should be "([^"]*)"$/
@@ -1240,6 +1266,8 @@ trait BasicStructure {
 	}
 
 	/**
+=======
+>>>>>>> upstream/master
 	 * @Then /^the XML "([^"]*)" "([^"]*)" value should be "([^"]*)"$/
 	 *
 	 * @param string $key1
@@ -1942,6 +1970,20 @@ trait BasicStructure {
 	}
 
 	/**
+<<<<<<< HEAD
+=======
+	 * @Then the body of the response should be empty
+	 *
+	 * @return void
+	 */
+	public function theResponseBodyShouldBeEmpty() {
+		PHPUnit_Framework_Assert::assertEmpty(
+			$this->getResponse()->getBody()->getContents()
+		);
+	}
+
+	/**
+>>>>>>> upstream/master
 	 * @param ResponseInterface|null $response
 	 *
 	 * @return array
@@ -2482,6 +2524,29 @@ trait BasicStructure {
 	}
 
 	/**
+<<<<<<< HEAD
+=======
+	 * This will run before EVERY scenario.
+	 * It will set the properties for this object.
+	 *
+	 * @BeforeScenario
+	 *
+	 * @param BeforeScenarioScope $scope
+	 *
+	 * @return void
+	 */
+	public function before(BeforeScenarioScope $scope) {
+		// Get the environment
+		$environment = $scope->getEnvironment();
+		// registers context in every suite, as every suite has FeatureContext
+		// that calls BasicStructure.php
+		$this->ocsContext = new OCSContext();
+		$this->ocsContext->before($scope);
+		$environment->registerContext($this->ocsContext);
+	}
+
+	/**
+>>>>>>> upstream/master
 	 * runs a function on every server (LOCAL & REMOTE).
 	 * The callable function receives the server (LOCAL or REMOTE) as first argument
 	 *

@@ -216,7 +216,11 @@ trait Sharing {
 	 */
 	public function theUserHasCreatedAShareWithSettings($body) {
 		$this->userCreatesAShareWithSettings($this->currentUser, $body);
+<<<<<<< HEAD
 		$this->theOCSStatusCodeShouldBe([100, 200]);
+=======
+		$this->ocsContext->theOCSStatusCodeShouldBe([100, 200]);
+>>>>>>> upstream/master
 		$this->theHTTPStatusCodeShouldBe(200);
 	}
 
@@ -229,7 +233,11 @@ trait Sharing {
 	 */
 	public function theUserHasCreatedAPublicLinkShareWithSettings($body) {
 		$this->theUserCreatesAPublicLinkShareWithSettings($body);
+<<<<<<< HEAD
 		$this->theOCSStatusCodeShouldBe([100, 200]);
+=======
+		$this->ocsContext->theOCSStatusCodeShouldBe([100, 200]);
+>>>>>>> upstream/master
 		$this->theHTTPStatusCodeShouldBe(200);
 	}
 
@@ -547,7 +555,11 @@ trait Sharing {
 		$this->createAPublicShare($sharer, $filepath);
 		PHPUnit_Framework_Assert::assertEquals(
 			404,
+<<<<<<< HEAD
 			$this->getOCSResponseStatusCode($this->response)
+=======
+			$this->ocsContext->getOCSResponseStatusCode($this->response)
+>>>>>>> upstream/master
 		);
 	}
 
@@ -1064,7 +1076,11 @@ trait Sharing {
 		$this->createShare(
 			$sharer, $filepath, $shareType, $sharee, null, null, $permissions
 		);
+<<<<<<< HEAD
 		$statusCode = $this->getOCSResponseStatusCode($this->response);
+=======
+		$statusCode = $this->ocsContext->getOCSResponseStatusCode($this->response);
+>>>>>>> upstream/master
 		PHPUnit_Framework_Assert::assertTrue(
 			($statusCode == 404) || ($statusCode == 403),
 			"Sharing should have failed but passed with status code $statusCode"
@@ -1092,7 +1108,11 @@ trait Sharing {
 		
 		//v1.php returns 100 as success code
 		//v2.php returns 200 in the same case
+<<<<<<< HEAD
 		$this->theOCSStatusCodeShouldBe([100, 200]);
+=======
+		$this->ocsContext->theOCSStatusCodeShouldBe([100, 200]);
+>>>>>>> upstream/master
 	}
 
 	/**
@@ -1116,7 +1136,11 @@ trait Sharing {
 	public function userDeletesLastShareUsingTheSharingApi($user) {
 		$share_id = $this->lastShareData->data[0]->id;
 		$url = "/apps/files_sharing/api/v{$this->sharingApiVersion}/shares/$share_id";
+<<<<<<< HEAD
 		$this->userSendsHTTPMethodToOcsApiEndpointWithBody(
+=======
+		$this->ocsContext->userSendsHTTPMethodToOcsApiEndpointWithBody(
+>>>>>>> upstream/master
 			$user, "DELETE", $url, null
 		);
 	}
@@ -1140,7 +1164,11 @@ trait Sharing {
 	public function userGetsInfoOfLastShareUsingTheSharingApi($user) {
 		$share_id = $this->lastShareData->data[0]->id;
 		$url = "/apps/files_sharing/api/v{$this->sharingApiVersion}/shares/$share_id";
+<<<<<<< HEAD
 		$this->userSendsHTTPMethodToOcsApiEndpointWithBody(
+=======
+		$this->ocsContext->userSendsHTTPMethodToOcsApiEndpointWithBody(
+>>>>>>> upstream/master
 			$user, "GET", $url, null
 		);
 	}
@@ -1154,7 +1182,11 @@ trait Sharing {
 	 */
 	public function userGetsAllTheSharesSharedWithHimUsingTheSharingApi($user) {
 		$url = "/apps/files_sharing/api/v1/shares?shared_with_me=true";
+<<<<<<< HEAD
 		$this->userSendsHTTPMethodToOcsApiEndpointWithBody(
+=======
+		$this->ocsContext->userSendsHTTPMethodToOcsApiEndpointWithBody(
+>>>>>>> upstream/master
 			$user,
 			'GET',
 			$url,
@@ -1173,7 +1205,11 @@ trait Sharing {
 	public function userGetsAllSharesSharedWithHimFromFileOrFolderUsingTheProvisioningApi($user, $path) {
 		$url = "/apps/files_sharing/api/"
 		. "v{$this->sharingApiVersion}/shares?shared_with_me=true&path=$path";
+<<<<<<< HEAD
 		$this->userSendsHTTPMethodToOcsApiEndpointWithBody(
+=======
+		$this->ocsContext->userSendsHTTPMethodToOcsApiEndpointWithBody(
+>>>>>>> upstream/master
 			$user,
 			'GET',
 			$url,
@@ -1529,7 +1565,13 @@ trait Sharing {
 	) {
 		$share_id = $this->getPublicShareIDByName($user, $path, $name);
 		$url = "/apps/files_sharing/api/v{$this->sharingApiVersion}/shares/$share_id";
+<<<<<<< HEAD
 		$this->theUserSendsToOcsApiEndpointWithBody("DELETE", $url, null);
+=======
+		$this->ocsContext->theUserSendsToOcsApiEndpointWithBody(
+			"DELETE", $url, null
+		);
+>>>>>>> upstream/master
 	}
 
 	/**
@@ -1568,7 +1610,11 @@ trait Sharing {
 			$httpRequestMethod = "POST";
 		}
 		
+<<<<<<< HEAD
 		$this->userSendsHTTPMethodToOcsApiEndpointWithBody(
+=======
+		$this->ocsContext->userSendsHTTPMethodToOcsApiEndpointWithBody(
+>>>>>>> upstream/master
 			$user, $httpRequestMethod, $url, null
 		);
 	}
@@ -1675,7 +1721,11 @@ trait Sharing {
 		
 		$url = "/apps/files_sharing/api/v{$this->sharingApiVersion}/shares" .
 			   "?format=json&shared_with_me=true&state=$stateCode";
+<<<<<<< HEAD
 		$this->userSendsHTTPMethodToOcsApiEndpointWithBody(
+=======
+		$this->ocsContext->userSendsHTTPMethodToOcsApiEndpointWithBody(
+>>>>>>> upstream/master
 			$user, "GET", $url, null
 		);
 		if ($this->response->getStatusCode() !== 200) {

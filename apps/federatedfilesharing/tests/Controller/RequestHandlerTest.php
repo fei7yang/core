@@ -308,6 +308,45 @@ class RequestHandlerTest extends TestCase {
 		);
 	}
 
+<<<<<<< HEAD
+=======
+	public function testAcceptFailedWhenInvalidShareId() {
+		$this->request->expects($this->any())
+			->method('getParam')
+			->willReturn(self::DEFAULT_TOKEN);
+
+		$this->ocmMiddleware->method('getValidShare')
+			->willThrowException(new BadRequestException());
+
+		$this->fedShareManager->expects($this->never())
+			->method('acceptShare');
+
+		$response = $this->requestHandlerController->acceptShare(2);
+		$this->assertEquals(
+			Http::STATUS_GONE,
+			$response->getStatusCode()
+		);
+	}
+
+	public function testAcceptFailedWhenShareIdHasInvalidSecret() {
+		$this->request->expects($this->any())
+			->method('getParam')
+			->willReturn(self::DEFAULT_TOKEN);
+
+		$this->ocmMiddleware->method('getValidShare')
+			->willThrowException(new ForbiddenException());
+
+		$this->fedShareManager->expects($this->never())
+			->method('acceptShare');
+
+		$response = $this->requestHandlerController->acceptShare(2);
+		$this->assertEquals(
+			Http::STATUS_FORBIDDEN,
+			$response->getStatusCode()
+		);
+	}
+
+>>>>>>> upstream/master
 	public function testDeclineFailedWhenSharingIsDisabled() {
 		$this->ocmMiddleware->method('assertOutgoingSharingEnabled')
 			->willThrowException(new NotImplementedException());
@@ -346,6 +385,45 @@ class RequestHandlerTest extends TestCase {
 		);
 	}
 
+<<<<<<< HEAD
+=======
+	public function testDeclineFailedWhenInvalidShareId() {
+		$this->request->expects($this->any())
+			->method('getParam')
+			->willReturn(self::DEFAULT_TOKEN);
+
+		$this->ocmMiddleware->method('getValidShare')
+			->willThrowException(new BadRequestException());
+
+		$this->fedShareManager->expects($this->never())
+			->method('declineShare');
+
+		$response = $this->requestHandlerController->declineShare(2);
+		$this->assertEquals(
+			Http::STATUS_GONE,
+			$response->getStatusCode()
+		);
+	}
+
+	public function testDeclineFailedWhenShareIdHasInvalidSecret() {
+		$this->request->expects($this->any())
+			->method('getParam')
+			->willReturn(self::DEFAULT_TOKEN);
+
+		$this->ocmMiddleware->method('getValidShare')
+			->willThrowException(new ForbiddenException());
+
+		$this->fedShareManager->expects($this->never())
+			->method('declineShare');
+
+		$response = $this->requestHandlerController->declineShare(2);
+		$this->assertEquals(
+			Http::STATUS_FORBIDDEN,
+			$response->getStatusCode()
+		);
+	}
+
+>>>>>>> upstream/master
 	public function testUnshareFailedWhenSharingIsDisabled() {
 		$this->ocmMiddleware->method('assertOutgoingSharingEnabled')
 			->willThrowException(new NotImplementedException());

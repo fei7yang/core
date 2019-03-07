@@ -18,8 +18,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
  */
-namespace OCA\FederatedFileSharing;
+namespace OCA\FederatedFileSharing\Panels;
 
+<<<<<<< HEAD:apps/federatedfilesharing/lib/AdminPanel.php
+=======
+use OCA\FederatedFileSharing\FederatedShareProvider;
+>>>>>>> upstream/master:apps/federatedfilesharing/lib/Panels/AdminPanel.php
 use OCP\IConfig;
 use OCP\Settings\ISettings;
 use OCP\Template;

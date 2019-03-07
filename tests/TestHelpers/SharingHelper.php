@@ -101,6 +101,7 @@ class SharingHelper {
 		}
 		if ($permissions !== null) {
 			$fd['permissions'] = self::getPermissionSum($permissions);
+<<<<<<< HEAD
 		}
 
 		if (!\in_array($ocsApiVersion, [1, 2], true)) {
@@ -108,6 +109,15 @@ class SharingHelper {
 				"invalid ocsApiVersion ($ocsApiVersion)"
 			);
 		}
+=======
+		}
+
+		if (!\in_array($ocsApiVersion, [1, 2], true)) {
+			throw new \InvalidArgumentException(
+				"invalid ocsApiVersion ($ocsApiVersion)"
+			);
+		}
+>>>>>>> upstream/master
 		if (!\in_array($sharingApiVersion, [1, 2], true)) {
 			throw new \InvalidArgumentException(
 				"invalid sharingApiVersion ($sharingApiVersion)"
@@ -194,5 +204,28 @@ class SharingHelper {
 			);
 		}
 		return $permissionSum;
+<<<<<<< HEAD
+=======
+	}
+
+	/**
+	 *
+	 * @param \SimpleXMLElement $responseXmlObject
+	 * @param string $errorMessage
+	 *
+	 * @throws \Exception
+	 *
+	 * @return string
+	 */
+	public static function getLastShareIdFromResponse(
+		$responseXmlObject, $errorMessage = "cannot find share id in response"
+	) {
+		$xmlPart = $responseXmlObject->xpath("//data/element[last()]/id");
+		
+		if (!\is_array($xmlPart) || (\count($xmlPart) === 0)) {
+			throw new \Exception($errorMessage);
+		}
+		return $xmlPart[0]->__toString();
+>>>>>>> upstream/master
 	}
 }

@@ -67,7 +67,11 @@ core_vendor=core/vendor
 
 core_doc_files=AUTHORS COPYING README.md
 core_src_files=$(wildcard *.php) index.html db_structure.xml .htaccess .user.ini robots.txt
+<<<<<<< HEAD
 core_src_dirs=apps core l10n lib occ ocs ocs-provider ocm-provider resources settings
+=======
+core_src_dirs=apps apps-external core l10n lib occ ocs ocs-provider ocm-provider resources settings
+>>>>>>> upstream/master
 core_test_dirs=tests
 core_all_src=$(core_src_files) $(core_src_dirs) $(core_doc_files)
 core_config_files=config/config.sample.php config/config.apps.sample.php
@@ -103,7 +107,11 @@ help:
 	@echo
 	@echo -e "Testing:\n"
 	@echo -e "make test\t\t\trun all tests"
+<<<<<<< HEAD
 	@echo -e "make test-php\t\t\trun all PHP tests"
+=======
+	@echo -e "make test-php-unit\t\t\trun all PHP tests"
+>>>>>>> upstream/master
 	@echo -e "make test-php-style\t\trun PHP code style checks"
 	@echo -e "make test-js\t\t\trun Javascript tests"
 	@echo -e "make test-js-debug\t\trun Javascript tests in debug mode (continuous)"
@@ -113,7 +121,7 @@ help:
 	@echo -e "make clean-test\t\t\tclean test results"
 	@echo
 	@echo It is also possible to run individual PHP test files with the following command:
-	@echo -e "make test-php TEST_DATABASE=mysql TEST_PHP_SUITE=path/to/testfile.php"
+	@echo -e "make test-php-unit TEST_DATABASE=mysql TEST_PHP_SUITE=path/to/testfile.php"
 	@echo
 	@echo -e "Tools:\n"
 	@echo -e "make test-php-style-fix\t\trun PHP code style checks and fix any issues found"
@@ -171,8 +179,13 @@ clean-nodejs-deps:
 ## Tests
 ##---------------------
 
+<<<<<<< HEAD
 .PHONY: test-php
 test-php: $(composer_dev_deps)
+=======
+.PHONY: test-php-unit
+test-php-unit: $(composer_dev_deps)
+>>>>>>> upstream/master
 	PHPUNIT=$(PHPUNIT) build/autotest.sh $(TEST_DATABASE) $(TEST_PHP_SUITE)
 
 .PHONY: test-external
@@ -218,7 +231,11 @@ test-php-phpstan: vendor-bin/phpstan/vendor
 	$(PHPSTAN) analyse --memory-limit=2G --configuration=./phpstan.neon --level=0 apps core settings lib/private lib/public ocs ocs-provider
 
 .PHONY: test
+<<<<<<< HEAD
 test: test-php-style test-php test-js test-acceptance-api test-acceptance-cli test-acceptance-webui
+=======
+test: test-php-style test-php-unit test-js test-acceptance-api test-acceptance-cli test-acceptance-webui
+>>>>>>> upstream/master
 
 .PHONY: clean-test-acceptance
 clean-test-acceptance:
@@ -261,7 +278,11 @@ $(dist_dir)/owncloud: $(composer_deps) $(nodejs_deps) $(core_all_src)
 	rm -Rf $@/core/vendor/*/{.bower.json,bower.json,package.json,testem.json}
 	rm -Rf $@/l10n/
 	find $@/core/ -iname \*.sh -delete
+<<<<<<< HEAD
 	find $@/{apps/,lib/composer/,core/vendor/} \( \
+=======
+	find $@/{apps/,apps-external/,lib/composer/,core/vendor/} \( \
+>>>>>>> upstream/master
 		-name bin -o \
 		-name test -o \
 		-name tests -o \
@@ -272,7 +293,7 @@ $(dist_dir)/owncloud: $(composer_deps) $(nodejs_deps) $(core_all_src)
 		-name travis -o \
 		-iname \*.sh \
 		\) -print | xargs rm -Rf
-	find $@/{apps/,lib/composer/} -iname \*.exe -delete
+	find $@/{apps/,apps-external/,lib/composer/} -iname \*.exe -delete
 	# Set build
 	$(eval _BUILD="$(shell date -u --iso-8601=seconds) $(shell git rev-parse HEAD)")
 	# Replace channel in version.php
@@ -312,7 +333,11 @@ $(dist_dir)/qa/owncloud: $(composer_dev_deps) $(nodejs_deps) $(core_all_src) $(c
 	rm -Rf $@/core/vendor/*/{.bower.json,bower.json,package.json,testem.json}
 	rm -Rf $@/l10n/
 	find $@/core/ -iname \*.sh -delete
+<<<<<<< HEAD
 	find $@/{apps/,lib/composer/,core/vendor/} \( \
+=======
+	find $@/{apps/,apps-external/,lib/composer/,core/vendor/} \( \
+>>>>>>> upstream/master
 		-name test -o \
 		-name examples -o \
 		-name demo -o \
@@ -321,7 +346,7 @@ $(dist_dir)/qa/owncloud: $(composer_dev_deps) $(nodejs_deps) $(core_all_src) $(c
 		-name travis -o \
 		-iname \*.sh \
 		\) -print | xargs rm -Rf
-	find $@/{apps/,lib/composer/} -iname \*.exe -delete
+	find $@/{apps/,apps-external/,lib/composer/} -iname \*.exe -delete
 	# Set build
 	$(eval _BUILD="$(shell date -u --iso-8601=seconds) $(shell git rev-parse HEAD)")
 	# Replace channel in version.php

@@ -38,11 +38,19 @@ class OcsApiHelper {
 	 * @param string $path
 	 * @param array $body array of key, value pairs e.g ['value' => 'yes']
 	 * @param int $ocsApiVersion (1|2) default 2
+<<<<<<< HEAD
+=======
+	 * @param array $headers
+>>>>>>> upstream/master
 	 *
 	 * @return ResponseInterface
 	 */
 	public static function sendRequest(
+<<<<<<< HEAD
 		$baseUrl, $user, $password, $method, $path, $body = [], $ocsApiVersion = 2
+=======
+		$baseUrl, $user, $password, $method, $path, $body = [], $ocsApiVersion = 2, $headers = []
+>>>>>>> upstream/master
 	) {
 		$fullUrl = $baseUrl;
 		if (\substr($fullUrl, -1) !== '/') {
@@ -50,6 +58,10 @@ class OcsApiHelper {
 		}
 		$fullUrl .= "ocs/v{$ocsApiVersion}.php" . $path;
 
+<<<<<<< HEAD
 		return HttpRequestHelper::sendRequest($fullUrl, $method, $user, $password, [], $body);
+=======
+		return HttpRequestHelper::sendRequest($fullUrl, $method, $user, $password, $headers, $body);
+>>>>>>> upstream/master
 	}
 }

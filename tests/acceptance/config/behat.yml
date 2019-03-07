@@ -20,6 +20,16 @@ default:
         - OccContext:
         - TransferOwnershipContext:
 
+<<<<<<< HEAD
+=======
+    apiAuth:
+      paths:
+        - '%paths.base%/../features/apiAuth'
+      contexts:
+        - FeatureContext: *common_feature_context_params
+        - CorsContext:
+
+>>>>>>> upstream/master
     apiCapabilities:
       paths:
         - '%paths.base%/../features/apiCapabilities'

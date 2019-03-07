@@ -39,6 +39,10 @@ use OCP\IURLGenerator;
 use OCP\IUser;
 use OCP\IGroup;
 use OCP\IUserManager;
+<<<<<<< HEAD:apps/files_sharing/tests/Controller/Share20OcsControllerTest.php
+=======
+use OCP\IUserSession;
+>>>>>>> upstream/master:apps/files_sharing/tests/Controller/Share20OcsControllerTest.php
 use OCP\Lock\ILockingProvider;
 use OCP\Lock\LockedException;
 use OCP\Share;
@@ -87,6 +91,12 @@ class Share20OcsControllerTest extends TestCase {
 	/** @var IUser */
 	private $currentUser;
 
+<<<<<<< HEAD:apps/files_sharing/tests/Controller/Share20OcsControllerTest.php
+=======
+	/** @var IUserSession */
+	private $userSession;
+
+>>>>>>> upstream/master:apps/files_sharing/tests/Controller/Share20OcsControllerTest.php
 	/** @var Share20OcsController */
 	private $ocs;
 
@@ -115,8 +125,10 @@ class Share20OcsControllerTest extends TestCase {
 		$this->urlGenerator = $this->createMock(IURLGenerator::class);
 		$this->currentUser = $this->createMock(IUser::class);
 		$this->currentUser->method('getUID')->willReturn('currentUser');
+		$this->userSession = $this->createMock(IUserSession::class);
+		$this->userSession->method('getUser')->willReturn($this->currentUser);
 
-		$this->userManager->expects($this->any())->method('userExists')->willReturn(true);
+		$this->userManager->method('userExists')->willReturn(true);
 
 		$this->l = $this->createMock(IL10N::class);
 		$this->l->method('t')
@@ -143,7 +155,7 @@ class Share20OcsControllerTest extends TestCase {
 			$this->userManager,
 			$this->rootFolder,
 			$this->urlGenerator,
-			$this->currentUser,
+			$this->userSession,
 			$this->l,
 			$this->config,
 			$this->notificationPublisher,
@@ -169,7 +181,7 @@ class Share20OcsControllerTest extends TestCase {
 				$this->userManager,
 				$this->rootFolder,
 				$this->urlGenerator,
-				$this->currentUser,
+				$this->userSession,
 				$this->l,
 				$this->config,
 				$this->notificationPublisher,
@@ -495,7 +507,7 @@ class Share20OcsControllerTest extends TestCase {
 					$this->userManager,
 					$this->rootFolder,
 					$this->urlGenerator,
-					$this->currentUser,
+					$this->userSession,
 					$this->l,
 					$this->config,
 					$this->notificationPublisher,
@@ -2794,7 +2806,7 @@ class Share20OcsControllerTest extends TestCase {
 			$this->userManager,
 			$this->rootFolder,
 			$this->urlGenerator,
-			$this->currentUser,
+			$this->userSession,
 			$this->l,
 			$this->config,
 			$this->notificationPublisher,
@@ -2888,7 +2900,11 @@ class Share20OcsControllerTest extends TestCase {
 			$this->userManager,
 			$this->rootFolder,
 			$this->urlGenerator,
+<<<<<<< HEAD:apps/files_sharing/tests/Controller/Share20OcsControllerTest.php
 			$this->currentUser,
+=======
+			$this->userSession,
+>>>>>>> upstream/master:apps/files_sharing/tests/Controller/Share20OcsControllerTest.php
 			$this->l,
 			$config,
 			$this->notificationPublisher,

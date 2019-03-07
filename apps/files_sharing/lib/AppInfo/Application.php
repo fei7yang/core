@@ -86,7 +86,11 @@ class Application extends App {
 				$server->getUserManager(),
 				$server->getRootFolder(),
 				$server->getURLGenerator(),
+<<<<<<< HEAD
 				$server->getUserSession()->getUser(),
+=======
+				$server->getUserSession(),
+>>>>>>> upstream/master
 				$server->getL10N('files_sharing'),
 				$server->getConfig(),
 				$c->query(NotificationPublisher::class),

@@ -1039,7 +1039,11 @@ class FederatedShareProvider implements IShareProvider {
 			'',
 			$name,
 			$owner,
+<<<<<<< HEAD
 			$this->getAccepted($remote),
+=======
+			$this->getAccepted($remote, $shareWith),
+>>>>>>> upstream/master
 			$shareWith,
 			$remoteId
 		);
@@ -1048,10 +1052,18 @@ class FederatedShareProvider implements IShareProvider {
 
 	/**
 	 * @param string $remote
+<<<<<<< HEAD
 	 *
 	 * @return bool
 	 */
 	protected function getAccepted($remote) {
+=======
+	 * @param string $shareWith
+	 *
+	 * @return bool
+	 */
+	protected function getAccepted($remote, $shareWith) {
+>>>>>>> upstream/master
 		$event = $this->eventDispatcher->dispatch(
 			'remoteshare.received',
 			new GenericEvent('', ['remote' => $remote])
@@ -1059,11 +1071,23 @@ class FederatedShareProvider implements IShareProvider {
 		if ($event->getArgument('autoAddServers')) {
 			return false;
 		}
+<<<<<<< HEAD
 		$autoAccept = $this->config->getAppValue(
+=======
+		$globalAutoAcceptValue  = $this->config->getAppValue(
+>>>>>>> upstream/master
 			'federatedfilesharing',
 			'auto_accept_trusted',
 			'no'
 		);
+<<<<<<< HEAD
+=======
+		$autoAccept = $this->config->getUserValue(
+			$shareWith,
+			'federatedfilesharing',
+			'auto_accept_share_trusted',
+			$globalAutoAcceptValue);
+>>>>>>> upstream/master
 		if ($autoAccept !== 'yes') {
 			return false;
 		}

@@ -406,7 +406,11 @@ trait Provisioning {
 	 * @return void
 	 */
 	public function theAdministratorGetsTheInfoOfApp($app) {
+<<<<<<< HEAD
 		$this->userSendsToOcsApiEndpoint(
+=======
+		$this->ocsContext->userSendsToOcsApiEndpoint(
+>>>>>>> upstream/master
 			$this->getAdminUsername(),
 			"GET",
 			"/cloud/apps/$app"
@@ -433,7 +437,11 @@ trait Provisioning {
 	public function adminSendsUserCreationRequestUsingTheProvisioningApi($user, $password) {
 		$password = $this->getActualPassword($password);
 		$bodyTable = new TableNode([['userid', $user], ['password', $password]]);
+<<<<<<< HEAD
 		$this->userSendsHTTPMethodToOcsApiEndpointWithBody(
+=======
+		$this->ocsContext->userSendsHTTPMethodToOcsApiEndpointWithBody(
+>>>>>>> upstream/master
 			$this->getAdminUsername(),
 			"POST",
 			"/cloud/users",
@@ -458,7 +466,11 @@ trait Provisioning {
 		$bodyTable = new TableNode(
 			[['userid', $user], ['password', $password], ['groups[]', $group]]
 		);
+<<<<<<< HEAD
 		$this->userSendsHTTPMethodToOcsApiEndpointWithBody(
+=======
+		$this->ocsContext->userSendsHTTPMethodToOcsApiEndpointWithBody(
+>>>>>>> upstream/master
 			$this->getAdminUsername(),
 			"POST",
 			"/cloud/users",
@@ -515,7 +527,11 @@ trait Provisioning {
 	public function userTriesToResetPasswordOfUserUsingTheProvisioningApi($user, $username, $password) {
 		$password = $this->getActualPassword($password);
 		$bodyTable = new TableNode([['key', 'password'], ['value', $password]]);
+<<<<<<< HEAD
 		$this->userSendsHTTPMethodToOcsApiEndpointWithBody(
+=======
+		$this->ocsContext->userSendsHTTPMethodToOcsApiEndpointWithBody(
+>>>>>>> upstream/master
 			$user,
 			"PUT",
 			"/cloud/users/$username",
@@ -1681,7 +1697,11 @@ trait Provisioning {
 	) {
 		$bodyTable = new TableNode([['groupid', $group]]);
 		$user = $user === null ? $this->getAdminUsername() : $user;
+<<<<<<< HEAD
 		$this->userSendsHTTPMethodToOcsApiEndpointWithBody(
+=======
+		$this->ocsContext->userSendsHTTPMethodToOcsApiEndpointWithBody(
+>>>>>>> upstream/master
 			$user,
 			"POST",
 			"/cloud/groups",
@@ -2685,7 +2705,11 @@ trait Provisioning {
 	 * @return void
 	 */
 	public function checkAttributesForUser($user, $body) {
+<<<<<<< HEAD
 		$this->userSendsHTTPMethodToOcsApiEndpointWithBody(
+=======
+		$this->ocsContext->userSendsHTTPMethodToOcsApiEndpointWithBody(
+>>>>>>> upstream/master
 			$this->getAdminUsername(), "GET", "/cloud/users/$user",
 			null
 		);
